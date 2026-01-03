@@ -81,5 +81,13 @@ export {
   compressImage
 } from './storage';
 
+// Push Notifications
+export {
+  requestNotificationPermission,
+  removeNotificationToken,
+  onForegroundMessage,
+  getNotificationStatus
+} from './messaging';
+
 // Firebase instances
 export { auth, db, storage } from './config';

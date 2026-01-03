@@ -2,8 +2,9 @@
 // PROFILE MODAL
 // ============================================
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Lock, Check, MessageSquare, Shield, Bell } from 'lucide-react';
+import { User, Mail, Lock, Check, MessageSquare, Shield, Bell, Smartphone } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
+import { requestNotificationPermission, getNotificationStatus } from '../../firebase';
 
 const ProfileModal = ({
   isOpen,
@@ -35,6 +36,13 @@ const ProfileModal = ({
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [pushStatus, setPushStatus] = useState('default');
+  const [pushLoading, setPushLoading] = useState(false);
+
+  // Check push notification status
+  useEffect(() => {
+    setPushStatus(getNotificationStatus());
+  }, [isOpen]);
 
   // Reset form when modal opens or userProfile changes
   useEffect(() => {
@@ -134,8 +142,29 @@ const ProfileModal = ({
     }
   };
 
+  const handleEnablePush = async () => {
+    setPushLoading(true);
+    try {
+      const token = await requestNotificationPermission(userProfile?.id);
+      if (token) {
+        setPushStatus('granted');
+        addNotification('success', 'Push notifications enabled! You\'ll receive alerts on this device.');
+      } else {
+        setPushStatus(getNotificationStatus());
+        if (getNotificationStatus() === 'denied') {
+          addNotification('error', 'Notifications blocked. Please enable in browser settings.');
+        }
+      }
+    } catch (error) {
+      console.error('Push notification error:', error);
+      addNotification('error', 'Failed to enable notifications');
+    }
+    setPushLoading(false);
+  };
+
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
+    { id: 'notifications', label: 'Alerts', icon: Bell },
     { id: 'email', label: 'Email', icon: Mail },
     { id: 'password', label: 'Password', icon: Lock }
   ];
@@ -270,6 +299,93 @@ const ProfileModal = ({
             <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>Cancel</Button>
           </div>
         </form>
+      )}
+
+      {/* Notifications Tab */}
+      {activeTab === 'notifications' && (
+        <div className="space-y-6">
+          {/* Push Notifications Section */}
+          <div className="p-4 rounded-lg" style={{ backgroundColor: colors.background }}>
+            <h3 className="font-medium flex items-center mb-3" style={{ color: colors.textPrimary }}>
+              <Smartphone className="w-5 h-5 mr-2" style={{ color: colors.primary }} />
+              Push Notifications
+            </h3>
+            
+            {pushStatus === 'unsupported' && (
+              <div className="p-3 rounded-lg" style={{ backgroundColor: colors.warning + '15' }}>
+                <p className="text-sm" style={{ color: colors.warning }}>
+                  ⚠️ Push notifications are not supported in this browser. 
+                  Try using Chrome, Firefox, or Edge on desktop/Android.
+                </p>
+              </div>
+            )}
+            
+            {pushStatus === 'denied' && (
+              <div className="p-3 rounded-lg" style={{ backgroundColor: colors.danger + '15' }}>
+                <p className="text-sm" style={{ color: colors.danger }}>
+                  ❌ Notifications are blocked. To enable:
+                </p>
+                <ol className="text-xs mt-2 list-decimal list-inside" style={{ color: colors.danger }}>
+                  <li>Click the lock/info icon in your browser's address bar</li>
+                  <li>Find "Notifications" and change to "Allow"</li>
+                  <li>Refresh the page</li>
+                </ol>
+              </div>
+            )}
+            
+            {pushStatus === 'default' && (
+              <div className="space-y-3">
+                <p className="text-sm" style={{ color: colors.textSecondary }}>
+                  Enable push notifications to receive instant alerts when:
+                </p>
+                <ul className="text-sm space-y-1" style={{ color: colors.textSecondary }}>
+                  <li>• New jobs are assigned to you</li>
+                  <li>• Job status changes</li>
+                  <li>• Urgent issues are reported</li>
+                </ul>
+                <Button 
+                  onClick={handleEnablePush} 
+                  loading={pushLoading}
+                  icon={Bell}
+                  className="w-full mt-3"
+                >
+                  Enable Push Notifications
+                </Button>
+              </div>
+            )}
+            
+            {pushStatus === 'granted' && (
+              <div className="p-3 rounded-lg" style={{ backgroundColor: colors.success + '15' }}>
+                <p className="text-sm" style={{ color: colors.success }}>
+                  ✅ Push notifications are enabled on this device!
+                </p>
+                <p className="text-xs mt-1" style={{ color: colors.muted }}>
+                  You'll receive alerts even when FieldSync is closed.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* SMS Notifications Section */}
+          <div className="p-4 rounded-lg" style={{ backgroundColor: colors.background }}>
+            <h3 className="font-medium flex items-center mb-3" style={{ color: colors.textPrimary }}>
+              <MessageSquare className="w-5 h-5 mr-2" style={{ color: colors.water }} />
+              SMS Notifications
+            </h3>
+            
+            <p className="text-sm mb-3" style={{ color: colors.textSecondary }}>
+              Current carrier: <strong>{formData.carrier ? (formData.carrier === 'email_only' ? 'Email Only' : CARRIERS?.[formData.carrier]?.name || formData.carrier) : 'Not set'}</strong>
+            </p>
+            
+            <p className="text-xs" style={{ color: colors.muted }}>
+              Configure your carrier in the Profile tab to receive SMS alerts.
+            </p>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>Close</Button>
+          </div>
+        </div>
       )}
 
       {/* Email Tab */}
