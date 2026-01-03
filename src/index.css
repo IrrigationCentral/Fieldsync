@@ -1,0 +1,265 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Base Styles */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Prevent Android keyboard from resizing the viewport */
+  html {
+    scroll-behavior: smooth;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #FEFDF8;
+    transition: background-color 200ms ease-out;
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    height: 100%;
+    overflow: auto;
+  }
+
+  body.dark {
+    background-color: #0D1117;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #9CA986;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #8FBC3B;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 rounded-xl font-semibold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #2D5016 0%, #8FBC3B 100%);
+  }
+
+  .btn-primary:hover {
+    @apply shadow-lg transform -translate-y-0.5;
+    box-shadow: 0 10px 30px rgba(45, 80, 22, 0.3);
+  }
+
+  /* Card - now handled by inline styles */
+  .card {
+    @apply rounded-2xl shadow-sm transition-all duration-200;
+  }
+
+  .card:hover {
+    @apply shadow-xl;
+    transform: translateY(-2px);
+  }
+
+  /* Input - now handled by inline styles */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border transition-all duration-200;
+    /* Prevent zoom on focus (Android) */
+    font-size: 16px;
+  }
+
+  .input:focus {
+    @apply outline-none ring-2;
+    --tw-ring-color: #8FBC3B;
+  }
+
+  /* Prevent text zoom on mobile */
+  textarea, select {
+    font-size: 16px;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+    /* Android keyboard fix */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .modal-content {
+    @apply rounded-2xl shadow-2xl max-h-[90vh] overflow-auto;
+    animation: scaleIn 0.2s ease-out;
+    /* Android keyboard fix - prevent content jump */
+    position: relative;
+    max-height: 85vh;
+    max-height: 85dvh; /* Use dynamic viewport height where supported */
+  }
+
+  .badge {
+    @apply px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center;
+  }
+
+  .badge-success { @apply bg-green-100 text-green-700; }
+  .badge-warning { @apply bg-yellow-100 text-yellow-700; }
+  .badge-danger { @apply bg-red-100 text-red-700; }
+  .badge-info { @apply bg-blue-100 text-blue-700; }
+  .badge-muted { @apply bg-gray-100 text-gray-600; }
+
+  /* Dark mode badge overrides */
+  .dark .badge-success { @apply bg-green-900/30 text-green-400; }
+  .dark .badge-warning { @apply bg-yellow-900/30 text-yellow-400; }
+  .dark .badge-danger { @apply bg-red-900/30 text-red-400; }
+  .dark .badge-info { @apply bg-blue-900/30 text-blue-400; }
+  .dark .badge-muted { @apply bg-gray-800 text-gray-400; }
+
+  /* Dark mode card */
+  .dark .card {
+    background-color: #161B22;
+    border: 1px solid #30363D;
+  }
+
+  /* Dark mode input */
+  .dark .input {
+    background-color: #21262D;
+    border-color: #30363D;
+    color: #E6EDF3;
+  }
+
+  .dark .input::placeholder {
+    color: #8B949E;
+  }
+
+  .dark .input:focus {
+    border-color: #8FBC3B;
+    box-shadow: 0 0 0 2px rgba(143, 188, 59, 0.2);
+  }
+
+  /* Dark mode scrollbars */
+  .dark ::-webkit-scrollbar-track {
+    background: #161B22;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #30363D;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #8FBC3B;
+  }
+
+  /* Dark mode select */
+  .dark select {
+    background-color: #21262D;
+    border-color: #30363D;
+    color: #E6EDF3;
+  }
+
+  /* Dark mode modal */
+  .dark .modal-content {
+    background-color: #161B22;
+    border: 1px solid #30363D;
+  }
+
+  .nav-tab {
+    @apply flex items-center space-x-2 px-4 py-3 font-medium text-sm transition-all duration-200 border-b-2;
+    border-color: transparent;
+  }
+
+  .nav-tab.active {
+    border-color: #8FBC3B;
+  }
+
+  /* Dark mode nav tab */
+  .dark .nav-tab {
+    color: #8B949E;
+  }
+
+  .dark .nav-tab.active {
+    color: #8FBC3B;
+  }
+
+  .dark .nav-tab:hover {
+    color: #E6EDF3;
+  }
+
+  .toast {
+    @apply rounded-lg shadow-lg p-4 min-w-[300px] border-l-4;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .progress-bar {
+    @apply w-full h-2 rounded-full overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: linear-gradient(135deg, #2D5016 0%, #8FBC3B 100%);
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-200;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  /* Dark mode skeleton */
+  .dark .skeleton {
+    @apply bg-gray-700;
+  }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Smooth theme transition */
+* {
+  transition-property: background-color, border-color;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
