@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  MapPin, Users, CheckCircle, AlertCircle, Clock, Wrench, TrendingUp,
+  MapPin, Users, CheckCircle, AlertCircle, Clock, Wrench,
   Navigation, Droplets, Phone, Mail, Calendar, FileText,
   LogOut, ChevronRight, ChevronDown, ChevronUp,
-  Plus, Edit, Trash2, X, Search, Download,
+  Plus, Edit, Trash2, X, Search,
   Bell, User, DollarSign, Briefcase, BarChart3,
-  Home, Map, Clipboard, UserPlus, Shield, Cloud, Wifi,
-  WifiOff, Eye, EyeOff, RefreshCw, Check, Settings,
-  Hash, Power, MessageSquare, Moon, Sun,
-  Camera, Star, ChevronLeft, Image, Lock, Play, Square, FileSpreadsheet
+  Home, Map, Clipboard, UserPlus, Cloud, Wifi,
+  WifiOff, Eye, Check, Settings, Moon, Sun,
+  Star, ChevronLeft, Play, Square, FileSpreadsheet
 } from 'lucide-react';
 
 // Charts
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 // Firebase imports
 import {
@@ -23,7 +22,6 @@ import {
   onAuthChange,
   updateUserEmail,
   updateUserPassword,
-  updateUserProfile,
   updateUser,
   deleteUser as fbDeleteUser,
   subscribeToUsers,
@@ -42,13 +40,10 @@ import {
   deletePivot as fbDeletePivot,
   deleteJob as fbDeleteJob,
   getAnalytics,
-  uploadJobPhoto,
-  compressImage,
   startTimeEntry as fbStartTimeEntry,
   stopTimeEntry as fbStopTimeEntry,
   addManualTimeEntry as fbAddManualTimeEntry,
   deleteTimeEntry as fbDeleteTimeEntry,
-  updateTimeEntry as fbUpdateTimeEntry,
   subscribeToParts
 } from './firebase';
 
@@ -237,7 +232,6 @@ const FieldSyncApp = () => {
   const [showSOModal, setShowSOModal] = useState(false);
   const [selectedEquipmentForIssue, setSelectedEquipmentForIssue] = useState(null);
   const [selectedJobForAction, setSelectedJobForAction] = useState(null);
-  const [expandedCustomer, setExpandedCustomer] = useState(null);
   
   // Equipment Profile States
   const [selectedEquipmentProfile, setSelectedEquipmentProfile] = useState(null);
