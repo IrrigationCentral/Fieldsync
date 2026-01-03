@@ -55,6 +55,9 @@ import {
   getSmsEmail
 } from './services/sms';
 
+// Notification Service
+import { notifications } from './services/notifications';
+
 // Excel Export
 import { exportJobToExcel } from './services/excelExport';
 
@@ -464,13 +467,16 @@ const FieldSyncApp = () => {
       setShowReportIssueModal(false);
       setSelectedEquipmentForIssue(null);
       
-      // NOTIFICATIONS DISABLED - Notify managers and office staff about new issue
-      // const managers = users.filter(u => u.role === 'manager');
-      // const officeStaff = users.filter(u => u.role === 'office');
-      // const reporterName = pivotOptions?.reportedBy || userProfile?.name || 'Customer';
+      // Notify managers and office staff about new issue
+      const managers = users.filter(u => u.role === 'manager');
+      const officeStaff = users.filter(u => u.role === 'office');
+      const reporterName = pivotOptions?.reportedBy || userProfile?.name || 'Customer';
+      notifications.newIssue(managers, officeStaff, jobData, reporterName);
       
-      // notifyManagersNewIssue(managers, jobData, reporterName);
-      // notifyOfficeNewIssue(officeStaff, jobData, reporterName);
+      // If high priority, send urgent notification
+      if (priority === 'high') {
+        notifications.urgentIssue(managers, jobData, reporterName);
+      }
     } else {
       addNotification('error', 'Failed to report issue');
     }
@@ -492,10 +498,10 @@ const FieldSyncApp = () => {
     if (result.success) {
       addNotification('success', 'Call-in job created successfully');
       
-      // NOTIFICATIONS DISABLED - Notify managers about new call-in job
-      // const managers = users.filter(u => u.role === 'manager');
-      // const reporterName = userProfile?.name || 'Office';
-      // notifyManagersNewIssue(managers, fullJobData, reporterName);
+      // Notify managers about new call-in job
+      const managers = users.filter(u => u.role === 'manager');
+      const reporterName = userProfile?.name || 'Office';
+      notifications.newIssue(managers, [], fullJobData, reporterName);
       
       setIsLoading(false);
       return { success: true };
@@ -513,11 +519,11 @@ const FieldSyncApp = () => {
       const tech = users.find(u => u.id === techId);
       addNotification('success', `Job assigned to ${tech?.name || 'technician'}`);
 
-      // NOTIFICATIONS DISABLED - Send SMS notification to tech
-      // const job = jobs.find(j => j.id === jobId);
-      // if (tech && job) {
-      //   notifyJobAssigned(tech, job);
-      // }
+      // Send notification to assigned tech
+      const job = jobs.find(j => j.id === jobId);
+      if (tech && job) {
+        notifications.jobAssigned(tech, job);
+      }
 
       setShowAssignJobModal(false);
       setSelectedJobForAction(null);
@@ -533,11 +539,8 @@ const FieldSyncApp = () => {
     const result = await fbAssignJob(jobId, userProfile.id);
     if (result.success) {
       addNotification('success', 'Job assigned to you');
-      // NOTIFICATIONS DISABLED - Notify self
-      // const job = jobs.find(j => j.id === jobId);
-      // if (job) {
-      //   notifyJobAssigned(userProfile, job);
-      // }
+      // No need to notify yourself, but log for debugging
+      console.log('Self-assigned job:', jobId);
     } else {
       addNotification('error', 'Failed to assign job');
     }
@@ -630,20 +633,20 @@ const FieldSyncApp = () => {
     if (result.success) {
       addNotification('success', 'Job completed successfully! 🎉');
 
-      // NOTIFICATIONS DISABLED - Send SMS notification to farmer
-      // const job = jobs.find(j => j.id === jobId);
-      // const completedByName = userProfile?.name || 'Technician';
-      // if (job) {
-      //   const farmer = users.find(u => u.id === job.farmerId);
-      //   if (farmer) {
-      //     notifyJobCompleted(farmer, job);
-      //   }
-      //   // Notify managers and office staff about completion
-      //   const managers = users.filter(u => u.role === 'manager');
-      //   const officeStaff = users.filter(u => u.role === 'office');
-      //   notifyManagersJobCompleted(managers, job, completedByName);
-      //   notifyOfficeJobCompleted(officeStaff, job, completedByName);
-      // }
+      // Send notifications
+      const job = jobs.find(j => j.id === jobId);
+      const completedByName = userProfile?.name || 'Technician';
+      if (job) {
+        // Notify farmer that their equipment is serviced
+        const farmer = users.find(u => u.id === job.farmerId);
+        if (farmer) {
+          notifications.jobCompletedFarmer(farmer, job);
+        }
+        // Notify managers and office staff about completion
+        const managers = users.filter(u => u.role === 'manager');
+        const officeStaff = users.filter(u => u.role === 'office');
+        notifications.jobCompletedStaff(managers, officeStaff, job, completedByName);
+      }
 
       setShowCompleteJobModal(false);
       setSelectedJobForAction(null);

@@ -198,7 +198,7 @@ export const notifyJobAssigned = async (tech, job) => {
 };
 
 export const notifyJobCompleted = async (farmer, job) => {
-  const message = `FieldSync: Service complete - ${job.title}. Your pivot ${job.pivotName || ''} has been serviced. Thank you for choosing Hardluck Irrigation!`;
+  const message = `FieldSync: Service complete - ${job.title}. Your pivot ${job.pivotName || ''} has been serviced. Thank you for choosing Irrigation Central!`;
   
   // If user prefers email only, skip SMS
   if (farmer.carrier === 'email_only' && farmer.email) {
