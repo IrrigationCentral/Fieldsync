@@ -47,71 +47,30 @@ export const deletePhoto = async (path) => {
 
 // Compress image before upload (client-side)
 export const compressImage = (file, maxWidth = 1200, quality = 0.8) => {
-  return new Promise((resolve, reject) => {
-    // Set a timeout to prevent hanging indefinitely (30 seconds)
-    const timeout = setTimeout(() => {
-      reject(new Error('Image compression timeout - using original file'));
-    }, 30000);
-
+  return new Promise((resolve) => {
     const reader = new FileReader();
-
-    reader.onerror = () => {
-      clearTimeout(timeout);
-      reject(new Error('Failed to read image file'));
-    };
-
     reader.onload = (e) => {
       const img = new Image();
-
-      img.onerror = () => {
-        clearTimeout(timeout);
-        reject(new Error('Failed to load image - file may be corrupted'));
-      };
-
       img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            clearTimeout(timeout);
-            reject(new Error('Failed to get canvas context'));
-            return;
-          }
-
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              clearTimeout(timeout);
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error('Failed to create compressed image blob'));
-              }
-            },
-            'image/jpeg',
-            quality
-          );
-        } catch (error) {
-          clearTimeout(timeout);
-          reject(error);
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
         }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(resolve, 'image/jpeg', quality);
       };
-
       img.src = e.target.result;
     };
-
     reader.readAsDataURL(file);
   });
 };

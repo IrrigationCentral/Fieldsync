@@ -7,14 +7,14 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyB2_veGmiiask_IBUqspw9wmYcPbVrfTxc",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "fieldsync-2768a.firebaseapp.com",
-  databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL || "https://fieldsync-2768a-default-rtdb.firebaseio.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "fieldsync-2768a",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "fieldsync-2768a.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "1071854844469",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:1071854844469:web:0ab89170730a0900a44f7c",
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-DD40T9ZFFN"
+  apiKey: "AIzaSyB2_veGmiiask_IBUqspw9wmYcPbVrfTxc",
+  authDomain: "fieldsync-2768a.firebaseapp.com",
+  databaseURL: "https://fieldsync-2768a-default-rtdb.firebaseio.com",
+  projectId: "fieldsync-2768a",
+  storageBucket: "fieldsync-2768a.firebasestorage.app",
+  messagingSenderId: "1071854844469",
+  appId: "1:1071854844469:web:0ab89170730a0900a44f7c",
+  measurementId: "G-DD40T9ZFFN"
 };
 
 // Initialize Firebase

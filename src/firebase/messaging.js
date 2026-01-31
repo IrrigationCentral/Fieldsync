@@ -23,7 +23,7 @@ const initializeMessaging = () => {
 };
 
 // VAPID key from Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
-const VAPID_KEY = process.env.REACT_APP_FIREBASE_VAPID_KEY || 'BJ4vc3C4hQFrmZbhTnMrngqDUbjBNARK-KtozNQ4XgpQXeBedWTnkzZTfnSx9fM_Hbk585jrQTu_gQMEv2M2pIE';
+const VAPID_KEY = 'BJ4vc3C4hQFrmZbhTnMrngqDUbjBNARK-KtozNQ4XgpQXeBedWTnkzZTfnSx9fM_Hbk585jrQTu_gQMEv2M2pIE';
 
 /**
  * Request notification permission and get FCM token
@@ -60,11 +60,13 @@ export const requestNotificationPermission = async (userId) => {
     });
 
     if (token) {
+      console.log('FCM Token:', token);
+      
       // Save token to user's document in Firestore
       if (userId) {
         await saveTokenToUser(userId, token);
       }
-
+      
       return token;
     } else {
       console.log('No FCM token available');

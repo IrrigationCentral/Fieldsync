@@ -98,20 +98,12 @@ const AddEquipmentModal = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showMap]);
 
-  // Cleanup map and reset form on modal close
+  // Cleanup map on modal close
   useEffect(() => {
     if (!isOpen) {
       mapInstanceRef.current = null;
       markerRef.current = null;
       setShowMap(false);
-      setShowAdvanced(false);
-      // Reset form when modal closes
-      setFormData({ 
-        farmerId: '', name: '', type: 'center', acres: '', brand: '', model: '', serialNumber: '',
-        powerType: '', panelType: '', dateInstalled: '', length: '', spans: '',
-        nozzles: '', pressure: '', gpm: '', endGun: '', tireSize: '', nozzlePackage: '',
-        gearboxRatio: '', driveType: '', lat: '', lng: '', address: '', notes: ''
-      });
     }
   }, [isOpen]);
 
@@ -172,46 +164,32 @@ const AddEquipmentModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    try {
-      // Validate required fields
-      if (!formData.name || formData.name.trim() === '') {
-        addNotification('error', 'Equipment name is required');
-        return;
-      }
-      
-      // Use selected farmerId for staff, or current user's ID for farmers
-      const targetFarmerId = isStaff ? formData.farmerId : userProfile?.id;
-      
-      // Staff must select a customer
-      if (isStaff && !formData.farmerId) {
-        addNotification('error', 'Please select a customer');
-        return;
-      }
-      
-      // Farmers must have a valid user ID
-      if (!isStaff && !userProfile?.id) {
-        addNotification('error', 'User profile not found. Please try logging in again.');
-        return;
-      }
-      
-      // Call onAdd
-      onAdd({
-        ...formData,
-        farmerId: targetFarmerId,
-        acres: parseFloat(formData.acres) || 0,
-        nozzles: parseInt(formData.nozzles) || 0,
-        pressure: parseFloat(formData.pressure) || 0,
-        gpm: parseFloat(formData.gpm) || 0,
-        length: parseFloat(formData.length) || null,
-        spans: parseInt(formData.spans) || null,
-        lat: parseFloat(formData.lat) || null,
-        lng: parseFloat(formData.lng) || null
-      });
-    } catch (err) {
-      console.error('AddEquipment submit error:', err);
-      addNotification('error', 'Failed to submit: ' + err.message);
+    // Use selected farmerId for staff, or current user's ID for farmers
+    const targetFarmerId = isStaff ? formData.farmerId : userProfile?.id;
+    if (isStaff && !formData.farmerId) {
+      addNotification('error', 'Please select a customer');
+      return;
     }
+    onAdd({
+      ...formData,
+      farmerId: targetFarmerId,
+      acres: parseFloat(formData.acres) || 0,
+      nozzles: parseInt(formData.nozzles) || 0,
+      pressure: parseFloat(formData.pressure) || 0,
+      gpm: parseFloat(formData.gpm) || 0,
+      length: parseFloat(formData.length) || null,
+      spans: parseInt(formData.spans) || null,
+      lat: parseFloat(formData.lat) || null,
+      lng: parseFloat(formData.lng) || null
+    });
+    // Reset form
+    setFormData({ 
+      farmerId: '', name: '', type: 'center', acres: '', brand: '', model: '', serialNumber: '',
+      powerType: '', panelType: '', dateInstalled: '', length: '', spans: '',
+      nozzles: '', pressure: '', gpm: '', endGun: '', tireSize: '', nozzlePackage: '',
+      gearboxRatio: '', driveType: '', lat: '', lng: '', address: '', notes: ''
+    });
+    setShowAdvanced(false);
   };
 
   const equipmentTypeOptions = [
@@ -282,6 +260,7 @@ const AddEquipmentModal = ({
             placeholder="North Field Pivot" 
             value={formData.name} 
             onChange={e => setFormData({...formData, name: e.target.value})} 
+            required 
           />
           <div className="grid grid-cols-2 gap-4 mt-3">
             <Select 

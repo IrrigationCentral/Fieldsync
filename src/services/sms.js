@@ -28,12 +28,13 @@ const formatPhone = (phone) => {
   
   // Remove all non-digit characters
   let digits = phone.replace(/\D/g, '');
-
+  
   // If starts with 1 and has 11 digits, remove the leading 1 (US country code)
   if (digits.length === 11 && digits.startsWith('1')) {
     digits = digits.substring(1);
   }
-
+  
+  console.log('Phone formatting:', { original: phone, cleaned: digits, length: digits.length });
   return digits;
 };
 
@@ -53,6 +54,7 @@ export const getSmsEmail = (phone, carrier) => {
   }
   
   const email = `${cleanPhone}@${carrierInfo.gateway}`;
+  console.log('Generated SMS email:', email);
   return email;
 };
 
@@ -76,20 +78,23 @@ const EMAILJS_CONFIG = {
 
 // Check if EmailJS is configured
 export const isEmailJSConfigured = () => {
-  const configured = EMAILJS_CONFIG.serviceId &&
-         EMAILJS_CONFIG.templateId &&
+  const configured = EMAILJS_CONFIG.serviceId && 
+         EMAILJS_CONFIG.templateId && 
          EMAILJS_CONFIG.publicKey &&
          !EMAILJS_CONFIG.templateId.includes('YOUR_') &&
          !EMAILJS_CONFIG.templateId.includes('__ejs-test');
-  // TODO: Consider removing EMAILJS_CONFIG from logs in production
   console.log('EmailJS configured:', configured, EMAILJS_CONFIG);
   return configured;
 };
 
 // Send SMS notification via EmailJS
 export const sendSmsNotification = async (phone, carrier, subject, message) => {
+  console.log('Attempting to send SMS:', { phone, carrier, subject });
+  
   if (!isEmailJSConfigured()) {
     console.warn('EmailJS not properly configured. Check template ID.');
+    console.log('Would send to:', getSmsEmail(phone, carrier));
+    console.log('Message:', message);
     return { success: false, error: 'EmailJS template not configured - check dashboard' };
   }
 
@@ -100,7 +105,8 @@ export const sendSmsNotification = async (phone, carrier, subject, message) => {
   }
 
   try {
-    await emailjs.send(
+    console.log('Sending via EmailJS to:', toEmail);
+    const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templateId,
       {
@@ -110,6 +116,7 @@ export const sendSmsNotification = async (phone, carrier, subject, message) => {
       },
       EMAILJS_CONFIG.publicKey
     );
+    console.log('EmailJS response:', response);
     return { success: true };
   } catch (error) {
     console.error('SMS send error:', error);
@@ -119,13 +126,15 @@ export const sendSmsNotification = async (phone, carrier, subject, message) => {
 
 // Send direct email notification (for customers with email but no phone)
 export const sendEmailNotification = async (email, subject, message) => {
+  console.log('Attempting to send email:', { email, subject });
+  
   if (!isEmailJSConfigured()) {
     console.warn('EmailJS not properly configured.');
     return { success: false, error: 'EmailJS not configured' };
   }
 
   try {
-    await emailjs.send(
+    const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templateId,
       {
@@ -135,6 +144,7 @@ export const sendEmailNotification = async (email, subject, message) => {
       },
       EMAILJS_CONFIG.publicKey
     );
+    console.log('Email sent:', response);
     return { success: true };
   } catch (error) {
     console.error('Email send error:', error);
@@ -215,17 +225,18 @@ export const sendTestNotification = async (user) => {
   
   if (user.phone && user.carrier) {
     const smsEmail = getSmsEmail(user.phone, user.carrier);
-
+    console.log('Test SMS - Phone:', user.phone, 'Carrier:', user.carrier, 'Email:', smsEmail);
+    
     if (!smsEmail) {
-      return {
-        success: false,
-        error: `Invalid phone format - need 10 digits.`,
-        debug: { phoneLength: user.phone?.length, carrier: user.carrier }
+      return { 
+        success: false, 
+        error: `Invalid phone format. Got "${user.phone}" - need 10 digits.`,
+        debug: { phone: user.phone, carrier: user.carrier }
       };
     }
-
+    
     const result = await sendSmsNotification(user.phone, user.carrier, 'FieldSync Test', message);
-    return { ...result, smsEmail, debug: { carrier: user.carrier } };
+    return { ...result, smsEmail, debug: { phone: user.phone, carrier: user.carrier } };
   }
   
   if (user.email) {
