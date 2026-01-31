@@ -10,7 +10,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 
-import { Modal, Button, Select, Badge, StarRating } from '../ui';
+import { Modal, Button, Select, Badge } from '../ui';
 
 // Shared StatCard component
 const StatCard = ({ title, value, icon: Icon, trend, color = '#2D5016' }) => (

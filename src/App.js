@@ -68,8 +68,8 @@ import { exportJobToExcel } from './services/excelExport';
 // UI Components
 import { Modal, Button, Input, Select, SearchableSelect, Badge, StarRating, Spinner } from './components/ui';
 
-// Floating Action Button
-import { ClockInFAB } from './components/ClockInFAB';
+// Floating Action Button - Currently disabled, using manual time entry only
+// import { ClockInFAB } from './components/ClockInFAB';
 
 // View Components
 import {
