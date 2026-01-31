@@ -56,7 +56,7 @@ import {
 } from './services/sms';
 
 // Notification Service
-// import { notifications } from './services/notifications';
+import { notifications } from './services/notifications';
 
 // Excel Export
 import { exportJobToExcel } from './services/excelExport';
@@ -73,7 +73,7 @@ import {
   SettingsModal,
   SONumberModal,
   AddEquipmentModal,
-  // EditEquipmentModal,
+  EditEquipmentModal,
   JobDetailsModal,
   ProfileModal
 } from './components/modals';
@@ -763,7 +763,6 @@ const FieldSyncApp = () => {
   };
 
   // Add assignee to job
-  // eslint-disable-next-line no-unused-vars
   const handleAddAssignee = async (jobId, userId) => {
     setIsLoading(true);
     const result = await fbAddAssignee(jobId, userId);

@@ -36,7 +36,6 @@ const sendBrowserNotification = (title, body, data = {}) => {
 };
 
 // Get user's FCM tokens from Firestore
-// eslint-disable-next-line no-unused-vars
 const getUserTokens = async (userId) => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));

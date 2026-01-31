@@ -32,7 +32,7 @@ const AssignJobModal = ({
     if (isOpen && selectedJobForAction) {
       setSelectedTechs(currentAssignees);
     }
-  }, [isOpen, selectedJobForAction?.id, currentAssignees, selectedJobForAction]);
+  }, [isOpen, selectedJobForAction?.id]);
 
   const toggleTech = (techId) => {
     setSelectedTechs(prev => 
