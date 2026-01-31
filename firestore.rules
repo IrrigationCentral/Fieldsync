@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to get user's role from their profile
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    // Helper function to check if user is a manager
+    function isManager() {
+      return isAuthenticated() && getUserRole() == 'manager';
+    }
+
+    // Helper function to check if user is office or higher
+    function isOfficeOrHigher() {
+      return isAuthenticated() && getUserRole() in ['office', 'manager'];
+    }
+
+    // Helper function to check if user is tech or higher
+    function isTechOrHigher() {
+      return isAuthenticated() && getUserRole() in ['tech', 'office', 'manager'];
+    }
+
+    // Settings - only managers can write, authenticated users can read
+    match /settings/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own profile, managers can read all
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isManager());
+      // Users can update their own profile (except role), managers can do anything
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+        isManager()
+      );
+      // Only managers can create/delete users
+      allow create, delete: if isManager();
+    }
+
+    // Jobs collection - core business data
+    match /jobs/{jobId} {
+      // Authenticated users can read jobs
+      allow read: if isAuthenticated();
+      // Office and managers can create/update jobs
+      allow create, update: if isOfficeOrHigher();
+      // Only managers can delete jobs
+      allow delete: if isManager();
+    }
+
+    // Pivots (equipment) collection
+    match /pivots/{pivotId} {
+      // Authenticated users can read
+      allow read: if isAuthenticated();
+      // Techs and above can update equipment status
+      allow update: if isTechOrHigher();
+      // Office and above can create
+      allow create: if isOfficeOrHigher();
+      // Only managers can delete
+      allow delete: if isManager();
+    }
+
+    // Parts inventory
+    match /parts/{partId} {
+      // Authenticated users can read
+      allow read: if isAuthenticated();
+      // Office and managers can manage parts
+      allow create, update, delete: if isOfficeOrHigher();
+    }
+
+    // Time entries - subcollection of jobs or standalone
+    match /timeEntries/{entryId} {
+      // Users can read their own time entries, managers can read all
+      allow read: if isAuthenticated();
+      // Users can create/update their own time entries
+      allow create, update: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || isManager()
+      );
+      // Only managers can delete time entries
+      allow delete: if isManager();
+    }
+
+    // Catch-all: deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

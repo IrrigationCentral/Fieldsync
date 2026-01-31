@@ -28,30 +28,54 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthChange(async (user) => {
       setCurrentUser(user);
-      
+
       if (user) {
-        // Get user profile from Firestore
-        const result = await getUserProfile(user.uid);
-        if (result.success) {
-          setUserProfile(result.data);
+        // Get user profile from Firestore with retry logic
+        let profileLoaded = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const result = await getUserProfile(user.uid);
+          if (result.success) {
+            setUserProfile(result.data);
+            profileLoaded = true;
+            break;
+          } else {
+            console.error(`Profile load attempt ${attempt} failed:`, result.error);
+            if (attempt < 3) {
+              // Wait before retry (exponential backoff: 1s, 2s)
+              await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+            }
+          }
         }
-        
-        // Load initial data
-        const [usersData, pivotsData, jobsData] = await Promise.all([
-          getUsers(),
-          getPivots(),
-          getJobs()
-        ]);
-        setUsers(usersData);
-        setPivots(pivotsData);
-        setJobs(jobsData);
+
+        if (!profileLoaded) {
+          console.error('Failed to load profile after 3 attempts. Continuing with limited functionality.');
+          // Don't log out - let user continue with limited data
+        }
+
+        // Load initial data with error handling
+        try {
+          const [usersData, pivotsData, jobsData] = await Promise.all([
+            getUsers(),
+            getPivots(),
+            getJobs()
+          ]);
+          setUsers(usersData);
+          setPivots(pivotsData);
+          setJobs(jobsData);
+        } catch (error) {
+          console.error('Error loading initial data:', error);
+          // Continue with empty arrays - real-time subscriptions will populate data
+          setUsers([]);
+          setPivots([]);
+          setJobs([]);
+        }
       } else {
         setUserProfile(null);
         setUsers([]);
         setPivots([]);
         setJobs([]);
       }
-      
+
       setLoading(false);
     });
 
@@ -94,14 +118,19 @@ export const AuthProvider = ({ children }) => {
   // Refresh data
   const refreshData = async () => {
     if (currentUser) {
-      const [usersData, pivotsData, jobsData] = await Promise.all([
-        getUsers(),
-        getPivots(),
-        getJobs()
-      ]);
-      setUsers(usersData);
-      setPivots(pivotsData);
-      setJobs(jobsData);
+      try {
+        const [usersData, pivotsData, jobsData] = await Promise.all([
+          getUsers(),
+          getPivots(),
+          getJobs()
+        ]);
+        setUsers(usersData);
+        setPivots(pivotsData);
+        setJobs(jobsData);
+      } catch (error) {
+        console.error('Error refreshing data:', error);
+        // Don't clear existing data on refresh failure - keep stale data visible
+      }
     }
   };
 

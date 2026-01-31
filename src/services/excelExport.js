@@ -268,8 +268,10 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
   sheet.getCell(`A${currentRow}`).value = 'Qty';
   sheet.getCell(`B${currentRow}`).value = 'Part Number';
   sheet.getCell(`C${currentRow}`).value = 'Description';
-  sheet.mergeCells(`C${currentRow}:F${currentRow}`);
-  ['A', 'B', 'C'].forEach(col => {
+  sheet.mergeCells(`C${currentRow}:D${currentRow}`);
+  sheet.getCell(`E${currentRow}`).value = 'Location';
+  sheet.mergeCells(`E${currentRow}:F${currentRow}`);
+  ['A', 'B', 'C', 'E'].forEach(col => {
     sheet.getCell(`${col}${currentRow}`).font = { bold: true };
     sheet.getCell(`${col}${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E4D9' } };
   });
@@ -282,11 +284,14 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
       sheet.getCell(`A${currentRow}`).value = part.quantity || 1;
       sheet.getCell(`B${currentRow}`).value = part.partNumber || '';
       sheet.getCell(`C${currentRow}`).value = part.description || part.name || '';
-      sheet.mergeCells(`C${currentRow}:F${currentRow}`);
+      sheet.mergeCells(`C${currentRow}:D${currentRow}`);
+      sheet.getCell(`E${currentRow}`).value = part.truckLocationName || part.location || '';
+      sheet.mergeCells(`E${currentRow}:F${currentRow}`);
     } else {
       sheet.getCell(`A${currentRow}`).value = 1;
       sheet.getCell(`C${currentRow}`).value = part;
-      sheet.mergeCells(`C${currentRow}:F${currentRow}`);
+      sheet.mergeCells(`C${currentRow}:D${currentRow}`);
+      sheet.mergeCells(`E${currentRow}:F${currentRow}`);
     }
     currentRow++;
   });

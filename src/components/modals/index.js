@@ -11,3 +11,5 @@ export { default as AddEquipmentModal } from './AddEquipmentModal';
 export { default as EditEquipmentModal } from './EditEquipmentModal';
 export { default as JobDetailsModal } from './JobDetailsModal';
 export { default as ProfileModal } from './ProfileModal';
+export { EditJobModal } from './EditJobModal';
+export { default as ClockOutSurveyModal } from './ClockOutSurveyModal';

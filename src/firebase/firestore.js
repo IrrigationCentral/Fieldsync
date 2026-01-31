@@ -56,13 +56,21 @@ export const updateSettings = async (settings) => {
 };
 
 export const subscribeToSettings = (callback) => {
-  return onSnapshot(doc(db, 'settings', 'pricing'), (docSnap) => {
-    if (docSnap.exists()) {
-      callback(docSnap.data());
-    } else {
+  return onSnapshot(
+    doc(db, 'settings', 'pricing'),
+    (docSnap) => {
+      if (docSnap.exists()) {
+        callback(docSnap.data());
+      } else {
+        callback({ hourlyRate: 75, mileageRate: 0.65, partsMarkup: 0 });
+      }
+    },
+    (error) => {
+      console.error('Realtime listener error (settings):', error);
+      // Return defaults on error so app can continue
       callback({ hourlyRate: 75, mileageRate: 0.65, partsMarkup: 0 });
     }
-  });
+  );
 };
 
 // ============================================
@@ -173,10 +181,17 @@ export const deletePivot = async (pivotId) => {
 
 // Real-time pivots listener
 export const subscribeToPivots = (callback) => {
-  return onSnapshot(collection(db, 'pivots'), (snapshot) => {
-    const pivots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(pivots);
-  });
+  return onSnapshot(
+    collection(db, 'pivots'),
+    (snapshot) => {
+      const pivots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(pivots);
+    },
+    (error) => {
+      console.error('Realtime listener error (pivots):', error);
+      // Don't crash - let the app continue with stale data
+    }
+  );
 };
 
 
@@ -374,10 +389,22 @@ export const startTimeEntry = async (jobId, techId, techName) => {
       lunchTaken: false
     };
     
+    // Ensure assignedTo stays as an array
+    let currentAssignees = job.assignedTo;
+    if (!currentAssignees) {
+      currentAssignees = [techId];
+    } else if (!Array.isArray(currentAssignees)) {
+      currentAssignees = [currentAssignees];
+    }
+    // Add tech to assignees if not already there
+    if (!currentAssignees.includes(techId)) {
+      currentAssignees = [...currentAssignees, techId];
+    }
+    
     await updateDoc(jobRef, {
       timeEntries: [...timeEntries, newEntry],
-      status: job.status === 'pending' ? 'assigned' : job.status,
-      assignedTo: job.assignedTo || techId, // Set assignedTo if not already set
+      status: 'in-progress', // Always set to in-progress when starting time
+      assignedTo: currentAssignees,
       updatedAt: serverTimestamp()
     });
     
@@ -389,7 +416,7 @@ export const startTimeEntry = async (jobId, techId, techName) => {
 };
 
 // Stop time entry for a job
-export const stopTimeEntry = async (jobId, techId, lunchTaken = false) => {
+export const stopTimeEntry = async (jobId, techId, lunchTaken = false, sessionNotes = '', sessionData = {}) => {
   try {
     const jobRef = doc(db, 'jobs', jobId);
     const jobSnap = await getDoc(jobRef);
@@ -407,11 +434,14 @@ export const stopTimeEntry = async (jobId, techId, lunchTaken = false) => {
       return { success: false, error: 'No active time entry found' };
     }
     
-    // Update the entry with end time
+    // Update the entry with end time and session notes
     timeEntries[entryIndex] = {
       ...timeEntries[entryIndex],
       endTime: new Date().toISOString(),
-      lunchTaken
+      lunchTaken,
+      sessionNotes,
+      isJobComplete: sessionData.isJobComplete,
+      partsNeeded: sessionData.partsNeeded || ''
     };
     
     await updateDoc(jobRef, {
@@ -558,24 +588,38 @@ export const deleteJob = async (jobId) => {
 // Real-time jobs listener
 export const subscribeToJobs = (callback) => {
   const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snapshot) => {
-    const jobs = snapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
-      updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().updatedAt,
-      completedAt: doc.data().completedAt?.toDate?.()?.toISOString() || doc.data().completedAt
-    }));
-    callback(jobs);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const jobs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
+        updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().updatedAt,
+        completedAt: doc.data().completedAt?.toDate?.()?.toISOString() || doc.data().completedAt
+      }));
+      callback(jobs);
+    },
+    (error) => {
+      console.error('Realtime listener error (jobs):', error);
+      // Don't crash - let the app continue with stale data
+    }
+  );
 };
 
 // Real-time users listener
 export const subscribeToUsers = (callback) => {
-  return onSnapshot(collection(db, 'users'), (snapshot) => {
-    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(users);
-  });
+  return onSnapshot(
+    collection(db, 'users'),
+    (snapshot) => {
+      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(users);
+    },
+    (error) => {
+      console.error('Realtime listener error (users):', error);
+      // Don't crash - let the app continue with stale data
+    }
+  );
 };
 
 // ============================================
@@ -731,8 +775,15 @@ export const deleteAllParts = async () => {
 // Real-time parts listener
 export const subscribeToParts = (callback) => {
   const q = query(collection(db, 'parts'), orderBy('partNumber', 'asc'));
-  return onSnapshot(q, (snapshot) => {
-    const parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(parts);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(parts);
+    },
+    (error) => {
+      console.error('Realtime listener error (parts):', error);
+      // Don't crash - let the app continue with stale data
+    }
+  );
 };

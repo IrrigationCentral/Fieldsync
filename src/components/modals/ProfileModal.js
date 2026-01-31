@@ -66,7 +66,7 @@ const ProfileModal = ({
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    const result = await onUpdateProfile(userProfile.id, formData);
+    const result = await onUpdateProfile(formData);
     if (result?.success) {
       addNotification('success', 'Profile updated successfully');
     } else {

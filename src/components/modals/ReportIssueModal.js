@@ -159,6 +159,18 @@ const ReportIssueModal = ({
         newPhotos.push({ file: compressed, preview, name: file.name });
       } catch (err) {
         console.error('Photo compression error:', err);
+        // Fallback to original file if compression fails
+        try {
+          const reader = new FileReader();
+          const preview = await new Promise(resolve => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
+          });
+          newPhotos.push({ file, preview, name: file.name });
+        } catch (fallbackErr) {
+          console.error('Photo fallback error:', fallbackErr);
+          // Skip this photo only if both compression and fallback fail
+        }
       }
     }
     

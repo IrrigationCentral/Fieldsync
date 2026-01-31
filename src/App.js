@@ -7,11 +7,8 @@ import {
   Bell, User, DollarSign, Briefcase, BarChart3,
   Home, Map, Clipboard, UserPlus, Cloud, Wifi,
   WifiOff, Eye, Check, Settings, Moon, Sun,
-  Star, ChevronLeft, Play, Square, FileSpreadsheet
+  Star, ChevronLeft, Power
 } from 'lucide-react';
-
-// Charts
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 // Firebase imports
 import {
@@ -23,6 +20,7 @@ import {
   updateUserEmail,
   updateUserPassword,
   updateUser,
+  resetPassword,
   deleteUser as fbDeleteUser,
   subscribeToUsers,
   subscribeToPivots,
@@ -56,7 +54,13 @@ import {
 } from './services/sms';
 
 // Notification Service
-import { notifications } from './services/notifications';
+import { 
+  notifyNewIssue, 
+  notifyJobAssigned, 
+  notifyJobCompletedFarmer, 
+  notifyJobCompletedStaff, 
+  notifyUrgentIssue 
+} from './services/notifications';
 
 // Excel Export
 import { exportJobToExcel } from './services/excelExport';
@@ -64,19 +68,32 @@ import { exportJobToExcel } from './services/excelExport';
 // UI Components
 import { Modal, Button, Input, Select, SearchableSelect, Badge, StarRating, Spinner } from './components/ui';
 
-// Modal Components
+// Floating Action Button
+import { ClockInFAB } from './components/ClockInFAB';
+
+// View Components
 import {
-  ReportIssueModal,
-  CompleteJobModal,
-  AddUserModal,
-  AssignJobModal,
-  SettingsModal,
-  SONumberModal,
-  AddEquipmentModal,
-  EditEquipmentModal,
-  JobDetailsModal,
-  ProfileModal
-} from './components/modals';
+  ManagerDashboard,
+  ManagerJobsView,
+  TeamManagement,
+  AnalyticsView,
+  TechTeamView,
+  CustomersView,
+  TVDashboard
+} from './components/views';
+
+// Modal Components - Lazy loaded for better performance
+const ReportIssueModal = React.lazy(() => import('./components/modals/ReportIssueModal'));
+const CompleteJobModal = React.lazy(() => import('./components/modals/CompleteJobModal'));
+const AddUserModal = React.lazy(() => import('./components/modals/AddUserModal'));
+const AssignJobModal = React.lazy(() => import('./components/modals/AssignJobModal'));
+const SettingsModal = React.lazy(() => import('./components/modals/SettingsModal'));
+const SONumberModal = React.lazy(() => import('./components/modals/SONumberModal'));
+const AddEquipmentModal = React.lazy(() => import('./components/modals/AddEquipmentModal'));
+const JobDetailsModal = React.lazy(() => import('./components/modals/JobDetailsModal'));
+const ProfileModal = React.lazy(() => import('./components/modals/ProfileModal'));
+const EditJobModal = React.lazy(() => import('./components/modals/EditJobModal'));
+const ClockOutSurveyModal = React.lazy(() => import('./components/modals/ClockOutSurveyModal'));
 
 
 // ============================================
@@ -125,12 +142,53 @@ const darkTheme = {
 };
 
 // ============================================
+// TRUCK INVENTORY LOCATIONS
+// ============================================
+const TRUCK_LOCATIONS = [
+  { id: '1', name: '1. Well Rig 2005 Mack' },
+  { id: '3', name: '3. 2005 Mack' },
+  { id: '5', name: '5. Water Truck 1996 Freightliner' },
+  { id: '11', name: '11. 2005 Mack' },
+  { id: '14', name: '14. Red Crane 2005 Mack' },
+  { id: '18', name: '18. Dump Truck 2006 Mack' },
+  { id: '20', name: '20. 1995 Mack' },
+  { id: '30', name: '30. Blue Crane 2013 Mack' },
+  { id: '40', name: '40. Dump Truck 1998 Mack' },
+  { id: '54', name: '54. V10 Ford 3500' },
+  { id: '55', name: '55. 2006 GMC 2500' },
+  { id: '56', name: '56. 2016 Ram 1500' },
+  { id: '57', name: '57. 2015 Ram 5500' },
+  { id: '58', name: '58. 2014 Ram 5500' },
+  { id: '59', name: '59. 2012 Ram 5500' },
+  { id: '60', name: '60. 2016 Ram 5500' },
+  { id: '61', name: '61. 2012 Ram 3500' },
+  { id: '62', name: '62. 2022 Ram 2500' },
+  { id: '65', name: '65. 2009 GMC 2500' },
+  { id: '67', name: '67. 2022 Ram 5500' },
+  { id: '68', name: '68. 2022 Ram 5500' },
+  { id: '69', name: '69. 1999 International 4700' },
+  { id: '70', name: '70. Rope Crane 1995 International 4900' },
+  { id: '71', name: '71. Roll Back 1999 International 4700' },
+  { id: '72', name: '72. Bucket Truck 1994 International 4700' },
+  { id: '73', name: '73. Little Well Rig 1999 International 4700' },
+  { id: '76', name: '76. 2024 Ram 1500' },
+  { id: '77', name: '77. 2024 GMC 1500' },
+  { id: '78', name: '78. 2025 GMC 1500' },
+  { id: '79', name: '79. 2023 International' },
+  { id: '80', name: '80. 2025 GMC 2500' },
+  { id: 'hq', name: 'Irrigation Central HQ (Warehouse)' },
+  { id: 'shop', name: 'Shop Inventory' },
+  { id: 'other', name: 'Other' }
+];
+
+// ============================================
 
 // ============================================
 // LOCAL COMPONENTS (StatCard, EmptyState, LoadingScreen)
 // ============================================
 
 // Stat Card Component
+// eslint-disable-next-line no-unused-vars
 const StatCard = ({ title, value, icon: Icon, trend, color = '#2D5016' }) => (
   <div className="card p-4" style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}>
     <div className="flex items-center justify-between mb-2">
@@ -148,6 +206,24 @@ const StatCard = ({ title, value, icon: Icon, trend, color = '#2D5016' }) => (
     </div>
     <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>{value}</p>
     <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{title}</p>
+  </div>
+);
+
+// Clickable Stat Card - MUST be outside component to prevent re-renders
+const ClickableStat = ({ title, value, icon: Icon, color, onClick, subtitle, colors }) => (
+  <div 
+    className="card p-4 cursor-pointer hover:shadow-lg transition-all transform hover:scale-[1.02]" 
+    onClick={onClick}
+  >
+    <div className="flex items-center justify-between mb-2">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + '15' }}>
+        <Icon className="w-5 h-5" style={{ color }} />
+      </div>
+      <ChevronRight className="w-4 h-4" style={{ color: colors.textSecondary }} />
+    </div>
+    <p className="text-2xl font-bold" style={{ color: colors.textPrimary }}>{value}</p>
+    <p className="text-sm" style={{ color: colors.textSecondary }}>{title}</p>
+    {subtitle && <p className="text-xs mt-1" style={{ color: colors.muted }}>{subtitle}</p>}
   </div>
 );
 
@@ -186,6 +262,53 @@ const LoadingScreen = () => (
 );
 
 
+// TV Dashboard Token - Change this to your own secret token
+const TV_DASHBOARD_TOKEN = process.env.REACT_APP_TV_DASHBOARD_TOKEN || 'irrigationcentral2025tv';
+
+// TV Dashboard Wrapper Component
+const TVDashboardWrapper = () => {
+  const [tvJobs, setTVJobs] = useState([]);
+  const [tvUsers, setTVUsers] = useState([]);
+  const [tvEquipment, setTVEquipment] = useState([]);
+  
+  useEffect(() => {
+    // Subscribe to data without auth
+    const unsubJobs = subscribeToJobs((jobsData) => {
+      setTVJobs(jobsData);
+    });
+    
+    const unsubUsers = subscribeToUsers((usersData) => {
+      setTVUsers(usersData);
+    });
+    
+    const unsubPivots = subscribeToPivots((pivotsData) => {
+      setTVEquipment(pivotsData);
+    });
+    
+    return () => {
+      unsubJobs && unsubJobs();
+      unsubUsers && unsubUsers();
+      unsubPivots && unsubPivots();
+    };
+  }, []);
+  
+  return (
+    <TVDashboard 
+      jobs={tvJobs}
+      users={tvUsers}
+      equipment={tvEquipment}
+    />
+  );
+};
+
+// Check if TV mode before rendering main app
+const isTVRoute = () => {
+  const path = window.location.pathname;
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  return path === '/tv' && token === TV_DASHBOARD_TOKEN;
+};
+
 const FieldSyncApp = () => {
   // Theme State
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -204,6 +327,37 @@ const FieldSyncApp = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   
+  // Dev Mode - Role Override (only for specific emails)
+  const [devRoleOverride, setDevRoleOverride] = useState(null);
+  const DEV_EMAILS = [
+    'leemarcum@hardluckelectrical.com',
+    'lmarcum@irrigationcentral.com', 
+    'leehmarcum416@gmail.com',
+    'rkbateman@irrigationcentral.com',
+    'koguin@irrigationcentral.com'
+  ];
+  const isDevUser = currentUser?.email && DEV_EMAILS.includes(currentUser.email.toLowerCase());
+  
+  // Feature Kill Switches (stored in localStorage for persistence)
+  const [featureFlags, setFeatureFlags] = useState(() => {
+    const saved = localStorage.getItem('fieldsync_feature_flags');
+    return saved ? JSON.parse(saved) : {
+      jobCreation: true,
+      timeTracking: true,
+      notifications: true,
+      equipmentEditing: true,
+      userManagement: true,
+      mapView: true,
+      calendarView: true,
+      reportIssue: true
+    };
+  });
+  
+  // Save feature flags to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('fieldsync_feature_flags', JSON.stringify(featureFlags));
+  }, [featureFlags]);
+  
   // App State
   const [currentView, setCurrentView] = useState('login');
   const [selectedTab, setSelectedTab] = useState('dashboard');
@@ -212,6 +366,8 @@ const FieldSyncApp = () => {
   const [syncStatus, setSyncStatus] = useState('online');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [customerSearchQuery, setCustomerSearchQuery] = useState(''); // Lifted from CustomersView to prevent reset
+  const [callInFormData, setCallInFormData] = useState({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '', soNumber: '' }); // Lifted from CallInView
   const [weatherData, setWeatherData] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   
@@ -229,17 +385,33 @@ const FieldSyncApp = () => {
   const [showCompleteJobModal, setShowCompleteJobModal] = useState(false);
   const [showAssignJobModal, setShowAssignJobModal] = useState(false);
   const [showJobDetailsModal, setShowJobDetailsModal] = useState(false);
+  const [showEditJobModal, setShowEditJobModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [showSOModal, setShowSOModal] = useState(false);
-  const [selectedEquipmentForIssue, setSelectedEquipmentForIssue] = useState(null);
-  const [selectedJobForAction, setSelectedJobForAction] = useState(null);
+  const [showClockOutSurvey, setShowClockOutSurvey] = useState(false);
+  const [clockOutJobId, setClockOutJobId] = useState(null);
+  const [selectedEquipmentForIssueId, setSelectedEquipmentForIssueId] = useState(null);
+  const [selectedJobId, setSelectedJobId] = useState(null);
   
   // Equipment Profile States
-  const [selectedEquipmentProfile, setSelectedEquipmentProfile] = useState(null);
+  const [selectedEquipmentProfileId, setSelectedEquipmentProfileId] = useState(null);
   const [showEditEquipmentModal, setShowEditEquipmentModal] = useState(false);
   // const [viewingFarmerProfile, setViewingFarmerProfile] = useState(null); // TODO: Implement farmer profile viewing
+
+  // ============================================
+  // DERIVED STATE - Always use fresh data from subscriptions
+  // ============================================
+  // Derive selected items from IDs - ensures we always use fresh data
+  const selectedJobForAction = selectedJobId ? jobs.find(j => j.id === selectedJobId) : null;
+  const selectedEquipmentForIssue = selectedEquipmentForIssueId ? equipment.find(e => e.id === selectedEquipmentForIssueId) : null;
+  const selectedEquipmentProfile = selectedEquipmentProfileId ? equipment.find(e => e.id === selectedEquipmentProfileId) : null;
+  
+  // Helper setters (store ID, not object) - these replace the old setState functions
+  const setSelectedJobForAction = (job) => setSelectedJobId(job?.id || null);
+  const setSelectedEquipmentForIssue = (equip) => setSelectedEquipmentForIssueId(equip?.id || null);
+  const setSelectedEquipmentProfile = (equip) => setSelectedEquipmentProfileId(equip?.id || null);
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -285,7 +457,7 @@ const FieldSyncApp = () => {
           setCurrentView('app');
           // Set default tab based on role
           const role = result.profile.role;
-          if (role === 'farmer') setSelectedTab('equipment');
+          if (role === 'farmer') setSelectedTab('dashboard');
           else if (role === 'office') setSelectedTab('jobs');
           else setSelectedTab('dashboard');
         } else {
@@ -376,14 +548,61 @@ const FieldSyncApp = () => {
     }, 4000);
   }, []);
 
-  // Get pending job notifications for dropdown
-  const jobNotifications = jobs.filter(j => j.status === 'pending').map(j => ({
-    id: j.id,
-    title: j.title,
-    message: `New issue reported${j.pivotName ? ` - ${j.pivotName}` : ''}`,
-    time: j.createdAt,
-    type: 'pending'
-  }));
+  // Track dismissed notifications (persists in session)
+  const [dismissedNotifications, setDismissedNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fieldsync-dismissed-notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Save dismissed notifications to localStorage
+  useEffect(() => {
+    localStorage.setItem('fieldsync-dismissed-notifications', JSON.stringify(dismissedNotifications));
+  }, [dismissedNotifications]);
+
+  // Dismiss a single notification
+  const dismissNotification = (notifId) => {
+    setDismissedNotifications(prev => [...prev, notifId]);
+  };
+
+  // Clear all notifications
+  const clearAllNotifications = () => {
+    const allIds = jobNotifications.map(n => n.id);
+    setDismissedNotifications(prev => [...prev, ...allIds]);
+  };
+
+  // Get pending job notifications for dropdown - FILTERED BY ROLE
+  const jobNotifications = jobs
+    .filter(j => {
+      // Only pending jobs
+      if (j.status !== 'pending') return false;
+      
+      // Filter based on user role
+      const role = userProfile?.role;
+      if (role === 'farmer') {
+        // Farmers only see notifications for THEIR equipment
+        return j.farmerId === userProfile?.id;
+      }
+      // Techs see jobs assigned to them OR pending
+      if (role === 'tech') {
+        const assigned = j.assignedTo;
+        const isAssignedToMe = Array.isArray(assigned) ? assigned.includes(userProfile?.id) : assigned === userProfile?.id;
+        return isAssignedToMe || j.status === 'pending';
+      }
+      // Manager and office see all
+      return true;
+    })
+    .filter(j => !dismissedNotifications.includes(j.id)) // Exclude dismissed
+    .map(j => ({
+      id: j.id,
+      title: j.title,
+      message: `New issue reported${j.pivotName ? ` - ${j.pivotName}` : ''}`,
+      time: j.createdAt,
+      type: 'pending'
+    }));
 
   // ============================================
   // AUTH HANDLERS
@@ -438,137 +657,197 @@ const FieldSyncApp = () => {
     const targetFarmerId = isStaff ? pivot.farmerId : userProfile.id;
 
     setIsLoading(true);
-    const jobData = {
-      title: `Issue reported - ${pivot.name}`,
-      description,
-      priority,
-      farmerId: targetFarmerId,
-      pivotId,
-      pivotName: pivot.name,
-      location: { lat: pivot.lat || 40.7614, lng: pivot.lng || -96.6856 },
-      estimatedHours: 2,
-      requiredParts: [],
-      photos: pivotOptions?.photos || [],
-      weatherAlert: false,
-      // Pivot running options
-      leavePivotRunning: pivotOptions?.leavePivotRunning || false,
-      pivotDirection: pivotOptions?.pivotDirection || '',
-      pivotPercentage: pivotOptions?.pivotPercentage || 0,
-      farmerAcknowledgedResponsibility: pivotOptions?.acknowledged || false,
-      // Staff reporting metadata
-      reportedBy: pivotOptions?.reportedBy || null,
-      reportedByRole: pivotOptions?.reportedByRole || null
-    };
-    
-    const result = await fbAddJob(jobData);
+    try {
+      const jobData = {
+        title: `Issue reported - ${pivot.name}`,
+        description,
+        priority,
+        farmerId: targetFarmerId,
+        pivotId,
+        pivotName: pivot.name,
+        location: { lat: pivot.lat || 40.7614, lng: pivot.lng || -96.6856 },
+        estimatedHours: 2,
+        requiredParts: [],
+        photos: pivotOptions?.photos || [],
+        weatherAlert: false,
+        // Pivot running options
+        leavePivotRunning: pivotOptions?.leavePivotRunning || false,
+        pivotDirection: pivotOptions?.pivotDirection || '',
+        pivotPercentage: pivotOptions?.pivotPercentage || 0,
+        farmerAcknowledgedResponsibility: pivotOptions?.acknowledged || false,
+        // Staff reporting metadata
+        reportedBy: pivotOptions?.reportedBy || null,
+        reportedByRole: pivotOptions?.reportedByRole || null
+      };
+      
+      const result = await fbAddJob(jobData);
 
-    if (result.success) {
-      addNotification('success', 'Issue reported successfully');
-      setShowReportIssueModal(false);
-      setSelectedEquipmentForIssue(null);
-      
-      // Notify managers and office staff about new issue
-      const managers = users.filter(u => u.role === 'manager');
-      const officeStaff = users.filter(u => u.role === 'office');
-      const reporterName = pivotOptions?.reportedBy || userProfile?.name || 'Customer';
-      notifications.newIssue(managers, officeStaff, jobData, reporterName);
-      
-      // If high priority, send urgent notification
-      if (priority === 'high') {
-        notifications.urgentIssue(managers, jobData, reporterName);
+      if (result.success) {
+        addNotification('success', 'Issue reported successfully');
+        setShowReportIssueModal(false);
+        setSelectedEquipmentForIssue(null);
+        
+        // Notify managers and office staff about new issue
+        const managers = users.filter(u => u.role === 'manager');
+        const officeStaff = users.filter(u => u.role === 'office');
+        const reporterName = pivotOptions?.reportedBy || userProfile?.name || 'Customer';
+        notifyNewIssue(managers, officeStaff, jobData, reporterName);
+        
+        // If high priority, send urgent notification
+        if (priority === 'high') {
+          notifyUrgentIssue(managers, jobData, reporterName);
+        }
+      } else {
+        addNotification('error', 'Failed to report issue');
       }
-    } else {
-      addNotification('error', 'Failed to report issue');
+    } catch (error) {
+      console.error('Create job error:', error);
+      addNotification('error', 'Failed to create job. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // Create job for office call-ins
   const createCallInJob = async (jobData) => {
     setIsLoading(true);
-    const fullJobData = {
-      ...jobData,
-      createdBy: userProfile.id,
-      createdByRole: 'office',
-      isCallIn: true
-    };
-    
-    const result = await fbAddJob(fullJobData);
+    try {
+      const fullJobData = {
+        ...jobData,
+        createdBy: userProfile.id,
+        createdByRole: 'office',
+        isCallIn: true
+      };
+      
+      const result = await fbAddJob(fullJobData);
 
-    if (result.success) {
-      addNotification('success', 'Call-in job created successfully');
-      
-      // Notify managers about new call-in job
-      const managers = users.filter(u => u.role === 'manager');
-      const reporterName = userProfile?.name || 'Office';
-      notifications.newIssue(managers, [], fullJobData, reporterName);
-      
-      setIsLoading(false);
-      return { success: true };
-    } else {
-      addNotification('error', 'Failed to create job');
-      setIsLoading(false);
+      if (result.success) {
+        addNotification('success', 'Call-in job created successfully');
+        
+        // Notify managers about new call-in job
+        const managers = users.filter(u => u.role === 'manager');
+        const reporterName = userProfile?.name || 'Office';
+        notifyNewIssue(managers, [], fullJobData, reporterName);
+        
+        return { success: true };
+      } else {
+        addNotification('error', 'Failed to create job');
+        return { success: false };
+      }
+    } catch (error) {
+      console.error('Create call-in job error:', error);
+      addNotification('error', 'Failed to create job. Please try again.');
       return { success: false };
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAssignJob = async (jobId, techId) => {
     setIsLoading(true);
-    const result = await fbAssignJob(jobId, techId);
-    if (result.success) {
-      const tech = users.find(u => u.id === techId);
-      addNotification('success', `Job assigned to ${tech?.name || 'technician'}`);
+    try {
+      const result = await fbAssignJob(jobId, techId);
+      if (result.success) {
+        const tech = users.find(u => u.id === techId);
+        addNotification('success', `Job assigned to ${tech?.name || 'technician'}`);
 
-      // Send notification to assigned tech
-      const job = jobs.find(j => j.id === jobId);
-      if (tech && job) {
-        notifications.jobAssigned(tech, job);
+        // Send notification to assigned tech
+        const job = jobs.find(j => j.id === jobId);
+        if (tech && job) {
+          notifyJobAssigned(tech, job);
+        }
+
+        setShowAssignJobModal(false);
+        setSelectedJobForAction(null);
+      } else {
+        addNotification('error', result.error || 'Failed to assign job');
       }
-
-      setShowAssignJobModal(false);
-      setSelectedJobForAction(null);
-    } else {
-      addNotification('error', 'Failed to assign job');
+    } catch (error) {
+      console.error('Assign job error:', error);
+      addNotification('error', 'Failed to assign job. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // Self-assign job (for techs and managers)
   const handleSelfAssign = async (jobId) => {
     setIsLoading(true);
-    const result = await fbAssignJob(jobId, userProfile.id);
-    if (result.success) {
-      addNotification('success', 'Job assigned to you');
-      // No need to notify yourself, but log for debugging
-      console.log('Self-assigned job:', jobId);
-    } else {
-      addNotification('error', 'Failed to assign job');
+    try {
+      const result = await fbAssignJob(jobId, userProfile.id);
+      if (result.success) {
+        addNotification('success', 'Job assigned to you');
+        console.log('Self-assigned job:', jobId);
+      } else {
+        addNotification('error', result.error || 'Failed to assign job');
+      }
+    } catch (error) {
+      console.error('Self-assign error:', error);
+      addNotification('error', 'Failed to assign job. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // Start time tracking
   const handleStartTime = async (jobId) => {
     setIsLoading(true);
-    const result = await fbStartTimeEntry(jobId, userProfile.id, userProfile.name);
-    if (result.success) {
-      addNotification('success', 'Time tracking started ⏱️');
-    } else {
-      addNotification('error', result.error || 'Failed to start time tracking');
+    try {
+      const result = await fbStartTimeEntry(jobId, userProfile.id, userProfile.name);
+      if (result.success) {
+        // Status is now set to 'in-progress' inside startTimeEntry - no need for second update
+        addNotification('success', 'Time tracking started ⏱️');
+      } else {
+        addNotification('error', result.error || 'Failed to start time tracking');
+      }
+    } catch (error) {
+      console.error('Start time error:', error);
+      addNotification('error', 'Failed to start time tracking. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // Stop time tracking
-  const handleStopTime = async (jobId, lunchTaken = false) => {
+  const handleStopTime = async (jobId, lunchTaken = false, sessionNotes = '', sessionData = {}) => {
     setIsLoading(true);
-    const result = await fbStopTimeEntry(jobId, userProfile.id, lunchTaken);
-    if (result.success) {
-      addNotification('success', 'Time tracking stopped ⏹️');
-    } else {
-      addNotification('error', result.error || 'Failed to stop time tracking');
+    try {
+      const result = await fbStopTimeEntry(jobId, userProfile.id, lunchTaken, sessionNotes, sessionData);
+      if (result.success) {
+        addNotification('success', 'Time tracking stopped ⏹️');
+      } else {
+        addNotification('error', result.error || 'Failed to stop time tracking');
+      }
+    } catch (error) {
+      console.error('Stop time error:', error);
+      addNotification('error', 'Failed to stop time tracking. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
+  };
+
+  // Initiate clock out - shows the survey modal
+  const handleInitiateClockOut = (jobId) => {
+    setClockOutJobId(jobId);
+    setShowClockOutSurvey(true);
+  };
+
+  // Complete clock out with survey data
+  const handleClockOutSurveyComplete = async (surveyData) => {
+    if (!clockOutJobId) return;
+    
+    await handleStopTime(
+      clockOutJobId, 
+      surveyData.lunchTaken, 
+      surveyData.sessionNotes,
+      {
+        isJobComplete: surveyData.isJobComplete,
+        partsNeeded: surveyData.partsNeeded
+      }
+    );
+    
+    setShowClockOutSurvey(false);
+    setClockOutJobId(null);
   };
 
   // Add manual time entry
@@ -618,42 +897,98 @@ const FieldSyncApp = () => {
 
   const handleCompleteJob = async (jobId, completionData) => {
     setIsLoading(true);
-    const totalCost = (completionData.hoursWorked * pricingSettings.hourlyRate) +
-                      (completionData.milesDriven * pricingSettings.mileageRate) +
-                      (completionData.partsCost || 0) * (1 + pricingSettings.partsMarkup / 100);
-
-    const result = await fbCompleteJob(jobId, {
-      ...completionData,
-      completedBy: userProfile.id,
-      totalCost,
-      hourlyRate: pricingSettings.hourlyRate,
-      mileageRate: pricingSettings.mileageRate
-    });
-
-    if (result.success) {
-      addNotification('success', 'Job completed successfully! 🎉');
-
-      // Send notifications
+    
+    try {
+      // First, stop any active time entries for this job
       const job = jobs.find(j => j.id === jobId);
-      const completedByName = userProfile?.name || 'Technician';
-      if (job) {
-        // Notify farmer that their equipment is serviced
-        const farmer = users.find(u => u.id === job.farmerId);
-        if (farmer) {
-          notifications.jobCompletedFarmer(farmer, job);
+      if (job?.timeEntries) {
+        const activeEntries = job.timeEntries.filter(e => !e.endTime);
+        for (const entry of activeEntries) {
+          try {
+            await fbStopTimeEntry(jobId, entry.techId, false);
+          } catch (err) {
+            console.error('Error stopping time entry:', err);
+            // Continue even if stopping time fails
+          }
         }
-        // Notify managers and office staff about completion
-        const managers = users.filter(u => u.role === 'manager');
-        const officeStaff = users.filter(u => u.role === 'office');
-        notifications.jobCompletedStaff(managers, officeStaff, job, completedByName);
       }
+      
+      const totalCost = (completionData.hoursWorked * pricingSettings.hourlyRate) +
+                        (completionData.milesDriven * pricingSettings.mileageRate) +
+                        (completionData.partsCost || 0) * (1 + pricingSettings.partsMarkup / 100);
 
-      setShowCompleteJobModal(false);
-      setSelectedJobForAction(null);
+      const result = await fbCompleteJob(jobId, {
+        ...completionData,
+        completedBy: userProfile.id,
+        totalCost,
+        hourlyRate: pricingSettings.hourlyRate,
+        mileageRate: pricingSettings.mileageRate
+      });
+
+      if (result.success) {
+        addNotification('success', 'Job completed successfully! 🎉');
+        
+        // Close modal FIRST before any notification logic
+        setShowCompleteJobModal(false);
+        setSelectedJobForAction(null);
+
+        // Send notifications (non-blocking, errors won't affect UI)
+        try {
+          const completedByName = userProfile?.name || 'Technician';
+          if (job) {
+            // Notify farmer that their equipment is serviced
+            const farmer = users.find(u => u.id === job.farmerId);
+            if (farmer) {
+              notifyJobCompletedFarmer(farmer, job);
+            }
+            // Notify managers and office staff about completion
+            const managers = users.filter(u => u.role === 'manager');
+            const officeStaff = users.filter(u => u.role === 'office');
+            notifyJobCompletedStaff(managers, officeStaff, job, completedByName);
+          }
+        } catch (notifError) {
+          console.error('Notification error (non-critical):', notifError);
+        }
+      } else {
+        addNotification('error', result.error || 'Failed to complete job');
+      }
+    } catch (error) {
+      console.error('Complete job error:', error);
+      addNotification('error', 'Failed to complete job: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update job status (for status changes like revert, billing status, etc.)
+  const handleUpdateJobStatus = async (jobId, newStatus) => {
+    setIsLoading(true);
+    const statusLabels = {
+      'assigned': 'Assigned',
+      'in-progress': 'In Progress',
+      'completed': 'Completed',
+      'ready-to-bill': 'Ready to Bill',
+      'billed': 'Billed',
+      'waiting-on-parts': 'Waiting on Parts',
+      'canceled': 'Canceled'
+    };
+    
+    const updateData = { status: newStatus, updatedAt: new Date().toISOString() };
+    
+    // If reverting to assigned/in-progress, clear completion data
+    if (newStatus === 'assigned' || newStatus === 'in-progress') {
+      updateData.completedAt = null;
+      updateData.completedBy = null;
+    }
+    
+    const result = await fbUpdateJob(jobId, updateData);
+    if (result.success) {
+      addNotification('success', `Job status updated to ${statusLabels[newStatus] || newStatus}`);
     } else {
-      addNotification('error', 'Failed to complete job');
+      addNotification('error', 'Failed to update job status');
     }
     setIsLoading(false);
+    return result;
   };
 
   const handleUpdateSONumber = async (jobId, soNumber) => {
@@ -692,20 +1027,30 @@ const FieldSyncApp = () => {
   // ============================================
   const handleAddEquipment = async (equipmentData) => {
     setIsLoading(true);
-    const result = await fbAddPivot({
-      ...equipmentData,
-      farmerId: equipmentData.farmerId || userProfile.id,
-      status: 'active',
-      lastService: new Date().toISOString().split('T')[0]
-    });
+    try {
+      const result = await fbAddPivot({
+        ...equipmentData,
+        farmerId: equipmentData.farmerId || userProfile.id,
+        status: equipmentData.status || 'active',
+        lastService: new Date().toISOString().split('T')[0]
+      });
 
-    if (result.success) {
-      addNotification('success', 'Equipment added successfully');
-      setShowAddEquipmentModal(false);
-    } else {
-      addNotification('error', 'Failed to add equipment');
+      if (result.success) {
+        addNotification('success', 'Equipment added successfully');
+        setShowAddEquipmentModal(false);
+        return { success: true, id: result.id };
+      } else {
+        console.error('Add equipment failed:', result.error);
+        addNotification('error', `Failed to add equipment: ${result.error || 'Unknown error'}`);
+        return { success: false };
+      }
+    } catch (error) {
+      console.error('Add equipment error:', error);
+      addNotification('error', `Failed to add equipment: ${error.message}`);
+      return { success: false };
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleUpdateEquipmentLocation = async (equipmentId, lat, lng, address) => {
@@ -717,7 +1062,7 @@ const FieldSyncApp = () => {
     }
   };
 
-  const handleDeleteEquipment = async (equipmentId, equipmentName) => {
+  const handleDeleteEquipment = useCallback(async (equipmentId, equipmentName) => {
     if (!window.confirm(`Are you sure you want to delete "${equipmentName}"? This cannot be undone.`)) {
       return;
     }
@@ -730,9 +1075,9 @@ const FieldSyncApp = () => {
       addNotification('error', 'Failed to delete equipment');
     }
     setIsLoading(false);
-  };
+  }, [addNotification]);
 
-  const handleDeleteJob = async (jobId, jobTitle) => {
+  const handleDeleteJob = useCallback(async (jobId, jobTitle) => {
     if (!window.confirm(`Are you sure you want to delete "${jobTitle}"? This cannot be undone.`)) {
       return;
     }
@@ -744,10 +1089,10 @@ const FieldSyncApp = () => {
       addNotification('error', 'Failed to delete job');
     }
     setIsLoading(false);
-  };
+  }, [addNotification]);
 
   // Delete user (customer or team member) - Manager only
-  const handleDeleteUser = async (userId, userName, userRole) => {
+  const handleDeleteUser = useCallback(async (userId, userName, userRole) => {
     const roleLabel = userRole === 'farmer' ? 'customer' : 'team member';
     if (!window.confirm(`Are you sure you want to delete ${roleLabel} "${userName}"? This cannot be undone.`)) {
       return;
@@ -760,9 +1105,10 @@ const FieldSyncApp = () => {
       addNotification('error', `Failed to delete ${roleLabel}`);
     }
     setIsLoading(false);
-  };
+  }, [addNotification]);
 
   // Add assignee to job
+  // eslint-disable-next-line no-unused-vars
   const handleAddAssignee = async (jobId, userId) => {
     setIsLoading(true);
     const result = await fbAddAssignee(jobId, userId);
@@ -814,11 +1160,31 @@ const FieldSyncApp = () => {
     switch(status) {
       case 'pending': return 'warning';
       case 'assigned': return 'water';
+      case 'in-progress': return 'water';  // Active time tracking
       case 'completed': return 'success';
+      case 'ready-to-bill': return 'accent';  // Ready for billing
+      case 'billed': return 'success';  // Invoice sent
+      case 'waiting-on-parts': return 'warning';  // Waiting for parts
+      case 'canceled': return 'danger';  // Job canceled
       case 'active': return 'success';
       case 'needs-service': return 'danger';
       default: return 'default';
     }
+  };
+
+  // Format status for display
+  const formatStatus = (status) => {
+    const statusLabels = {
+      'pending': 'Pending',
+      'assigned': 'Assigned',
+      'in-progress': 'In Progress',
+      'completed': 'Completed',
+      'ready-to-bill': 'Ready to Bill',
+      'billed': 'Billed',
+      'waiting-on-parts': 'Waiting on Parts',
+      'canceled': 'Canceled'
+    };
+    return statusLabels[status] || status;
   };
 
   const formatDate = (dateString) => {
@@ -852,6 +1218,9 @@ const FieldSyncApp = () => {
   // const canSeePricing = userProfile?.role === 'manager';
   const canSeePricing = false; // Pricing disabled for now
 
+  // Effective profile - uses dev override if set
+  const effectiveRole = (isDevUser && devRoleOverride) ? devRoleOverride : userProfile?.role;
+  const effectiveProfile = userProfile ? { ...userProfile, role: effectiveRole } : null;
 
   // ============================================
   // LOGIN SCREEN
@@ -927,37 +1296,53 @@ const FieldSyncApp = () => {
   // NAVIGATION CONFIG
   // ============================================
   const getNavItems = () => {
-    const role = userProfile?.role;
-    if (role === 'farmer') return [
-      { id: 'equipment', label: 'My Equipment', icon: Navigation },
-      { id: 'jobs', label: 'Service History', icon: Clipboard },
-      { id: 'map', label: 'Map', icon: Map },
-      { id: 'weather', label: 'Weather', icon: Cloud }
-    ];
-    if (role === 'tech') return [
-      { id: 'dashboard', label: 'Dashboard', icon: Home },
-      { id: 'jobs', label: 'My Jobs', icon: Briefcase },
-      { id: 'customers', label: 'Customers', icon: Users },
-      { id: 'map', label: 'Field Map', icon: Map }
-    ];
-    if (role === 'office') return [
-      { id: 'jobs', label: 'All Jobs', icon: Briefcase },
-      { id: 'callin', label: 'New Call-In', icon: Phone },
-      { id: 'customers', label: 'Customers', icon: Users },
-      { id: 'map', label: 'Map', icon: Map }
-    ];
-    // Manager
-    return [
-      { id: 'dashboard', label: 'Dashboard', icon: Home },
-      { id: 'myjobs', label: 'My Jobs', icon: Wrench },
-      { id: 'jobs', label: 'All Jobs', icon: Briefcase },
-      { id: 'calendar', label: 'Calendar', icon: Calendar },
-      { id: 'customers', label: 'Customers', icon: Users },
-      { id: 'team', label: 'Team', icon: Users },
-      { id: 'map', label: 'Map', icon: Map },
-      { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-      { id: 'settings', label: 'Settings', icon: Settings }
-    ];
+    const role = effectiveRole;
+    let items = [];
+    
+    if (role === 'farmer') {
+      items = [
+        { id: 'dashboard', label: 'Home', icon: Home },
+        { id: 'equipment', label: 'Equipment', icon: Navigation },
+        { id: 'jobs', label: 'History', icon: Clipboard },
+        { id: 'map', label: 'Map', icon: Map }
+      ];
+    } else if (role === 'tech') {
+      items = [
+        { id: 'dashboard', label: 'Dashboard', icon: Home },
+        { id: 'myjobs', label: 'My Jobs', icon: Wrench },
+        { id: 'jobs', label: 'Open Jobs', icon: Briefcase },
+        { id: 'team', label: 'Team', icon: Users },
+        { id: 'customers', label: 'Customers', icon: Users },
+        { id: 'map', label: 'Field Map', icon: Map }
+      ];
+    } else if (role === 'office') {
+      items = [
+        { id: 'jobs', label: 'All Jobs', icon: Briefcase },
+        { id: 'callin', label: 'New Call-In', icon: Phone },
+        { id: 'customers', label: 'Customers', icon: Users },
+        { id: 'map', label: 'Map', icon: Map }
+      ];
+    } else {
+      // Manager
+      items = [
+        { id: 'dashboard', label: 'Dashboard', icon: Home },
+        { id: 'myjobs', label: 'My Jobs', icon: Wrench },
+        { id: 'jobs', label: 'All Jobs', icon: Briefcase },
+        { id: 'calendar', label: 'Calendar', icon: Calendar },
+        { id: 'customers', label: 'Customers', icon: Users },
+        { id: 'team', label: 'Team', icon: Users },
+        { id: 'map', label: 'Map', icon: Map },
+        { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+        { id: 'settings', label: 'Settings', icon: Settings }
+      ];
+    }
+    
+    // Add dev settings for dev users
+    if (isDevUser) {
+      items.push({ id: 'dev', label: 'Dev', icon: AlertCircle, isDev: true });
+    }
+    
+    return items;
   };
 
   // ============================================
@@ -967,9 +1352,25 @@ const FieldSyncApp = () => {
     if (!showNotificationsDropdown) return null;
 
     return (
-      <div className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border z-50" style={{ borderColor: colors.border }}>
-        <div className="p-4 border-b" style={{ borderColor: colors.border }}>
+      <div 
+        className="fixed md:absolute right-2 md:right-0 top-16 md:top-12 w-[calc(100vw-1rem)] md:w-80 bg-white rounded-xl shadow-xl border z-50" 
+        style={{ 
+          borderColor: colors.border, 
+          backgroundColor: colors.cardBg,
+          maxWidth: '320px'
+        }}
+      >
+        <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: colors.border }}>
           <h3 className="font-semibold" style={{ color: colors.textPrimary }}>Notifications</h3>
+          {jobNotifications.length > 0 && (
+            <button 
+              className="text-xs px-2 py-1 rounded hover:bg-gray-100"
+              style={{ color: colors.textSecondary }}
+              onClick={(e) => { e.stopPropagation(); clearAllNotifications(); }}
+            >
+              Clear All
+            </button>
+          )}
         </div>
         <div className="max-h-80 overflow-y-auto">
           {jobNotifications.length === 0 ? (
@@ -978,25 +1379,34 @@ const FieldSyncApp = () => {
             </div>
           ) : (
             jobNotifications.map(notif => (
-              <div key={notif.id} className="p-4 border-b hover:bg-gray-50 cursor-pointer" style={{ borderColor: colors.border }}
-                onClick={() => {
-                  const job = jobs.find(j => j.id === notif.id);
-                  if (job) {
-                    setSelectedJobForAction(job);
-                    if (userProfile.role === 'manager' || userProfile.role === 'office') {
-                      setShowAssignJobModal(true);
-                    } else {
-                      setShowJobDetailsModal(true);
+              <div key={notif.id} className="p-4 border-b hover:bg-gray-50 group relative" style={{ borderColor: colors.border }}>
+                {/* Dismiss button */}
+                <button 
+                  className="absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-200 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); dismissNotification(notif.id); }}
+                  title="Dismiss"
+                >
+                  <X className="w-3 h-3" style={{ color: colors.textSecondary }} />
+                </button>
+                <div 
+                  className="flex items-start space-x-3 cursor-pointer"
+                  onClick={() => {
+                    const job = jobs.find(j => j.id === notif.id);
+                    if (job) {
+                      setSelectedJobForAction(job);
+                      if (userProfile.role === 'manager' || userProfile.role === 'office') {
+                        setShowAssignJobModal(true);
+                      } else {
+                        setShowJobDetailsModal(true);
+                      }
                     }
-                  }
-                  setShowNotificationsDropdown(false);
-                }}
-              >
-                <div className="flex items-start space-x-3">
+                    setShowNotificationsDropdown(false);
+                  }}
+                >
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.warning + '20' }}>
                     <AlertCircle className="w-4 h-4" style={{ color: colors.warning }} />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 pr-4">
                     <p className="text-sm font-medium" style={{ color: colors.textPrimary }}>{notif.title}</p>
                     <p className="text-xs" style={{ color: colors.textSecondary }}>{notif.message}</p>
                     <p className="text-xs mt-1" style={{ color: colors.muted }}>{formatDate(notif.time)}</p>
@@ -1019,8 +1429,224 @@ const FieldSyncApp = () => {
 
 
   // ============================================
-  // FARMER VIEWS
+  // FARMER VIEWS - Simplified & Reassuring
   // ============================================
+  const FarmerDashboard = () => {
+    const myEquipment = equipment.filter(p => p.farmerId === userProfile?.id);
+    const myJobs = jobs.filter(j => j.farmerId === userProfile?.id);
+    const activeJobs = myJobs.filter(j => ['pending', 'assigned', 'in-progress', 'waiting-on-parts'].includes(j.status));
+    const completedJobs = myJobs.filter(j => ['completed', 'ready-to-bill', 'billed'].includes(j.status));
+    
+    // Time-aware greeting
+    const getGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) return 'Good morning';
+      if (hour < 17) return 'Good afternoon';
+      return 'Good evening';
+    };
+
+    // Find the most urgent/recent active job
+    const urgentJob = activeJobs.find(j => j.status === 'in-progress') || activeJobs[0];
+    const urgentJobTech = urgentJob ? users.find(u => {
+      const assigned = urgentJob.assignedTo;
+      return Array.isArray(assigned) ? assigned.includes(u.id) : assigned === u.id;
+    }) : null;
+
+    return (
+      <div className="space-y-6">
+        {/* Personalized Header */}
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: colors.textPrimary }}>
+            {getGreeting()}, {userProfile?.name?.split(' ')[0] || 'there'} 👋
+          </h1>
+          <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
+            {activeJobs.length > 0 
+              ? `You have ${activeJobs.length} active service request${activeJobs.length > 1 ? 's' : ''}`
+              : "All your equipment is running smooth 🌾"
+            }
+          </p>
+        </div>
+
+        {/* Active Service Alert - Most Important Info First */}
+        {urgentJob && (
+          <div 
+            className="rounded-2xl p-5 cursor-pointer active:scale-99 transition-transform"
+            style={{ 
+              backgroundColor: urgentJob.status === 'in-progress' ? colors.success + '15' : colors.water + '15',
+              borderLeft: `4px solid ${urgentJob.status === 'in-progress' ? colors.success : colors.water}`
+            }}
+            onClick={() => { setSelectedJobForAction(urgentJob); setShowJobDetailsModal(true); }}
+          >
+            <div className="flex items-center space-x-2 mb-3">
+              {urgentJob.status === 'in-progress' ? (
+                <>
+                  <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: colors.success }} />
+                  <span className="font-bold" style={{ color: colors.success }}>Tech On Site</span>
+                </>
+              ) : urgentJob.status === 'assigned' ? (
+                <>
+                  <Clock className="w-4 h-4" style={{ color: colors.water }} />
+                  <span className="font-bold" style={{ color: colors.water }}>Tech Assigned</span>
+                </>
+              ) : (
+                <>
+                  <Clock className="w-4 h-4" style={{ color: colors.warning }} />
+                  <span className="font-bold" style={{ color: colors.warning }}>Request Received</span>
+                </>
+              )}
+            </div>
+            
+            <h3 className="text-lg font-semibold mb-1" style={{ color: colors.textPrimary }}>{urgentJob.title}</h3>
+            <p className="text-sm mb-3" style={{ color: colors.textSecondary }}>{urgentJob.pivotName}</p>
+            
+            {urgentJobTech && (
+              <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: colors.primary + '20' }}>
+                    {urgentJobTech.avatar || '👷'}
+                  </div>
+                  <div>
+                    <p className="font-medium" style={{ color: colors.textPrimary }}>{urgentJobTech.name}</p>
+                    <p className="text-xs" style={{ color: colors.textSecondary }}>Your technician</p>
+                  </div>
+                </div>
+                {urgentJobTech.phone && (
+                  <a 
+                    href={`tel:${urgentJobTech.phone}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-3 rounded-xl active:scale-95 transition-transform"
+                    style={{ backgroundColor: colors.success + '20' }}
+                  >
+                    <Phone className="w-5 h-5" style={{ color: colors.success }} />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setShowReportIssueModal(true)}
+            className="flex flex-col items-center justify-center p-6 rounded-2xl active:scale-95 transition-transform"
+            style={{ backgroundColor: colors.danger + '15' }}
+          >
+            <Phone className="w-8 h-8 mb-2" style={{ color: colors.danger }} />
+            <span className="font-semibold" style={{ color: colors.danger }}>Report Issue</span>
+            <span className="text-xs mt-1" style={{ color: colors.textSecondary }}>Need service?</span>
+          </button>
+          <button
+            onClick={() => setShowAddEquipmentModal(true)}
+            className="flex flex-col items-center justify-center p-6 rounded-2xl active:scale-95 transition-transform"
+            style={{ backgroundColor: colors.primary + '15' }}
+          >
+            <Plus className="w-8 h-8 mb-2" style={{ color: colors.primary }} />
+            <span className="font-semibold" style={{ color: colors.primary }}>Add Equipment</span>
+            <span className="text-xs mt-1" style={{ color: colors.textSecondary }}>New system?</span>
+          </button>
+        </div>
+
+        {/* My Equipment - Simple Cards */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>My Equipment ({myEquipment.length})</h2>
+            <button 
+              onClick={() => setSelectedTab('equipment')}
+              className="text-sm font-medium"
+              style={{ color: colors.primary }}
+            >
+              See All →
+            </button>
+          </div>
+          
+          {myEquipment.length === 0 ? (
+            <div className="text-center py-8 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+              <Navigation className="w-12 h-12 mx-auto mb-3" style={{ color: colors.muted }} />
+              <p style={{ color: colors.textSecondary }}>No equipment added yet</p>
+              <Button icon={Plus} className="mt-3" onClick={() => setShowAddEquipmentModal(true)}>Add Equipment</Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {myEquipment.slice(0, 3).map(pivot => {
+                const hasActiveJob = activeJobs.some(j => j.pivotId === pivot.id);
+                return (
+                  <div 
+                    key={pivot.id}
+                    className="flex items-center justify-between p-4 rounded-xl cursor-pointer active:scale-99 transition-transform"
+                    style={{ backgroundColor: colors.cardBg }}
+                    onClick={() => setSelectedEquipmentProfile(pivot)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: colors.primary + '15' }}>
+                        {pivot.type === 'pivot' ? '🌀' : pivot.type === 'drip' ? '💧' : '🚜'}
+                      </div>
+                      <div>
+                        <p className="font-medium" style={{ color: colors.textPrimary }}>{pivot.name}</p>
+                        <p className="text-xs" style={{ color: colors.textSecondary }}>{pivot.acres} acres • {pivot.status}</p>
+                      </div>
+                    </div>
+                    {hasActiveJob && (
+                      <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: colors.warning + '20', color: colors.warning }}>
+                        Service Active
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Service History */}
+        {completedJobs.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>Recent Service</h2>
+              <button 
+                onClick={() => setSelectedTab('jobs')}
+                className="text-sm font-medium"
+                style={{ color: colors.primary }}
+              >
+                See All →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {completedJobs.slice(0, 2).map(job => (
+                <div 
+                  key={job.id}
+                  className="flex items-center justify-between p-4 rounded-xl cursor-pointer active:scale-99 transition-transform"
+                  style={{ backgroundColor: colors.cardBg }}
+                  onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+                >
+                  <div>
+                    <p className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</p>
+                    <p className="text-xs" style={{ color: colors.textSecondary }}>
+                      {job.pivotName} • {new Date(job.completedAt || job.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {job.rating ? (
+                      <div className="flex items-center">
+                        <Star className="w-4 h-4" style={{ color: colors.accent, fill: colors.accent }} />
+                        <span className="text-sm ml-1" style={{ color: colors.accent }}>{job.rating}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: colors.accent + '20', color: colors.accent }}>
+                        Rate
+                      </span>
+                    )}
+                    <CheckCircle className="w-5 h-5" style={{ color: colors.success }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const FarmerEquipmentView = () => {
     const myEquipment = equipment.filter(p => p.farmerId === userProfile?.id);
 
@@ -1086,78 +1712,122 @@ const FieldSyncApp = () => {
 
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold" style={{ color: colors.primary }}>Service History</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold" style={{ color: colors.primary }}>Service History</h2>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: colors.success + '15', color: colors.success }}>
+              {myJobs.filter(j => j.status === 'completed').length} completed
+            </span>
+            <span className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: colors.warning + '15', color: colors.warning }}>
+              {myJobs.filter(j => j.status === 'pending' || j.status === 'assigned').length} active
+            </span>
+          </div>
+        </div>
         {myJobs.length === 0 ? (
           <EmptyState icon={Clipboard} title="No Service History" description="Your service requests will appear here." />
         ) : (
           <div className="space-y-3">
-            {myJobs.map(job => (
-              <div key={job.id} className="card p-4">
-                <div className="flex items-start justify-between cursor-pointer" onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-semibold" style={{ color: colors.textPrimary }}>{job.title}</h3>
-                      {job.soNumber && <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>SO# {job.soNumber}</span>}
+            {myJobs.map(job => {
+              const pivot = equipment.find(p => p.id === job.pivotId);
+              const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+              const techNames = assignees.map(id => users.find(u => u.id === id)?.name).filter(Boolean);
+              
+              return (
+                <div key={job.id} className="card p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <button 
+                          className="font-semibold hover:underline text-left"
+                          style={{ color: colors.textPrimary }}
+                          onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+                        >
+                          {job.title}
+                        </button>
+                        {job.soNumber && <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>SO# {job.soNumber}</span>}
+                      </div>
+                      
+                      {/* Interactive equipment link */}
+                      <div className="flex items-center space-x-2 mb-2">
+                        {pivot ? (
+                          <button 
+                            className="text-sm hover:underline flex items-center"
+                            style={{ color: colors.primary }}
+                            onClick={() => setSelectedEquipmentProfile(pivot)}
+                          >
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {job.pivotName}
+                          </button>
+                        ) : (
+                          <span className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName}</span>
+                        )}
+                        {techNames.length > 0 && (
+                          <>
+                            <span style={{ color: colors.muted }}>•</span>
+                            <span className="text-sm" style={{ color: colors.water }}>
+                              <Wrench className="w-3 h-3 inline mr-1" />
+                              {techNames.join(', ')}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      
+                      <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>{job.description}</p>
+                      <div className="flex items-center space-x-3 text-xs" style={{ color: colors.muted }}>
+                        <span>{formatDate(job.createdAt)}</span>
+                        {job.completedAt && <span>• Completed {formatDate(job.completedAt)}</span>}
+                      </div>
                     </div>
-                    <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>{job.description}</p>
-                    <div className="flex items-center space-x-3 text-xs" style={{ color: colors.muted }}>
-                      <span>{formatDate(job.createdAt)}</span>
-                      {job.assignedTo && (() => {
-                        const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
-                        const names = assignees.map(id => users.find(u => u.id === id)?.name).filter(Boolean);
-                        return names.length > 0 ? <span>• Assigned to {names.join(', ')}</span> : null;
-                      })()}
+                    <div className="flex flex-col items-end space-y-2">
+                      <Badge variant={getStatusVariant(job.status)}>{formatStatus(job.status)}</Badge>
+                      <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>{job.priority}</Badge>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
-                    <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>{job.priority}</Badge>
-                  </div>
+                  
+                  {/* Rating Section for Completed Jobs */}
+                  {job.status === 'completed' && (
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: colors.border }}>
+                      {job.rating ? (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm" style={{ color: colors.textSecondary }}>Your rating:</span>
+                            <StarRating rating={job.rating} readonly size="sm" />
+                          </div>
+                          {job.feedback && <p className="text-xs italic" style={{ color: colors.muted }}>"{job.feedback}"</p>}
+                        </div>
+                      ) : ratingJobId === job.id ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-sm" style={{ color: colors.textSecondary }}>Rate this service:</span>
+                            <StarRating rating={tempRating} onRate={setTempRating} />
+                          </div>
+                          <textarea
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                            placeholder="Add a comment (optional)"
+                            className="input text-sm"
+                            rows={2}
+                          />
+                          <div className="flex space-x-2">
+                            <Button size="sm" onClick={() => submitRating(job.id)} disabled={tempRating === 0}>Submit</Button>
+                            <Button size="sm" variant="secondary" onClick={() => { setRatingJobId(null); setTempRating(0); setFeedback(''); }}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setRatingJobId(job.id); }}
+                          className="flex items-center space-x-2 text-sm hover:underline"
+                          style={{ color: colors.accent }}
+                        >
+                          <Star className="w-4 h-4" />
+                          <span>Rate this service</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                
-                {/* Rating Section for Completed Jobs */}
-                {job.status === 'completed' && (
-                  <div className="mt-3 pt-3 border-t" style={{ borderColor: colors.border }}>
-                    {job.rating ? (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm" style={{ color: colors.textSecondary }}>Your rating:</span>
-                          <StarRating rating={job.rating} readonly size="sm" />
-                        </div>
-                        {job.feedback && <p className="text-xs italic" style={{ color: colors.muted }}>"{job.feedback}"</p>}
-                      </div>
-                    ) : ratingJobId === job.id ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm" style={{ color: colors.textSecondary }}>Rate this service:</span>
-                          <StarRating rating={tempRating} onRate={setTempRating} />
-                        </div>
-                        <textarea
-                          value={feedback}
-                          onChange={(e) => setFeedback(e.target.value)}
-                          placeholder="Add a comment (optional)"
-                          className="input text-sm"
-                          rows={2}
-                        />
-                        <div className="flex space-x-2">
-                          <Button size="sm" onClick={() => submitRating(job.id)} disabled={tempRating === 0}>Submit</Button>
-                          <Button size="sm" variant="secondary" onClick={() => { setRatingJobId(null); setTempRating(0); setFeedback(''); }}>Cancel</Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setRatingJobId(job.id); }}
-                        className="flex items-center space-x-2 text-sm hover:underline"
-                        style={{ color: colors.accent }}
-                      >
-                        <Star className="w-4 h-4" />
-                        <span>Rate this service</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -1165,7 +1835,7 @@ const FieldSyncApp = () => {
   };
 
   // ============================================
-  // TECH VIEWS
+  // TECH VIEWS - FULLY INTERACTIVE
   // ============================================
   const TechDashboard = () => {
     const myJobs = jobs.filter(j => {
@@ -1175,8 +1845,9 @@ const FieldSyncApp = () => {
       }
       return assigned === userProfile?.id;
     });
-    const activeJobs = myJobs.filter(j => j.status === 'assigned');
+    const activeJobs = myJobs.filter(j => j.status === 'assigned' || j.status === 'in-progress');
     const completedJobs = myJobs.filter(j => j.status === 'completed');
+    const pendingJobs = jobs.filter(j => j.status === 'pending');
 
     return (
       <div className="space-y-6">
@@ -1187,41 +1858,156 @@ const FieldSyncApp = () => {
             <Button icon={AlertCircle} size="sm" variant="secondary" onClick={() => setShowReportIssueModal(true)}>Report Issue</Button>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Active Jobs" value={activeJobs.length} icon={Wrench} color={colors.water} />
-          <StatCard title="Completed" value={completedJobs.length} icon={CheckCircle} color={colors.success} />
-          <StatCard title="Total Miles" value={completedJobs.reduce((sum, j) => sum + (j.milesDriven || 0), 0)} icon={Navigation} color={colors.primary} />
-          <StatCard title="Total Hours" value={completedJobs.reduce((sum, j) => sum + (j.hoursWorked || 0), 0).toFixed(1)} icon={Clock} color={colors.accent} />
+        
+        {/* CLICKABLE STATS */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <ClickableStat 
+            colors={colors}
+            title="Active Jobs" 
+            value={activeJobs.length} 
+            icon={Wrench} 
+            color={colors.water}
+            subtitle="In progress"
+            onClick={() => setSelectedTab('jobs')}
+          />
+          <ClickableStat 
+            colors={colors}
+            title="Available" 
+            value={pendingJobs.length} 
+            icon={Clipboard} 
+            color={colors.warning}
+            subtitle="Grab one!"
+            onClick={() => setSelectedTab('jobs')}
+          />
+          <ClickableStat 
+            colors={colors}
+            title="Completed" 
+            value={completedJobs.length} 
+            icon={CheckCircle} 
+            color={colors.success}
+            subtitle="This period"
+            onClick={() => setSelectedTab('jobs')}
+          />
+          <ClickableStat 
+            colors={colors}
+            title="Miles" 
+            value={completedJobs.reduce((sum, j) => sum + (j.milesDriven || 0), 0)} 
+            icon={Navigation} 
+            color={colors.primary}
+            subtitle="Total driven"
+            onClick={() => setSelectedTab('jobs')}
+          />
+          <ClickableStat 
+            colors={colors}
+            title="Hours" 
+            value={completedJobs.reduce((sum, j) => sum + (j.hoursWorked || 0), 0).toFixed(1)} 
+            icon={Clock} 
+            color={colors.accent}
+            subtitle="Total logged"
+            onClick={() => setSelectedTab('jobs')}
+          />
         </div>
 
+        {/* ACTIVE JOBS - INTERACTIVE */}
         <div>
-          <h3 className="font-semibold mb-3" style={{ color: colors.textPrimary }}>Active Jobs</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold" style={{ color: colors.textPrimary }}>Active Jobs</h3>
+            <button 
+              className="text-sm hover:underline"
+              style={{ color: colors.primary }}
+              onClick={() => setSelectedTab('jobs')}
+            >
+              View All →
+            </button>
+          </div>
           {activeJobs.length === 0 ? (
             <div className="card p-6 text-center">
               <CheckCircle className="w-12 h-12 mx-auto mb-2" style={{ color: colors.success }} />
               <p style={{ color: colors.textSecondary }}>All caught up! No active jobs.</p>
+              {pendingJobs.length > 0 && (
+                <Button 
+                  size="sm" 
+                  className="mt-3"
+                  onClick={() => setSelectedTab('jobs')}
+                >
+                  Grab an Available Job ({pendingJobs.length})
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
-              {activeJobs.map(job => (
-                <div key={job.id} className="card p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h4 className="font-semibold" style={{ color: colors.textPrimary }}>{job.title}</h4>
-                        {job.soNumber && <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>SO# {job.soNumber}</span>}
+              {activeJobs.map(job => {
+                const pivot = equipment.find(p => p.id === job.pivotId);
+                const farmer = users.find(u => u.id === job.farmerId);
+                return (
+                  <div key={job.id} className="card p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            className="font-semibold hover:underline text-left"
+                            style={{ color: colors.textPrimary }}
+                            onClick={() => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}
+                          >
+                            {job.title}
+                          </button>
+                          {job.soNumber && <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>SO# {job.soNumber}</span>}
+                        </div>
+                        <div className="flex items-center space-x-2 mt-1">
+                          {pivot ? (
+                            <button 
+                              className="text-sm hover:underline flex items-center"
+                              style={{ color: colors.primary }}
+                              onClick={() => setSelectedEquipmentProfile(pivot)}
+                            >
+                              <MapPin className="w-3 h-3 mr-1" />
+                              {job.pivotName}
+                            </button>
+                          ) : (
+                            <span className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName || 'Location TBD'}</span>
+                          )}
+                          {farmer && (
+                            <>
+                              <span style={{ color: colors.muted }}>•</span>
+                              <span className="text-sm" style={{ color: colors.water }}>{farmer.name}</span>
+                              {farmer.phone && (
+                                <a 
+                                  href={`tel:${farmer.phone}`}
+                                  className="text-xs px-2 py-0.5 rounded hover:bg-green-100"
+                                  style={{ backgroundColor: colors.success + '15', color: colors.success }}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Phone className="w-3 h-3 inline mr-1" />Call
+                                </a>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <p className="text-xs mt-1" style={{ color: colors.muted }}>{job.description}</p>
                       </div>
-                      <p className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName || 'Location TBD'}</p>
-                      <p className="text-xs mt-1" style={{ color: colors.muted }}>{job.description}</p>
+                      <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>{job.priority}</Badge>
                     </div>
-                    <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>{job.priority}</Badge>
+                    <div className="mt-3 pt-3 border-t flex justify-between items-center" style={{ borderColor: colors.border }}>
+                      <div className="flex items-center space-x-2">
+                        {pivot?.lat && pivot?.lng && (
+                          <a 
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs px-2 py-1 rounded flex items-center"
+                            style={{ backgroundColor: colors.primary, color: 'white' }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Navigation className="w-3 h-3 mr-1" />Directions
+                          </a>
+                        )}
+                        <span className="text-xs" style={{ color: colors.muted }}>Est. {job.estimatedHours || 2} hours</span>
+                      </div>
+                      <Button size="sm" icon={CheckCircle} onClick={() => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}>Complete</Button>
+                    </div>
                   </div>
-                  <div className="mt-3 pt-3 border-t flex justify-between items-center" style={{ borderColor: colors.border }}>
-                    <span className="text-xs" style={{ color: colors.muted }}>Est. {job.estimatedHours || 2} hours</span>
-                    <Button size="sm" icon={CheckCircle}>Complete</Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1230,17 +2016,64 @@ const FieldSyncApp = () => {
   };
 
   const TechJobsView = () => {
-    const myJobs = jobs.filter(j => {
-      const assigned = j.assignedTo;
-      const isAssignedToMe = Array.isArray(assigned) ? assigned.includes(userProfile?.id) : assigned === userProfile?.id;
-      return isAssignedToMe && j.status === 'assigned';
-    });
-    const pendingJobs = jobs.filter(j => j.status === 'pending');
+    const [hideCompleted, setHideCompleted] = useState(true);
+    const [sortBy, setSortBy] = useState('date');
     const [showPending, setShowPending] = useState(false);
     const [showLunchPrompt, setShowLunchPrompt] = useState(false);
     const [stoppingJobId, setStoppingJobId] = useState(null);
 
-    // Check if user has active time entry on a job
+    // Find the job I'm CURRENTLY working on (has active time entry)
+    const activeJob = jobs.find(j => {
+      const assigned = j.assignedTo;
+      const isAssignedToMe = Array.isArray(assigned) ? assigned.includes(userProfile?.id) : assigned === userProfile?.id;
+      const hasActiveEntry = j.timeEntries?.some(e => e.techId === userProfile?.id && !e.endTime);
+      return isAssignedToMe && hasActiveEntry;
+    });
+
+    // Get active time entry duration
+    // eslint-disable-next-line no-unused-vars
+    const getActiveTimeDuration = (job) => {
+      const entry = job?.timeEntries?.find(e => e.techId === userProfile?.id && !e.endTime);
+      if (!entry) return null;
+      const start = new Date(entry.startTime);
+      const now = new Date();
+      const diff = Math.floor((now - start) / 1000);
+      const hours = Math.floor(diff / 3600);
+      const mins = Math.floor((diff % 3600) / 60);
+      return `${hours}h ${mins}m`;
+    };
+
+    // Filter jobs assigned to me
+    const myJobs = jobs.filter(j => {
+      const assigned = j.assignedTo;
+      const isAssignedToMe = Array.isArray(assigned) ? assigned.includes(userProfile?.id) : assigned === userProfile?.id;
+      const isActiveStatus = !['billed', 'canceled'].includes(j.status);
+      const passesCompletedFilter = hideCompleted ? !['completed', 'ready-to-bill'].includes(j.status) : true;
+      // Don't show active job in the list - it's shown separately
+      const isNotActiveJob = !activeJob || j.id !== activeJob.id;
+      return isAssignedToMe && isActiveStatus && passesCompletedFilter && isNotActiveJob;
+    });
+
+    // Sort: In-progress first, then by date
+    const sortedJobs = [...myJobs].sort((a, b) => {
+      // In-progress jobs first
+      if (a.status === 'in-progress' && b.status !== 'in-progress') return -1;
+      if (b.status === 'in-progress' && a.status !== 'in-progress') return 1;
+      
+      if (sortBy === 'so') {
+        if (a.soNumber && !b.soNumber) return -1;
+        if (!a.soNumber && b.soNumber) return 1;
+        if (a.soNumber && b.soNumber) return a.soNumber.localeCompare(b.soNumber);
+        return 0;
+      } else {
+        const dateA = new Date(a.createdAt || 0);
+        const dateB = new Date(b.createdAt || 0);
+        return dateB - dateA;
+      }
+    });
+
+    const pendingJobs = jobs.filter(j => j.status === 'pending');
+
     const hasActiveTimeEntry = (job) => {
       return job.timeEntries?.some(e => e.techId === userProfile?.id && !e.endTime);
     };
@@ -1251,131 +2084,150 @@ const FieldSyncApp = () => {
       setStoppingJobId(null);
     };
 
+    const completedCount = jobs.filter(j => {
+      const assigned = j.assignedTo;
+      const isAssignedToMe = Array.isArray(assigned) ? assigned.includes(userProfile?.id) : assigned === userProfile?.id;
+      return isAssignedToMe && ['completed', 'ready-to-bill'].includes(j.status);
+    }).length;
+
+    // Get equipment and farmer for a job
+    const getJobContext = (job) => {
+      const pivot = equipment.find(p => p.id === job.pivotId);
+      const farmer = users.find(u => u.id === job.farmerId);
+      return { pivot, farmer };
+    };
+
     return (
-      <div className="space-y-6">
-        {/* My Active Jobs */}
+      <div className="space-y-4">
+        {/* ACTIVE JOB SECTION - DISABLED: using manual time entry only
+        {activeJob && (() => {
+          ...
+        })()}
+        */}
+
+        {/* Lunch Prompt Modal - DISABLED: using manual time entry only
+        <Modal isOpen={showLunchPrompt} title="Did you take lunch?" onClose={() => { setShowLunchPrompt(false); setStoppingJobId(null); }}>
+          ...
+        </Modal>
+        */}
+
+        {/* Quick Stats Bar */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-center p-3 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+            <p className="text-2xl font-bold" style={{ color: colors.primary }}>{sortedJobs.length}</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Queued</p>
+          </div>
+          <div className="text-center p-3 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+            <p className="text-2xl font-bold" style={{ color: colors.success }}>{completedCount}</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Done</p>
+          </div>
+          <div className="text-center p-3 rounded-xl" style={{ backgroundColor: colors.cardBg }}>
+            <p className="text-2xl font-bold" style={{ color: colors.warning }}>{pendingJobs.length}</p>
+            <p className="text-xs" style={{ color: colors.textSecondary }}>Available</p>
+          </div>
+        </div>
+
+        {/* My Job Queue */}
         <div>
-          <h2 className="text-xl font-bold mb-4" style={{ color: colors.primary }}>My Jobs</h2>
-          {myJobs.length === 0 ? (
-            <EmptyState icon={Briefcase} title="No Active Jobs" description="Jobs assigned to you will appear here." />
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold" style={{ color: colors.textPrimary }}>
+              {activeJob ? 'Up Next' : 'My Jobs'}
+            </h2>
+            <div className="flex items-center space-x-2">
+              <label className="flex items-center space-x-1 cursor-pointer text-sm">
+                <input type="checkbox" checked={hideCompleted} onChange={(e) => setHideCompleted(e.target.checked)} className="rounded" />
+                <span style={{ color: colors.textSecondary }}>Hide Done</span>
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="text-xs px-2 py-1 rounded-lg border"
+                style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.textPrimary }}
+              >
+                <option value="date">Date</option>
+                <option value="so">SO#</option>
+              </select>
+            </div>
+          </div>
+          
+          {sortedJobs.length === 0 ? (
+            <EmptyState icon={Briefcase} title={activeJob ? "You're all caught up!" : "No Jobs"} description={activeJob ? "Focus on your current job." : hideCompleted ? "Uncheck 'Hide Done' to see finished jobs." : "Jobs assigned to you will appear here."} />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {myJobs.map(job => {
-                const pivot = equipment.find(p => p.id === job.pivotId);
-                const farmer = users.find(u => u.id === job.farmerId);
+            <div className="space-y-3">
+              {sortedJobs.map(job => {
+                const { pivot, farmer } = getJobContext(job);
+                // eslint-disable-next-line no-unused-vars
                 const isTracking = hasActiveTimeEntry(job);
-                const timeEntries = job.timeEntries || [];
-                const totalTrackedTime = timeEntries.reduce((total, e) => {
-                  if (e.startTime && e.endTime) {
-                    return total + (new Date(e.endTime) - new Date(e.startTime)) / (1000 * 60 * 60);
-                  }
-                  return total;
-                }, 0);
 
                 return (
-                  <div key={job.id} className="card p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold" style={{ color: colors.textPrimary }}>{job.title}</h3>
-                          {job.soNumber && <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>SO# {job.soNumber}</span>}
-                        </div>
-                        <button 
-                          onClick={() => pivot && setSelectedEquipmentProfile(pivot)}
-                          className="text-sm hover:underline flex items-center"
-                          style={{ color: colors.primary }}
-                        >
-                          <Navigation className="w-3 h-3 mr-1" />
-                          {job.pivotName}
-                        </button>
+                  <div 
+                    key={job.id} 
+                    className="card p-4 active:scale-99 transition-transform cursor-pointer"
+                    onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+                  >
+                    {/* Compact Header */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        {job.soNumber && (
+                          <span className="font-mono text-xs font-bold px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>
+                            {job.soNumber}
+                          </span>
+                        )}
+                        <span className="font-semibold" style={{ color: colors.textPrimary }}>{job.title}</span>
                       </div>
-                      <Badge variant={job.priority === 'high' ? 'danger' : 'warning'}>{job.priority}</Badge>
+                      <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'} className="text-xs">
+                        {job.priority}
+                      </Badge>
                     </div>
-                    <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>{job.description}</p>
-                    
-                    {/* Time Tracking Status */}
-                    {(isTracking || timeEntries.length > 0) && (
-                      <div className="p-2 rounded-lg mb-3" style={{ backgroundColor: isTracking ? colors.success + '15' : colors.water + '15' }}>
-                        {isTracking ? (
-                          <p className="text-xs font-medium flex items-center" style={{ color: colors.success }}>
-                            <Play className="w-3 h-3 mr-1 animate-pulse" /> Time tracking active...
-                          </p>
-                        ) : (
-                          <p className="text-xs" style={{ color: colors.water }}>
-                            <Clock className="w-3 h-3 inline mr-1" /> {totalTrackedTime.toFixed(1)} hrs tracked ({timeEntries.length} entries)
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Farmer Contact */}
-                    {farmer && (
-                      <div className="p-2 rounded-lg mb-3 flex items-center justify-between" style={{ backgroundColor: colors.background }}>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">{farmer.avatar || '👨‍🌾'}</span>
-                          <div>
-                            <p className="text-sm font-medium" style={{ color: colors.textPrimary }}>{farmer.name}</p>
-                            {farmer.phone && (
-                              <a href={`tel:${farmer.phone}`} className="text-xs flex items-center" style={{ color: colors.primary }}>
-                                <Phone className="w-3 h-3 mr-1" />{farmer.phone}
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                        {pivot?.lat && pivot?.lng && (
-                          <a 
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs px-2 py-1 rounded flex items-center"
-                            style={{ backgroundColor: colors.primary, color: 'white' }}
-                          >
-                            <MapPin className="w-3 h-3 mr-1" />Directions
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    
-                    {job.leavePivotRunning && (
-                      <div className="p-2 rounded-lg mb-3" style={{ backgroundColor: colors.warning + '15' }}>
-                        <p className="text-xs font-medium" style={{ color: colors.warning }}>⚠️ Pivot left running: {job.pivotDirection} at {job.pivotPercentage}%</p>
-                      </div>
-                    )}
 
-                    {/* Action Buttons */}
-                    <div className="space-y-2">
-                      {/* Start/Stop Time Buttons */}
-                      <div className="flex space-x-2">
-                        {!isTracking ? (
-                          <Button 
-                            className="flex-1" 
-                            variant="secondary"
-                            icon={Play} 
-                            onClick={() => handleStartTime(job.id)}
-                            loading={isLoading}
-                          >
-                            Start Time
-                          </Button>
-                        ) : (
-                          <Button 
-                            className="flex-1" 
-                            variant="danger"
-                            icon={Square} 
-                            onClick={() => { setStoppingJobId(job.id); setShowLunchPrompt(true); }}
-                          >
-                            Stop Time
-                          </Button>
-                        )}
-                      </div>
-                      
-                      {/* Complete Job Button */}
-                      <Button 
-                        className="w-full" 
-                        icon={CheckCircle} 
+                    {/* Info Row */}
+                    <div className="flex items-center justify-between text-sm mb-3">
+                      <span style={{ color: colors.textSecondary }}>{farmer?.name || 'Unknown'} • {job.pivotName}</span>
+                      <Badge variant={getStatusVariant(job.status)} className="text-xs">{formatStatus(job.status)}</Badge>
+                    </div>
+
+                    {/* Action Buttons - Big Touch Targets */}
+                    <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                      {/* Complete Job / Fill Out Sheet Button */}
+                      <button
                         onClick={() => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}
+                        className="flex-1 flex items-center justify-center space-x-2 p-3 rounded-xl font-semibold active:scale-95 transition-transform"
+                        style={{ backgroundColor: colors.success + '20', color: colors.success }}
                       >
-                        Complete Job
-                      </Button>
+                        <FileText className="w-5 h-5" />
+                        <span>Fill Out Sheet</span>
+                      </button>
+                      
+                      {/* View Details Button */}
+                      <button
+                        onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+                        className="flex items-center justify-center p-3 rounded-xl active:scale-95 transition-transform"
+                        style={{ backgroundColor: colors.primary + '20' }}
+                      >
+                        <Eye className="w-5 h-5" style={{ color: colors.primary }} />
+                      </button>
+                      
+                      {farmer?.phone && (
+                        <a
+                          href={`tel:${farmer.phone}`}
+                          className="flex items-center justify-center p-3 rounded-xl active:scale-95 transition-transform"
+                          style={{ backgroundColor: colors.water + '20' }}
+                        >
+                          <Phone className="w-5 h-5" style={{ color: colors.water }} />
+                        </a>
+                      )}
+                      
+                      {pivot?.lat && pivot?.lng && (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center p-3 rounded-xl active:scale-95 transition-transform"
+                          style={{ backgroundColor: colors.primary + '20' }}
+                        >
+                          <Navigation className="w-5 h-5" style={{ color: colors.primary }} />
+                        </a>
+                      )}
                     </div>
                   </div>
                 );
@@ -1383,12 +2235,11 @@ const FieldSyncApp = () => {
             </div>
           )}
         </div>
-
         {/* Available Jobs (Self-Assign) */}
         <div>
           <div 
-            className="flex items-center justify-between p-3 rounded-lg cursor-pointer"
-            style={{ backgroundColor: colors.background }}
+            className="flex items-center justify-between p-3 rounded-xl cursor-pointer active:scale-99 transition-transform"
+            style={{ backgroundColor: colors.warning + '15' }}
             onClick={() => setShowPending(!showPending)}
           >
             <div className="flex items-center space-x-2">
@@ -1410,35 +2261,88 @@ const FieldSyncApp = () => {
                   const farmer = users.find(u => u.id === job.farmerId);
                   return (
                     <div key={job.id} className="card p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</h4>
-                          <p className="text-sm" style={{ color: colors.muted }}>{job.pivotName} • {farmer?.name || 'Unknown'}</p>
+                      {/* Header: SO# + Status + Priority */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          {job.soNumber ? (
+                            <span className="font-mono font-bold text-sm px-2 py-1 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>
+                              {job.soNumber}
+                            </span>
+                          ) : (
+                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: colors.muted + '30', color: colors.muted }}>
+                              No SO#
+                            </span>
+                          )}
+                          <Badge variant="warning">Pending</Badge>
                         </div>
-                        <Badge variant={job.priority === 'high' ? 'danger' : 'warning'}>{job.priority}</Badge>
+                        <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>
+                          {job.priority}
+                        </Badge>
                       </div>
-                      <p className="text-sm mb-3" style={{ color: colors.textSecondary }}>{job.description}</p>
-                      <div className="flex space-x-2">
-                        <Button 
-                          className="flex-1" 
-                          icon={UserPlus} 
-                          onClick={() => handleSelfAssign(job.id)}
-                          loading={isLoading}
-                        >
-                          Take This Job
-                        </Button>
+
+                      {/* Customer Info */}
+                      <div className="flex items-center justify-between mb-3 p-2 rounded-lg" style={{ backgroundColor: colors.background }}>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{ backgroundColor: colors.primary + '20' }}>
+                            {farmer?.avatar || '👤'}
+                          </div>
+                          <div>
+                            <p className="font-semibold" style={{ color: colors.textPrimary }}>{farmer?.name || 'Unknown Customer'}</p>
+                            {farmer?.phone && (
+                              <a 
+                                href={`tel:${farmer.phone}`}
+                                className="text-sm hover:underline"
+                                style={{ color: colors.primary }}
+                              >
+                                {farmer.phone}
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Job Title & Description */}
+                      <div className="mb-3">
+                        <h4 className="font-semibold mb-1" style={{ color: colors.textPrimary }}>{job.title}</h4>
+                        <p className="text-sm line-clamp-2" style={{ color: colors.textSecondary }}>{job.description}</p>
+                      </div>
+
+                      {/* Location */}
+                      <div className="flex items-center justify-between mb-3 p-2 rounded-lg" style={{ backgroundColor: colors.background }}>
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="w-4 h-4" style={{ color: colors.primary }} />
+                          <span className="text-sm" style={{ color: colors.textPrimary }}>{job.pivotName || 'Unknown Location'}</span>
+                        </div>
                         {pivot?.lat && pivot?.lng && (
                           <a 
                             href={`https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-2 rounded-lg flex items-center"
-                            style={{ backgroundColor: colors.background }}
+                            className="text-xs px-2 py-1 rounded flex items-center space-x-1"
+                            style={{ backgroundColor: colors.water + '20', color: colors.water }}
                           >
-                            <MapPin className="w-4 h-4" style={{ color: colors.primary }} />
+                            <Navigation className="w-3 h-3" />
+                            <span>Directions</span>
                           </a>
                         )}
                       </div>
+
+                      {/* Created Date */}
+                      {job.createdAt && (
+                        <p className="text-xs mb-3" style={{ color: colors.muted }}>
+                          Created: {new Date(job.createdAt).toLocaleDateString()}
+                        </p>
+                      )}
+
+                      {/* Action Button */}
+                      <Button 
+                        className="w-full" 
+                        icon={UserPlus} 
+                        onClick={() => handleSelfAssign(job.id)}
+                        loading={isLoading}
+                      >
+                        Take This Job
+                      </Button>
                     </div>
                   );
                 })
@@ -1469,909 +2373,159 @@ const FieldSyncApp = () => {
   // OFFICE VIEWS
   // ============================================
   const CallInView = () => {
-    const [formData, setFormData] = useState({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '' });
+    // Using lifted state: callInFormData, setCallInFormData
     const farmers = users.filter(u => u.role === 'farmer');
+    const [showQuickAddEquipment, setShowQuickAddEquipment] = useState(false);
+    const [quickEquipment, setQuickEquipment] = useState({ name: '', type: 'pivot', acres: '' });
 
     const handleSubmit = async (e) => {
       e.preventDefault();
-      const pivot = equipment.find(p => p.id === formData.pivotId);
+      const pivot = equipment.find(p => p.id === callInFormData.pivotId);
       const result = await createCallInJob({
-        title: `Call-in: ${formData.customerName}`,
-        description: formData.description,
-        priority: formData.priority,
-        farmerId: formData.farmerId,
-        pivotId: formData.pivotId,
+        title: `Call-in: ${callInFormData.customerName}`,
+        description: callInFormData.description,
+        priority: callInFormData.priority,
+        farmerId: callInFormData.farmerId,
+        pivotId: callInFormData.pivotId,
         pivotName: pivot?.name || 'Unknown',
-        customerPhone: formData.customerPhone,
+        customerPhone: callInFormData.customerPhone,
+        soNumber: callInFormData.soNumber || null,
         location: { lat: pivot?.lat || 40.7614, lng: pivot?.lng || -96.6856 }
       });
       if (result.success) {
-        setFormData({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '' });
+        setCallInFormData({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '', soNumber: '' });
       }
     };
 
-    const farmerEquipment = formData.farmerId ? equipment.filter(p => p.farmerId === formData.farmerId) : [];
+    const handleQuickAddEquipment = async () => {
+      if (!quickEquipment.name || !callInFormData.farmerId) return;
+      const result = await handleAddEquipment({
+        name: quickEquipment.name,
+        type: quickEquipment.type,
+        acres: quickEquipment.acres || 0,
+        farmerId: callInFormData.farmerId,
+        status: 'needs-service'
+      });
+      if (result?.success) {
+        // Auto-select the new equipment
+        setCallInFormData({...callInFormData, pivotId: result.id});
+        setQuickEquipment({ name: '', type: 'pivot', acres: '' });
+        setShowQuickAddEquipment(false);
+      }
+    };
+
+    const farmerEquipment = callInFormData.farmerId ? equipment.filter(p => p.farmerId === callInFormData.farmerId) : [];
 
     return (
       <div className="max-w-2xl mx-auto">
         <h2 className="text-xl font-bold mb-6" style={{ color: colors.primary }}>New Call-In Service Request</h2>
         <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <Input 
+              label="SO# (Service Order Number)" 
+              placeholder="SO-12345" 
+              value={callInFormData.soNumber} 
+              onChange={e => setCallInFormData({...callInFormData, soNumber: e.target.value})} 
+            />
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Customer Name" placeholder="John Smith" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} required />
-              <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={formData.customerPhone} onChange={e => setFormData({...formData, customerPhone: e.target.value})} />
+              <Input label="Customer Name" placeholder="John Smith" value={callInFormData.customerName} onChange={e => setCallInFormData({...callInFormData, customerName: e.target.value})} required />
+              <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={callInFormData.customerPhone} onChange={e => setCallInFormData({...callInFormData, customerPhone: e.target.value})} />
             </div>
-            <SearchableSelect label="Select Customer Account" value={formData.farmerId} onChange={e => setFormData({...formData, farmerId: e.target.value, pivotId: ''})} options={[{ value: '', label: 'Select a customer...' }, ...farmers.map(f => ({ value: f.id, label: `${f.name}${f.company ? ` (${f.company})` : ''}` }))]} placeholder="Search customers..." colors={colors} />
-            {formData.farmerId && (
-              <Select label="Select Pivot" value={formData.pivotId} onChange={e => setFormData({...formData, pivotId: e.target.value})} options={[{ value: '', label: 'Select a pivot...' }, ...farmerEquipment.map(p => ({ value: p.id, label: `${p.name} (${p.acres} acres)` }))]} required />
+            
+            {/* Customer Selection with Add New */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium" style={{ color: colors.textPrimary }}>Customer Account</label>
+                <button 
+                  type="button"
+                  onClick={() => setShowAddUserModal(true)}
+                  className="text-xs font-medium flex items-center space-x-1 hover:underline"
+                  style={{ color: colors.primary }}
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>New Customer</span>
+                </button>
+              </div>
+              <SearchableSelect 
+                value={callInFormData.farmerId} 
+                onChange={e => setCallInFormData({...callInFormData, farmerId: e.target.value, pivotId: ''})} 
+                options={[{ value: '', label: 'Select a customer...' }, ...farmers.map(f => ({ value: f.id, label: `${f.name}${f.company ? ` (${f.company})` : ''}` }))]} 
+                placeholder="Search customers..." 
+                colors={colors} 
+              />
+            </div>
+
+            {/* Equipment Selection with Quick Add */}
+            {callInFormData.farmerId && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium" style={{ color: colors.textPrimary }}>Equipment</label>
+                  <button 
+                    type="button"
+                    onClick={() => setShowQuickAddEquipment(!showQuickAddEquipment)}
+                    className="text-xs font-medium flex items-center space-x-1 hover:underline"
+                    style={{ color: colors.primary }}
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Add Equipment</span>
+                  </button>
+                </div>
+                
+                {/* Quick Add Equipment Inline */}
+                {showQuickAddEquipment && (
+                  <div className="p-3 rounded-lg mb-3 space-y-3" style={{ backgroundColor: colors.primary + '10', border: `1px solid ${colors.primary}30` }}>
+                    <p className="text-xs font-medium" style={{ color: colors.primary }}>Quick Add Equipment</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input 
+                        placeholder="Name (e.g. North Pivot)" 
+                        value={quickEquipment.name} 
+                        onChange={e => setQuickEquipment({...quickEquipment, name: e.target.value})}
+                      />
+                      <Select 
+                        value={quickEquipment.type} 
+                        onChange={e => setQuickEquipment({...quickEquipment, type: e.target.value})}
+                        options={[
+                          { value: 'pivot', label: 'Pivot' },
+                          { value: 'pump', label: 'Pump' },
+                          { value: 'well', label: 'Well' },
+                          { value: 'panel', label: 'Panel' },
+                          { value: 'motor', label: 'Motor' },
+                          { value: 'other', label: 'Other' }
+                        ]}
+                      />
+                      <Input 
+                        placeholder="Acres" 
+                        type="number"
+                        value={quickEquipment.acres} 
+                        onChange={e => setQuickEquipment({...quickEquipment, acres: e.target.value})}
+                      />
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="button" size="sm" onClick={handleQuickAddEquipment} disabled={!quickEquipment.name}>Add</Button>
+                      <Button type="button" size="sm" variant="secondary" onClick={() => setShowQuickAddEquipment(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                <Select 
+                  value={callInFormData.pivotId} 
+                  onChange={e => setCallInFormData({...callInFormData, pivotId: e.target.value})} 
+                  options={[
+                    { value: '', label: farmerEquipment.length === 0 ? 'No equipment - add one above' : 'Select equipment...' }, 
+                    ...farmerEquipment.map(p => ({ value: p.id, label: `${p.name} (${p.acres} acres)` }))
+                  ]} 
+                  required 
+                />
+              </div>
             )}
+
             <div className="space-y-2">
               <label className="block text-sm font-medium" style={{ color: colors.textPrimary }}>Issue Description</label>
-              <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Describe the issue reported by the customer..." className="input min-h-[120px] resize-none" required />
+              <textarea value={callInFormData.description} onChange={e => setCallInFormData({...callInFormData, description: e.target.value})} placeholder="Describe the issue reported by the customer..." className="input min-h-[120px] resize-none" required />
             </div>
-            <Select label="Priority" value={formData.priority} onChange={e => setFormData({...formData, priority: e.target.value})} options={[{ value: 'low', label: 'Low - Can wait' }, { value: 'medium', label: 'Medium - Soon' }, { value: 'high', label: 'High - Urgent' }]} />
+            <Select label="Priority" value={callInFormData.priority} onChange={e => setCallInFormData({...callInFormData, priority: e.target.value})} options={[{ value: 'low', label: 'Low - Can wait' }, { value: 'medium', label: 'Medium - Soon' }, { value: 'high', label: 'High - Urgent' }]} />
             <Button type="submit" className="w-full" icon={Phone} loading={isLoading}>Create Service Request</Button>
           </form>
-        </div>
-      </div>
-    );
-  };
-
-  // ============================================
-  // MANAGER/OFFICE - CUSTOMERS VIEW
-  // ============================================
-  const CustomersView = () => {
-    const [customerSearch, setCustomerSearch] = useState('');
-    const [editingUserRole, setEditingUserRole] = useState(null);
-    const [selectedCustomerProfile, setSelectedCustomerProfile] = useState(null);
-    
-    // Filter by search and sort alphabetically
-    const farmers = users
-      .filter(u => u.role === 'farmer')
-      .filter(u => {
-        if (!customerSearch.trim()) return true;
-        const search = customerSearch.toLowerCase();
-        return (
-          u.name?.toLowerCase().includes(search) ||
-          u.company?.toLowerCase().includes(search) ||
-          u.email?.toLowerCase().includes(search) ||
-          u.phone?.toLowerCase().includes(search)
-        );
-      })
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-    const handleRoleChange = async (userId, newRole) => {
-      const result = await updateUser(userId, { role: newRole });
-      if (result.success) {
-        addNotification('success', 'User role updated successfully');
-        setEditingUserRole(null);
-      } else {
-        addNotification('error', result.error || 'Failed to update role');
-      }
-    };
-
-    // Get data for selected customer
-    const selectedFarmerEquipment = selectedCustomerProfile ? equipment.filter(p => p.farmerId === selectedCustomerProfile.id) : [];
-    const selectedFarmerJobs = selectedCustomerProfile ? jobs.filter(j => j.farmerId === selectedCustomerProfile.id) : [];
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-xl font-bold" style={{ color: colors.primary }}>Customers</h2>
-          <div className="flex space-x-2">
-            <Button icon={UserPlus} size="sm" variant="secondary" onClick={() => setShowAddUserModal(true)}>Add Customer</Button>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: colors.textSecondary }} />
-          <input
-            type="text"
-            placeholder="Search customers by name, company, email, or phone..."
-            value={customerSearch}
-            onChange={(e) => setCustomerSearch(e.target.value)}
-            className="input pl-10 w-full"
-            style={{ backgroundColor: colors.inputBg, borderColor: colors.border }}
-          />
-          />
-          {customerSearch && (
-            <button
-              onClick={() => setCustomerSearch('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200"
-            >
-              <X className="w-4 h-4" style={{ color: colors.textSecondary }} />
-            </button>
-          )}
-        </div>
-
-        {/* Results count */}
-        {customerSearch && (
-          <p className="text-sm" style={{ color: colors.textSecondary }}>
-            Found {farmers.length} customer{farmers.length !== 1 ? 's' : ''} matching "{customerSearch}"
-          </p>
-        )}
-
-        {/* Role Edit Modal */}
-        <Modal isOpen={!!editingUserRole} title="Change User Role" onClose={() => setEditingUserRole(null)}>
-          {editingUserRole && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
-                <span className="text-3xl">{editingUserRole.avatar || '👤'}</span>
-                <div>
-                  <p className="font-semibold" style={{ color: colors.textPrimary }}>{editingUserRole.name}</p>
-                  <p className="text-sm" style={{ color: colors.textSecondary }}>{editingUserRole.email}</p>
-                </div>
-              </div>
-              <Select
-                label="Select Role"
-                value={editingUserRole.role}
-                onChange={(e) => setEditingUserRole({ ...editingUserRole, role: e.target.value })}
-                options={[
-                  { value: 'farmer', label: '👩‍🌾 Customer (Farmer)' },
-                  { value: 'tech', label: '👨‍🔧 Technician' },
-                  { value: 'office', label: '👤 Office Staff' },
-                  { value: 'manager', label: '👨‍💼 Manager' }
-                ]}
-              />
-              <div className="flex space-x-3">
-                <Button 
-                  className="flex-1" 
-                  onClick={() => handleRoleChange(editingUserRole.id, editingUserRole.role)}
-                  loading={isLoading}
-                >
-                  Save Changes
-                </Button>
-                <Button className="flex-1" variant="secondary" onClick={() => setEditingUserRole(null)}>Cancel</Button>
-              </div>
-            </div>
-          )}
-        </Modal>
-
-        {/* Customer Profile Modal */}
-        <Modal isOpen={!!selectedCustomerProfile} title="Customer Profile" onClose={() => setSelectedCustomerProfile(null)} size="lg">
-          {selectedCustomerProfile && (
-            <div className="space-y-6">
-              {/* Customer Header */}
-              <div className="flex items-center space-x-4 p-4 rounded-lg" style={{ backgroundColor: colors.background }}>
-                <span className="text-5xl">{selectedCustomerProfile.avatar || '👨‍🌾'}</span>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold" style={{ color: colors.textPrimary }}>{selectedCustomerProfile.name}</h3>
-                  {selectedCustomerProfile.company && <p className="text-sm" style={{ color: colors.textSecondary }}>{selectedCustomerProfile.company}</p>}
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedCustomerProfile.phone && (
-                      <a href={`tel:${selectedCustomerProfile.phone}`} className="text-sm flex items-center px-2 py-1 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>
-                        <Phone className="w-3 h-3 mr-1" /> {selectedCustomerProfile.phone}
-                      </a>
-                    )}
-                    {selectedCustomerProfile.email && (
-                      <a href={`mailto:${selectedCustomerProfile.email}`} className="text-sm flex items-center px-2 py-1 rounded" style={{ backgroundColor: colors.primary + '15', color: colors.primary }}>
-                        <Mail className="w-3 h-3 mr-1" /> {selectedCustomerProfile.email}
-                      </a>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold" style={{ color: colors.primary }}>{selectedFarmerEquipment.length}</p>
-                  <p className="text-xs" style={{ color: colors.textSecondary }}>Equipment</p>
-                </div>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" icon={Plus} onClick={() => { setSelectedCustomerProfile(null); setShowAddEquipmentModal(true); }}>Add Equipment</Button>
-                <Button size="sm" variant="danger" icon={AlertCircle} onClick={() => { setSelectedCustomerProfile(null); setShowReportIssueModal(true); }}>Report Issue</Button>
-                {userProfile?.role === 'manager' && (
-                  <>
-                    <Button size="sm" variant="secondary" icon={Settings} onClick={() => { setSelectedCustomerProfile(null); setEditingUserRole(selectedCustomerProfile); }}>Edit Role</Button>
-                    <Button size="sm" variant="secondary" icon={Trash2} onClick={async () => { await handleDeleteUser(selectedCustomerProfile.id, selectedCustomerProfile.name, 'farmer'); setSelectedCustomerProfile(null); }}>Delete Customer</Button>
-                  </>
-                )}
-              </div>
-
-              {/* Equipment Section */}
-              <div>
-                <h4 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
-                  <Wrench className="w-4 h-4 mr-2" /> Equipment ({selectedFarmerEquipment.length})
-                </h4>
-                {selectedFarmerEquipment.length === 0 ? (
-                  <div className="text-center py-6 rounded-lg" style={{ backgroundColor: colors.background }}>
-                    <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>No equipment registered</p>
-                    <Button size="sm" icon={Plus} onClick={() => { setSelectedCustomerProfile(null); setShowAddEquipmentModal(true); }}>Add Equipment</Button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {selectedFarmerEquipment.map(pivot => (
-                      <div 
-                        key={pivot.id} 
-                        className="p-3 rounded-lg hover:shadow-md transition-all" 
-                        style={{ backgroundColor: colors.background }}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div 
-                            className="flex-1 cursor-pointer"
-                            onClick={() => { setSelectedCustomerProfile(null); setSelectedEquipmentProfile(pivot); }}
-                          >
-                            <p className="font-medium" style={{ color: colors.textPrimary }}>{pivot.name}</p>
-                            <p className="text-sm" style={{ color: colors.textSecondary }}>{formatEquipmentType(pivot.type)} • {pivot.acres} acres</p>
-                            {pivot.brand && <p className="text-xs" style={{ color: colors.muted }}>{pivot.brand} {pivot.model || ''}</p>}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={getStatusVariant(pivot.status)}>{pivot.status}</Badge>
-                            {['manager', 'office'].includes(userProfile?.role) && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteEquipment(pivot.id, pivot.name); }}
-                                className="p-1 rounded text-red-500 hover:bg-red-50 transition-colors"
-                                title="Delete equipment"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Jobs Section */}
-              <div>
-                <h4 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
-                  <Clipboard className="w-4 h-4 mr-2" /> Service History ({selectedFarmerJobs.length})
-                </h4>
-                {selectedFarmerJobs.length === 0 ? (
-                  <p className="text-sm text-center py-4" style={{ color: colors.textSecondary }}>No service history</p>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {selectedFarmerJobs.map(job => (
-                      <div key={job.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium" style={{ color: colors.textPrimary }}>{job.title}</p>
-                          <p className="text-xs" style={{ color: colors.textSecondary }}>{formatDate(job.createdAt)} • {job.pivotName}</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {job.soNumber && <span className="text-xs" style={{ color: colors.primary }}>SO# {job.soNumber}</span>}
-                          <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
-                          {['manager', 'office'].includes(userProfile?.role) && (
-                            <button
-                              onClick={() => handleDeleteJob(job.id, job.title)}
-                              className="p-1 rounded text-red-500 hover:bg-red-50 transition-colors"
-                              title="Delete job"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </Modal>
-
-        {farmers.length === 0 && !customerSearch ? (
-          <EmptyState icon={Users} title="No Customers Yet" description="Add your first customer to get started." action={<Button icon={UserPlus} onClick={() => setShowAddUserModal(true)}>Add Customer</Button>} />
-        ) : farmers.length === 0 && customerSearch ? (
-          <EmptyState icon={Search} title="No Results" description={`No customers found matching "${customerSearch}"`} action={<Button variant="secondary" onClick={() => setCustomerSearch('')}>Clear Search</Button>} />
-        ) : (
-          <div className="space-y-2">
-            {farmers.map(farmer => {
-              const farmerEquipment = equipment.filter(p => p.farmerId === farmer.id);
-              const farmerJobs = jobs.filter(j => j.farmerId === farmer.id);
-
-              return (
-                <div 
-                  key={farmer.id} 
-                  className="card p-4 cursor-pointer hover:shadow-md transition-all"
-                  onClick={() => setSelectedCustomerProfile(farmer)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-3xl">{farmer.avatar || '👨‍🌾'}</span>
-                      <div>
-                        <h3 className="font-semibold" style={{ color: colors.textPrimary }}>{farmer.name}</h3>
-                        {farmer.company && <p className="text-sm" style={{ color: colors.muted }}>{farmer.company}</p>}
-                        <p className="text-sm" style={{ color: colors.textSecondary }}>{farmer.phone || farmer.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <p className="text-sm font-medium" style={{ color: colors.textPrimary }}>{farmerEquipment.length} Equipment</p>
-                        <p className="text-xs" style={{ color: colors.textSecondary }}>{farmerJobs.length} Jobs</p>
-                      </div>
-                      <ChevronRight className="w-5 h-5" style={{ color: colors.textSecondary }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-
-  // ============================================
-  // MANAGER VIEWS
-  // ============================================
-  const ManagerDashboard = () => {
-    const pendingJobs = jobs.filter(j => j.status === 'pending');
-    const assignedJobs = jobs.filter(j => j.status === 'assigned');
-    const completedJobs = jobs.filter(j => j.status === 'completed');
-    const techs = users.filter(u => u.role === 'tech');
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold mb-3" style={{ color: colors.primary }}>Manager Dashboard</h2>
-          <div className="flex flex-wrap gap-2">
-            <Button icon={Phone} size="sm" onClick={() => setShowReportIssueModal(true)}>New Call In</Button>
-            <Button icon={Plus} size="sm" variant="secondary" onClick={() => setShowAddEquipmentModal(true)}>Add Equipment</Button>
-            {/* <Button icon={Settings} size="sm" variant="secondary" onClick={() => setShowSettingsModal(true)}>Settings</Button> */}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Pending Jobs" value={pendingJobs.length} icon={Clock} color={colors.warning} />
-          <StatCard title="In Progress" value={assignedJobs.length} icon={Wrench} color={colors.water} />
-          <StatCard title="Completed" value={completedJobs.length} icon={CheckCircle} color={colors.success} />
-          {/* <StatCard title="Monthly Revenue" value={formatCurrency(analytics?.monthlyRevenue || 0)} icon={DollarSign} color={colors.accent} /> */}
-          <StatCard title="Technicians" value={techs.length} icon={Users} color={colors.accent} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card p-4">
-            <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Pending Jobs ({pendingJobs.length})</h3>
-            {pendingJobs.length === 0 ? (
-              <p className="text-center py-6" style={{ color: colors.textSecondary }}>No pending jobs</p>
-            ) : (
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {pendingJobs.map(job => (
-                  <div key={job.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <p className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</p>
-                        <Badge variant={job.priority === 'high' ? 'danger' : 'warning'}>{job.priority}</Badge>
-                      </div>
-                      <p className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName || 'Location TBD'}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button size="sm" onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}>Assign</Button>
-                      <button
-                        onClick={() => handleDeleteJob(job.id, job.title)}
-                        className="p-2 rounded text-red-500 hover:bg-red-50 transition-colors"
-                        title="Delete job"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Team Performance</h3>
-            {techs.length === 0 ? (
-              <p className="text-center py-6" style={{ color: colors.textSecondary }}>No technicians added yet</p>
-            ) : (
-              <div className="space-y-3">
-                {techs.map(tech => {
-                  const techJobs = jobs.filter(j => {
-                    const assigned = j.assignedTo;
-                    return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
-                  });
-                  const active = techJobs.filter(j => j.status === 'assigned').length;
-                  const completed = techJobs.filter(j => j.status === 'completed').length;
-                  return (
-                    <div key={tech.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">{tech.avatar || '👷'}</span>
-                        <div>
-                          <p className="font-medium" style={{ color: colors.textPrimary }}>{tech.name}</p>
-                          <p className="text-xs" style={{ color: colors.textSecondary }}>{tech.phone || tech.email}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium" style={{ color: colors.water }}>{active} active</p>
-                        <p className="text-xs" style={{ color: colors.success }}>{completed} completed</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const ManagerJobsView = () => {
-    const filteredJobs = jobs.filter(job => {
-      const matchesSearch = job.title?.toLowerCase().includes(searchQuery.toLowerCase()) || job.description?.toLowerCase().includes(searchQuery.toLowerCase()) || job.soNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFilter = filterStatus === 'all' || job.status === filterStatus;
-      return matchesSearch && matchesFilter;
-    });
-
-    return (
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-xl font-bold" style={{ color: colors.primary }}>All Jobs</h2>
-          <div className="flex items-center space-x-3">
-            <Button icon={Plus} size="sm" onClick={() => setShowAddEquipmentModal(true)}>Add Equipment</Button>
-            <Button icon={AlertCircle} size="sm" variant="danger" onClick={() => { console.log('Report Issue clicked'); setShowReportIssueModal(true); }}>Report Issue</Button>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }} />
-              <input type="text" placeholder="Search jobs or SO#..." className="input pl-9 py-2 text-sm" style={{ width: '200px' }} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-            </div>
-            <select className="input py-2 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="assigned">Assigned</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-        </div>
-
-        {filteredJobs.length === 0 ? (
-          <EmptyState icon={Briefcase} title="No Jobs Found" description="No jobs match your search criteria." />
-        ) : (
-          <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead style={{ backgroundColor: colors.background }}>
-                  <tr>
-                    <th className="text-left p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>Job</th>
-                    <th className="text-left p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>SO #</th>
-                    <th className="text-left p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>Status</th>
-                    <th className="text-left p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>Priority</th>
-                    <th className="text-left p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>Assigned To</th>
-                    <th className="text-left p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>Rating</th>
-                    {canSeePricing && <th className="text-left p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>Cost</th>}
-                    <th className="text-right p-4 text-sm font-semibold" style={{ color: colors.textSecondary }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredJobs.map(job => (
-                    <tr key={job.id} className="border-t hover:bg-gray-50" style={{ borderColor: colors.border }}>
-                      <td className="p-4">
-                        <p className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</p>
-                        <p className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName}</p>
-                      </td>
-                      <td className="p-4">
-                        {job.soNumber ? (
-                          <span className="text-sm font-mono" style={{ color: colors.primary }}>{job.soNumber}</span>
-                        ) : (
-                          <button className="text-sm underline" style={{ color: colors.water }} onClick={() => { setSelectedJobForAction(job); setShowSOModal(true); }}>Add SO#</button>
-                        )}
-                      </td>
-                      <td className="p-4"><Badge variant={getStatusVariant(job.status)}>{job.status}</Badge></td>
-                      <td className="p-4"><Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>{job.priority}</Badge></td>
-                      <td className="p-4 text-sm" style={{ color: colors.textSecondary }}>
-                        {(() => {
-                          const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
-                          if (assignees.length === 0) return '-';
-                          return assignees.map(id => users.find(u => u.id === id)?.name).filter(Boolean).join(', ') || '-';
-                        })()}
-                      </td>
-                      <td className="p-4">
-                        {job.rating ? (
-                          <StarRating rating={job.rating} readonly size="sm" />
-                        ) : (
-                          <span className="text-sm" style={{ color: colors.muted }}>-</span>
-                        )}
-                      </td>
-                      {canSeePricing && <td className="p-4 text-sm font-medium" style={{ color: colors.textPrimary }}>{job.totalCost ? formatCurrency(job.totalCost) : '-'}</td>}
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          {job.status === 'pending' ? (
-                            <Button size="sm" onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}>Assign</Button>
-                          ) : job.status === 'assigned' ? (
-                            <>
-                              <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}>Edit Team</Button>
-                              <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}>View</Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}>View</Button>
-                              {job.status === 'completed' && (
-                                <Button size="sm" variant="secondary" icon={FileSpreadsheet} onClick={() => handleDownloadJobSheet(job)} title="Export to Excel" />
-                              )}
-                            </>
-                          )}
-                          {['manager', 'office'].includes(userProfile?.role) && (
-                            <button
-                              onClick={() => handleDeleteJob(job.id, job.title)}
-                              className="p-2 rounded text-red-500 hover:bg-red-50 transition-colors"
-                              title="Delete job"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const TeamManagement = () => {
-    const teamMembers = users.filter(u => u.role !== 'farmer');
-    const [editingMemberRole, setEditingMemberRole] = useState(null);
-
-    const handleRoleChange = async (userId, newRole) => {
-      const result = await updateUser(userId, { role: newRole });
-      if (result.success) {
-        addNotification('success', 'Role updated successfully');
-        setEditingMemberRole(null);
-      } else {
-        addNotification('error', result.error || 'Failed to update role');
-      }
-    };
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold" style={{ color: colors.primary }}>Team Members</h2>
-          <Button icon={UserPlus} onClick={() => setShowAddUserModal(true)}>Add Team Member</Button>
-        </div>
-
-        {/* Role Edit Modal */}
-        <Modal isOpen={!!editingMemberRole} title="Change Team Member Role" onClose={() => setEditingMemberRole(null)}>
-          {editingMemberRole && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
-                <span className="text-3xl">{editingMemberRole.avatar || '👤'}</span>
-                <div>
-                  <p className="font-semibold" style={{ color: colors.textPrimary }}>{editingMemberRole.name}</p>
-                  <p className="text-sm" style={{ color: colors.textSecondary }}>{editingMemberRole.email}</p>
-                </div>
-              </div>
-              <Select
-                label="Role"
-                value={editingMemberRole.role}
-                onChange={(e) => setEditingMemberRole({ ...editingMemberRole, role: e.target.value })}
-                options={[
-                  { value: 'tech', label: 'Technician - Field service worker' },
-                  { value: 'office', label: 'Office - Can manage jobs and customers' },
-                  { value: 'manager', label: 'Manager - Full access' }
-                ]}
-              />
-              <div className="flex space-x-3">
-                <Button className="flex-1" onClick={() => handleRoleChange(editingMemberRole.id, editingMemberRole.role)}>Save Changes</Button>
-                <Button variant="secondary" className="flex-1" onClick={() => setEditingMemberRole(null)}>Cancel</Button>
-              </div>
-            </div>
-          )}
-        </Modal>
-
-        {teamMembers.length === 0 ? (
-          <EmptyState icon={Users} title="No Team Members" description="Add technicians and office staff to your team." action={<Button icon={UserPlus} onClick={() => setShowAddUserModal(true)}>Add Team Member</Button>} />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {teamMembers.map(member => {
-              const memberJobs = jobs.filter(j => {
-                const assigned = j.assignedTo;
-                const assignedArr = Array.isArray(assigned) ? assigned : [assigned];
-                return assignedArr.includes(member.id);
-              });
-              const isSelf = member.id === userProfile?.id;
-              return (
-                <div key={member.id} className="card p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-3xl">{member.avatar || '👤'}</span>
-                      <div>
-                        <h3 className="font-semibold" style={{ color: colors.textPrimary }}>
-                          {member.name}
-                          {isSelf && <span className="text-xs ml-1" style={{ color: colors.primary }}>(You)</span>}
-                        </h3>
-                        <Badge variant={member.role === 'manager' ? 'accent' : member.role === 'office' ? 'water' : 'default'}>{member.role}</Badge>
-                      </div>
-                    </div>
-                    {userProfile?.role === 'manager' && !isSelf && (
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => setEditingMemberRole(member)}
-                          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                          title="Edit role"
-                        >
-                          <Settings className="w-4 h-4" style={{ color: colors.textSecondary }} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(member.id, member.name, member.role)}
-                          className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-                          title="Delete team member"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1 text-sm">
-                    <p style={{ color: colors.textSecondary }}>{member.email}</p>
-                    {member.phone && <p style={{ color: colors.textSecondary }}>{member.phone}</p>}
-                  </div>
-                  {(member.role === 'tech' || member.role === 'manager') && (
-                    <div className="mt-3 pt-3 border-t flex justify-between" style={{ borderColor: colors.border }}>
-                      <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => j.status === 'assigned').length}</strong></span>
-                      <span className="text-sm" style={{ color: colors.textSecondary }}>Completed: <strong>{memberJobs.filter(j => j.status === 'completed').length}</strong></span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const AnalyticsView = () => {
-    // Calculate monthly data for charts
-    const getMonthlyData = () => {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const currentYear = new Date().getFullYear();
-      
-      return months.map((month, index) => {
-        const monthJobs = jobs.filter(j => {
-          const date = new Date(j.completedAt || j.createdAt);
-          return date.getMonth() === index && date.getFullYear() === currentYear;
-        });
-        const completed = monthJobs.filter(j => j.status === 'completed');
-        const revenue = completed.reduce((sum, j) => sum + (j.totalCost || 0), 0);
-        
-        return { name: month, jobs: monthJobs.length, completed: completed.length, revenue };
-      });
-    };
-
-    // Tech performance data
-    const getTechPerformance = () => {
-      return users.filter(u => u.role === 'tech').map(tech => {
-        const techJobs = jobs.filter(j => {
-          const assigned = j.assignedTo;
-          return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
-        });
-        const completed = techJobs.filter(j => j.status === 'completed');
-        // const revenue = completed.reduce((sum, j) => sum + (j.totalCost || 0), 0); // Pricing disabled
-        const avgRating = completed.length > 0 
-          ? completed.reduce((sum, j) => sum + (j.rating || 0), 0) / completed.filter(j => j.rating).length 
-          : 0;
-        
-        // Calculate total hours from time entries
-        const totalHours = techJobs.reduce((sum, job) => {
-          if (job.timeEntries && Array.isArray(job.timeEntries)) {
-            const techEntries = job.timeEntries.filter(e => e.techId === tech.id && e.endTime);
-            const jobHours = techEntries.reduce((h, entry) => {
-              const start = new Date(entry.startTime);
-              const end = new Date(entry.endTime);
-              const hours = (end - start) / (1000 * 60 * 60);
-              const lunchDeduction = entry.lunchTaken ? 0.5 : 0;
-              return h + Math.max(0, hours - lunchDeduction);
-            }, 0);
-            return sum + jobHours;
-          }
-          // Fallback to hoursWorked if no time entries
-          return sum + (job.hoursWorked || 0);
-        }, 0);
-        
-        return { name: tech.name.split(' ')[0], fullName: tech.name, jobs: completed.length, hours: totalHours, rating: avgRating || 0 };
-      });
-    };
-
-    // Job status pie chart data
-    const statusData = [
-      { name: 'Pending', value: analytics?.pendingJobs || 0, color: colors.warning },
-      { name: 'Assigned', value: analytics?.assignedJobs || 0, color: colors.water },
-      { name: 'Completed', value: analytics?.completedJobs || 0, color: colors.success }
-    ];
-
-    const monthlyData = getMonthlyData();
-    const techData = getTechPerformance();
-
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold" style={{ color: colors.primary }}>Analytics Dashboard</h2>
-          <div className="flex items-center space-x-2">
-            <Badge variant="success">{analytics?.completedJobs || 0} Completed</Badge>
-            {/* <Badge variant="accent">{formatCurrency(analytics?.totalRevenue || 0)} Revenue</Badge> */}
-          </div>
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Total Jobs" value={analytics?.totalJobs || 0} icon={Briefcase} color={colors.primary} />
-          <StatCard title="This Month" value={analytics?.completedThisMonth || 0} icon={Calendar} color={colors.water} />
-          <StatCard title="Total Hours" value={techData.reduce((sum, t) => sum + t.hours, 0).toFixed(1)} icon={Clock} color={colors.success} />
-          <StatCard title="Avg Rating" value={(techData.reduce((sum, t) => sum + t.rating, 0) / (techData.length || 1)).toFixed(1)} icon={Star} color={colors.accent} />
-        </div>
-
-        {/* Charts Row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Monthly Jobs Chart */}
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Jobs by Month</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                <XAxis dataKey="name" tick={{ fill: colors.textSecondary, fontSize: 12 }} />
-                <YAxis tick={{ fill: colors.textSecondary, fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: '8px' }}
-                  labelStyle={{ color: colors.textPrimary }}
-                />
-                <Bar dataKey="completed" fill={colors.success} radius={[4, 4, 0, 0]} name="Completed" />
-                <Bar dataKey="jobs" fill={colors.primary} radius={[4, 4, 0, 0]} name="Total" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Job Status Pie Chart */}
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Job Status Distribution</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, value }) => value > 0 ? `${name}: ${value}` : ''}
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex justify-center space-x-4 mt-2">
-              {statusData.map((item, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-sm" style={{ color: colors.textSecondary }}>{item.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Charts Row 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Tech Hours Billed */}
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Hours Billed by Technician</h3>
-            {techData.length === 0 ? (
-              <div className="h-[250px] flex items-center justify-center">
-                <p style={{ color: colors.textSecondary }}>No technician data yet</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={techData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                  <XAxis type="number" tick={{ fill: colors.textSecondary, fontSize: 12 }} />
-                  <YAxis dataKey="name" type="category" tick={{ fill: colors.textSecondary, fontSize: 12 }} width={60} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: '8px' }}
-                    formatter={(value) => [`${value.toFixed(1)} hrs`, 'Hours']}
-                  />
-                  <Bar dataKey="hours" fill={colors.water} radius={[0, 4, 4, 0]} name="Hours Billed" />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Tech Performance - Jobs Completed */}
-          <div className="card p-6">
-            <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Jobs Completed by Technician</h3>
-            {techData.length === 0 ? (
-              <div className="h-[250px] flex items-center justify-center">
-                <p style={{ color: colors.textSecondary }}>No technician data yet</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={techData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                  <XAxis type="number" tick={{ fill: colors.textSecondary, fontSize: 12 }} />
-                  <YAxis dataKey="name" type="category" tick={{ fill: colors.textSecondary, fontSize: 12 }} width={60} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}`, borderRadius: '8px' }}
-                  />
-                  <Bar dataKey="jobs" fill={colors.primary} radius={[0, 4, 4, 0]} name="Jobs Completed" />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Tech Hours Summary Table */}
-        <div className="card p-6">
-          <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Technician Hours Summary</h3>
-          {techData.length === 0 ? (
-            <p className="text-center py-4" style={{ color: colors.textSecondary }}>No technician data yet</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead style={{ backgroundColor: colors.background }}>
-                  <tr>
-                    <th className="text-left p-3 text-sm font-semibold" style={{ color: colors.textSecondary }}>Technician</th>
-                    <th className="text-center p-3 text-sm font-semibold" style={{ color: colors.textSecondary }}>Jobs Completed</th>
-                    <th className="text-center p-3 text-sm font-semibold" style={{ color: colors.textSecondary }}>Hours Billed</th>
-                    <th className="text-center p-3 text-sm font-semibold" style={{ color: colors.textSecondary }}>Avg Rating</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {techData.map((tech, index) => (
-                    <tr key={index} className="border-t" style={{ borderColor: colors.border }}>
-                      <td className="p-3 font-medium" style={{ color: colors.textPrimary }}>{tech.fullName || tech.name}</td>
-                      <td className="p-3 text-center" style={{ color: colors.textSecondary }}>{tech.jobs}</td>
-                      <td className="p-3 text-center font-semibold" style={{ color: colors.water }}>{tech.hours.toFixed(1)} hrs</td>
-                      <td className="p-3 text-center">
-                        {tech.rating > 0 ? (
-                          <span className="flex items-center justify-center">
-                            <Star className="w-4 h-4 mr-1" style={{ color: colors.accent, fill: colors.accent }} />
-                            <span style={{ color: colors.textPrimary }}>{tech.rating.toFixed(1)}</span>
-                          </span>
-                        ) : (
-                          <span style={{ color: colors.muted }}>-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {/* Total Row */}
-                  <tr className="border-t-2" style={{ borderColor: colors.primary, backgroundColor: colors.background }}>
-                    <td className="p-3 font-bold" style={{ color: colors.primary }}>TOTAL</td>
-                    <td className="p-3 text-center font-bold" style={{ color: colors.primary }}>{techData.reduce((sum, t) => sum + t.jobs, 0)}</td>
-                    <td className="p-3 text-center font-bold" style={{ color: colors.primary }}>{techData.reduce((sum, t) => sum + t.hours, 0).toFixed(1)} hrs</td>
-                    <td className="p-3 text-center font-bold" style={{ color: colors.primary }}>
-                      {techData.filter(t => t.rating > 0).length > 0 
-                        ? (techData.reduce((sum, t) => sum + t.rating, 0) / techData.filter(t => t.rating > 0).length).toFixed(1)
-                        : '-'}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="card p-6">
-          <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>System Overview</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: colors.background }}>
-              <p className="text-3xl font-bold" style={{ color: colors.primary }}>{analytics?.totalUsers || 0}</p>
-              <p className="text-sm" style={{ color: colors.textSecondary }}>Total Users</p>
-            </div>
-            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: colors.background }}>
-              <p className="text-3xl font-bold" style={{ color: colors.secondary }}>{analytics?.totalPivots || 0}</p>
-              <p className="text-sm" style={{ color: colors.textSecondary }}>Total Equipment</p>
-            </div>
-            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: colors.background }}>
-              <p className="text-3xl font-bold" style={{ color: colors.water }}>{analytics?.techs || 0}</p>
-              <p className="text-sm" style={{ color: colors.textSecondary }}>Technicians</p>
-            </div>
-            <div className="p-4 rounded-lg text-center" style={{ backgroundColor: colors.background }}>
-              <p className="text-3xl font-bold" style={{ color: colors.accent }}>{users.filter(u => u.role === 'farmer').length}</p>
-              <p className="text-sm" style={{ color: colors.textSecondary }}>Customers</p>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -2526,23 +2680,62 @@ const FieldSyncApp = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {selectedDateJobs.map(job => (
+                  {selectedDateJobs.map(job => {
+                    const pivot = equipment.find(p => p.id === job.pivotId);
+                    const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+                    const techNames = assignees.map(id => users.find(u => u.id === id)?.name).filter(Boolean);
+                    
+                    return (
                     <div
                       key={job.id}
-                      className="p-3 rounded-lg cursor-pointer hover:shadow-md transition-shadow"
+                      className="p-3 rounded-lg hover:shadow-md transition-shadow"
                       style={{ backgroundColor: colors.background }}
-                      onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <h4 className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</h4>
-                        <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
+                        <button 
+                          className="font-medium hover:underline text-left"
+                          style={{ color: colors.textPrimary }}
+                          onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+                        >
+                          {job.title}
+                        </button>
+                        <Badge variant={getStatusVariant(job.status)}>{formatStatus(job.status)}</Badge>
                       </div>
-                      <p className="text-sm mb-1" style={{ color: colors.textSecondary }}>{job.pivotName}</p>
-                      <p className="text-xs" style={{ color: colors.muted }}>
-                        {users.find(u => u.id === job.assignedTo)?.name || 'Unassigned'}
-                      </p>
+                      
+                      {/* Interactive equipment link */}
+                      <div className="flex items-center space-x-2 mb-1">
+                        {pivot ? (
+                          <button 
+                            className="text-sm hover:underline flex items-center"
+                            style={{ color: colors.primary }}
+                            onClick={() => setSelectedEquipmentProfile(pivot)}
+                          >
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {job.pivotName}
+                          </button>
+                        ) : (
+                          <span className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName}</span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs" style={{ color: colors.muted }}>
+                        <span>
+                          {techNames.length > 0 ? (
+                            <span><Wrench className="w-3 h-3 inline mr-1" />{techNames.join(', ')}</span>
+                          ) : 'Unassigned'}
+                        </span>
+                        {job.status === 'pending' && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}
+                          >
+                            Assign
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )
             ) : (
@@ -2836,35 +3029,75 @@ const FieldSyncApp = () => {
 
             {/* Service History */}
             <div className="card p-6">
-              <h3 className="font-semibold mb-4 flex items-center" style={{ color: colors.textPrimary }}>
-                <Clock className="w-5 h-5 mr-2" style={{ color: colors.water }} />
-                Service History ({equipmentJobs.length})
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold flex items-center" style={{ color: colors.textPrimary }}>
+                  <Clock className="w-5 h-5 mr-2" style={{ color: colors.water }} />
+                  Service History ({equipmentJobs.length})
+                </h3>
+                {equipmentJobs.length > 0 && (
+                  <Button 
+                    size="sm" 
+                    variant="secondary"
+                    onClick={() => { setFilterStatus('all'); setSelectedEquipmentProfile(null); setSelectedTab('jobs'); }}
+                  >
+                    View All Jobs
+                  </Button>
+                )}
+              </div>
               {equipmentJobs.length === 0 ? (
-                <p className="text-sm text-center py-4" style={{ color: colors.textSecondary }}>No service history yet</p>
+                <div className="text-center py-6">
+                  <Clipboard className="w-12 h-12 mx-auto mb-2" style={{ color: colors.muted }} />
+                  <p className="text-sm" style={{ color: colors.textSecondary }}>No service history yet</p>
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    icon={AlertCircle}
+                    className="mt-3"
+                    onClick={() => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }}
+                  >
+                    Report First Issue
+                  </Button>
+                </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {equipmentJobs.map(job => (
-                    <div key={job.id} className="p-3 rounded-lg border" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
+                  {equipmentJobs.map(job => {
+                    const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+                    const techNames = assignees.map(id => users.find(u => u.id === id)?.name).filter(Boolean);
+                    
+                    return (
+                    <div 
+                      key={job.id} 
+                      className="p-3 rounded-lg border hover:shadow-md transition-all cursor-pointer" 
+                      style={{ borderColor: colors.border, backgroundColor: colors.background }}
+                      onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+                    >
                       <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-sm" style={{ color: colors.textPrimary }}>{job.title}</p>
-                          <p className="text-xs" style={{ color: colors.textSecondary }}>{job.description}</p>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm hover:underline" style={{ color: colors.textPrimary }}>{job.title}</p>
+                          <p className="text-xs mt-1" style={{ color: colors.textSecondary }}>{job.description}</p>
                         </div>
-                        <Badge variant={getStatusVariant(job.status)} className="text-xs">{job.status}</Badge>
+                        <Badge variant={getStatusVariant(job.status)} className="text-xs">{formatStatus(job.status)}</Badge>
                       </div>
-                      <div className="flex items-center space-x-4 mt-2 text-xs" style={{ color: colors.muted }}>
-                        <span>{formatDate(job.createdAt)}</span>
-                        {job.hoursWorked && <span>• {job.hoursWorked} hrs</span>}
-                        {job.techName && <span>• {job.techName}</span>}
-                        {job.rating && (
-                          <span className="flex items-center">
-                            • <Star className="w-3 h-3 mr-1" style={{ color: colors.accent }} /> {job.rating}
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center space-x-3 text-xs" style={{ color: colors.muted }}>
+                          <span>{formatDate(job.createdAt)}</span>
+                          {job.hoursWorked && <span>• {job.hoursWorked} hrs</span>}
+                          {techNames.length > 0 && (
+                            <span className="flex items-center">
+                              • <Wrench className="w-3 h-3 mr-1" /> {techNames.join(', ')}
+                            </span>
+                          )}
+                          {job.rating && (
+                            <span className="flex items-center">
+                              • <Star className="w-3 h-3 mr-1" style={{ color: colors.accent }} fill={colors.accent} /> {job.rating}
+                            </span>
+                          )}
+                        </div>
+                        <ChevronRight className="w-4 h-4" style={{ color: colors.textSecondary }} />
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2908,27 +3141,44 @@ const FieldSyncApp = () => {
               <div className="card p-6">
                 <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
                   <User className="w-5 h-5 mr-2" style={{ color: colors.water }} />
-                  Farmer Contact
+                  Customer
                 </h3>
-                <div className="flex items-center space-x-3 mb-3">
+                <div 
+                  className="flex items-center space-x-3 mb-3 p-2 rounded-lg hover:shadow-md transition-all cursor-pointer"
+                  style={{ backgroundColor: colors.background }}
+                  onClick={() => { setSelectedEquipmentProfile(null); setSelectedTab('customers'); }}
+                >
                   <span className="text-3xl">{farmer.avatar || '👤'}</span>
-                  <div>
-                    <p className="font-medium" style={{ color: colors.textPrimary }}>{farmer.name}</p>
+                  <div className="flex-1">
+                    <p className="font-medium hover:underline" style={{ color: colors.textPrimary }}>{farmer.name}</p>
                     <p className="text-sm" style={{ color: colors.textSecondary }}>{farmer.company || 'Independent'}</p>
                   </div>
+                  <ChevronRight className="w-4 h-4" style={{ color: colors.textSecondary }} />
                 </div>
-                {farmer.phone && (
-                  <a href={`tel:${farmer.phone}`} className="flex items-center space-x-2 text-sm mb-2" style={{ color: colors.primary }}>
-                    <Phone className="w-4 h-4" />
-                    <span>{farmer.phone}</span>
-                  </a>
-                )}
-                {farmer.email && (
-                  <a href={`mailto:${farmer.email}`} className="flex items-center space-x-2 text-sm" style={{ color: colors.primary }}>
-                    <Mail className="w-4 h-4" />
-                    <span>{farmer.email}</span>
-                  </a>
-                )}
+                <div className="space-y-2">
+                  {farmer.phone && (
+                    <a 
+                      href={`tel:${farmer.phone}`} 
+                      className="flex items-center space-x-2 text-sm p-2 rounded-lg hover:bg-green-50 transition-colors" 
+                      style={{ color: colors.success }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>{farmer.phone}</span>
+                    </a>
+                  )}
+                  {farmer.email && (
+                    <a 
+                      href={`mailto:${farmer.email}`} 
+                      className="flex items-center space-x-2 text-sm p-2 rounded-lg hover:bg-blue-50 transition-colors" 
+                      style={{ color: colors.water }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Mail className="w-4 h-4" />
+                      <span>{farmer.email}</span>
+                    </a>
+                  )}
+                </div>
               </div>
             )}
 
@@ -3168,15 +3418,16 @@ const FieldSyncApp = () => {
     const mapRef = React.useRef(null);
     const googleMapRef = React.useRef(null);
     const markersRef = React.useRef([]);
+    const infoWindowRef = React.useRef(null);
     const [mapLoaded, setMapLoaded] = useState(false);
-    const [_selectedPivot, setSelectedPivot] = useState(null); // eslint-disable-line no-unused-vars
+    const [selectedMapPivot, setSelectedMapPivot] = useState(null);
     const [editingPivot, setEditingPivot] = useState(null);
     const [searchAddress, setSearchAddress] = useState('');
 
     const [_userLocation, setUserLocation] = useState(null); // eslint-disable-line no-unused-vars
 
-    // Filter pivots based on role
-    const visibleEquipment = userProfile?.role === 'farmer'
+    // Filter pivots based on role - farmers only see their own equipment
+    const visibleEquipment = effectiveRole === 'farmer'
       ? equipment.filter(p => p.farmerId === userProfile?.id)
       : equipment;
 
@@ -3274,29 +3525,51 @@ const FieldSyncApp = () => {
           }
         });
 
-        // Info window content with directions link
+        // Info window content with directions and view profile buttons
         const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`;
+        const farmer = users.find(u => u.id === pivot.farmerId);
         const infoContent = `
-          <div style="padding: 8px; max-width: 250px;">
-            <h3 style="margin: 0 0 8px 0; color: #2D5016; font-weight: bold;">${pivot.name}</h3>
-            <p style="margin: 4px 0; color: #5C6650;">${formatEquipmentType(pivot.type)} • ${pivot.acres} acres</p>
-            ${pivot.address ? `<p style="margin: 4px 0; color: #9CA986; font-size: 12px;">${pivot.address}</p>` : ''}
-            <p style="margin: 8px 0 0 0;">
-              <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: ${isNeedsService ? '#C73E1D20' : '#52C41A20'}; color: ${isNeedsService ? '#C73E1D' : '#52C41A'};">
-                ${pivot.status}
+          <div style="padding: 12px; max-width: 280px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <h3 style="margin: 0 0 4px 0; color: #2D5016; font-weight: bold; font-size: 16px;">${pivot.name}</h3>
+            <p style="margin: 0 0 8px 0; color: #5C6650; font-size: 13px;">${farmer?.name || 'Unknown Farmer'}</p>
+            <p style="margin: 4px 0; color: #5C6650; font-size: 13px;">${formatEquipmentType(pivot.type)} • ${pivot.acres || 0} acres</p>
+            ${pivot.address ? `<p style="margin: 4px 0; color: #9CA986; font-size: 12px;">📍 ${pivot.address}</p>` : ''}
+            <p style="margin: 8px 0;">
+              <span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; background: ${isNeedsService ? '#C73E1D20' : hasActiveJob ? '#FAAD1420' : '#52C41A20'}; color: ${isNeedsService ? '#C73E1D' : hasActiveJob ? '#FAAD14' : '#52C41A'};">
+                ${hasActiveJob ? '🔧 Active Job' : pivot.status}
               </span>
             </p>
-            <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #2D5016; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500;">
-              📍 Get Directions
-            </a>
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+              <button id="viewProfile_${pivot.id}" style="flex: 1; padding: 10px 12px; background: #2D5016; color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer;">
+                View Profile
+              </button>
+              <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="padding: 10px 12px; background: #E8F0E1; color: #2D5016; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500; display: flex; align-items: center;">
+                📍 Directions
+              </a>
+            </div>
           </div>
         `;
 
-        const infoWindow = new window.google.maps.InfoWindow({ content: infoContent });
+        // Create or reuse info window
+        if (!infoWindowRef.current) {
+          infoWindowRef.current = new window.google.maps.InfoWindow();
+        }
 
         marker.addListener('click', () => {
-          setSelectedPivot(pivot);
-          infoWindow.open(googleMapRef.current, marker);
+          setSelectedMapPivot(pivot);
+          infoWindowRef.current.setContent(infoContent);
+          infoWindowRef.current.open(googleMapRef.current, marker);
+          
+          // Add click listener for View Profile button after info window opens
+          window.google.maps.event.addListenerOnce(infoWindowRef.current, 'domready', () => {
+            const btn = document.getElementById(`viewProfile_${pivot.id}`);
+            if (btn) {
+              btn.addEventListener('click', () => {
+                infoWindowRef.current.close();
+                setSelectedEquipmentProfile(pivot);
+              });
+            }
+          });
         });
 
         markersRef.current.push(marker);
@@ -3443,6 +3716,49 @@ const FieldSyncApp = () => {
           </div>
         </div>
 
+        {/* Selected Equipment Quick Panel */}
+        {selectedMapPivot && (
+          <div className="card p-4" style={{ borderLeft: `4px solid ${colors.primary}` }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: colors.primary + '15' }}>
+                  {selectedMapPivot.type === 'pivot' ? '🌀' : selectedMapPivot.type === 'drip' ? '💧' : '🚜'}
+                </div>
+                <div>
+                  <h4 className="font-bold" style={{ color: colors.textPrimary }}>{selectedMapPivot.name}</h4>
+                  <p className="text-sm" style={{ color: colors.textSecondary }}>
+                    {users.find(u => u.id === selectedMapPivot.farmerId)?.name || 'Unknown'} • {formatEquipmentType(selectedMapPivot.type)} • {selectedMapPivot.acres || 0} acres
+                  </p>
+                  {selectedMapPivot.address && (
+                    <p className="text-xs" style={{ color: colors.muted }}>{selectedMapPivot.address}</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge variant={selectedMapPivot.status === 'needs-service' ? 'danger' : 'success'}>{selectedMapPivot.status}</Badge>
+                <Button icon={Eye} onClick={() => setSelectedEquipmentProfile(selectedMapPivot)}>View Profile</Button>
+                {selectedMapPivot.lat && selectedMapPivot.lng && (
+                  <a 
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedMapPivot.lat},${selectedMapPivot.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-lg"
+                    style={{ backgroundColor: colors.background }}
+                  >
+                    <Navigation className="w-5 h-5" style={{ color: colors.primary }} />
+                  </a>
+                )}
+                <button 
+                  onClick={() => setSelectedMapPivot(null)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" style={{ color: colors.textSecondary }} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Pivot List with Location Edit */}
         <div className="card p-4">
           <h3 className="font-semibold mb-3" style={{ color: colors.textPrimary }}>Equipment Locations</h3>
@@ -3552,6 +3868,281 @@ const FieldSyncApp = () => {
 
 
   // ============================================
+  // DEV SETTINGS VIEW - Kill Switches & Debug
+  // ============================================
+  const DevSettingsView = () => {
+    const toggleFeature = (feature) => {
+      setFeatureFlags(prev => ({ ...prev, [feature]: !prev[feature] }));
+    };
+
+    const killSwitches = [
+      { key: 'jobCreation', label: 'Job Creation', description: 'Allow creating new jobs and service calls' },
+      { key: 'timeTracking', label: 'Time Tracking', description: 'Allow techs to start/stop time on jobs' },
+      { key: 'notifications', label: 'Push Notifications', description: 'Send push notifications to users' },
+      { key: 'equipmentEditing', label: 'Equipment Editing', description: 'Allow adding/editing equipment' },
+      { key: 'userManagement', label: 'User Management', description: 'Allow adding/editing users' },
+      { key: 'mapView', label: 'Map View', description: 'Show map tab and equipment locations' },
+      { key: 'calendarView', label: 'Calendar View', description: 'Show calendar tab' },
+      { key: 'reportIssue', label: 'Report Issue', description: 'Allow farmers to report issues' }
+    ];
+
+    const resetAllFlags = () => {
+      const allOn = {};
+      killSwitches.forEach(s => allOn[s.key] = true);
+      setFeatureFlags(allOn);
+    };
+
+    const disableAllFlags = () => {
+      const allOff = {};
+      killSwitches.forEach(s => allOff[s.key] = false);
+      setFeatureFlags(allOff);
+    };
+
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold flex items-center" style={{ color: colors.danger }}>
+              <Settings className="w-6 h-6 mr-2" />
+              Dev Settings
+            </h2>
+            <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
+              Feature kill switches and debug tools. Changes persist across sessions.
+            </p>
+          </div>
+          <div className="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: colors.danger + '20', color: colors.danger }}>
+            <AlertCircle className="w-4 h-4" />
+            <span>DEV ONLY</span>
+          </div>
+        </div>
+
+        {/* Current User Info */}
+        <div className="card p-4">
+          <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
+            <User className="w-4 h-4 mr-2" />
+            Current Session
+          </h3>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span style={{ color: colors.textSecondary }}>Email:</span>
+              <p className="font-medium" style={{ color: colors.textPrimary }}>{currentUser?.email}</p>
+            </div>
+            <div>
+              <span style={{ color: colors.textSecondary }}>Actual Role:</span>
+              <p className="font-medium" style={{ color: colors.textPrimary }}>{userProfile?.role}</p>
+            </div>
+            <div>
+              <span style={{ color: colors.textSecondary }}>Effective Role:</span>
+              <p className="font-medium" style={{ color: devRoleOverride ? colors.warning : colors.primary }}>
+                {effectiveRole} {devRoleOverride && '(overridden)'}
+              </p>
+            </div>
+            <div>
+              <span style={{ color: colors.textSecondary }}>User ID:</span>
+              <p className="font-mono text-xs" style={{ color: colors.textPrimary }}>{userProfile?.id}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Kill Switches */}
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center" style={{ color: colors.textPrimary }}>
+              <Power className="w-4 h-4 mr-2" />
+              Feature Kill Switches
+            </h3>
+            <div className="flex space-x-2">
+              <button 
+                onClick={resetAllFlags}
+                className="px-3 py-1 text-xs font-medium rounded-lg transition-colors"
+                style={{ backgroundColor: colors.success + '20', color: colors.success }}
+              >
+                Enable All
+              </button>
+              <button 
+                onClick={disableAllFlags}
+                className="px-3 py-1 text-xs font-medium rounded-lg transition-colors"
+                style={{ backgroundColor: colors.danger + '20', color: colors.danger }}
+              >
+                Disable All
+              </button>
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            {killSwitches.map(({ key, label, description }) => (
+              <div 
+                key={key} 
+                className="flex items-center justify-between p-3 rounded-lg"
+                style={{ backgroundColor: featureFlags[key] ? colors.success + '10' : colors.danger + '10' }}
+              >
+                <div>
+                  <p className="font-medium" style={{ color: colors.textPrimary }}>{label}</p>
+                  <p className="text-xs" style={{ color: colors.textSecondary }}>{description}</p>
+                </div>
+                <button
+                  onClick={() => toggleFeature(key)}
+                  className={`relative w-14 h-8 rounded-full transition-colors ${featureFlags[key] ? 'bg-green-500' : 'bg-red-500'}`}
+                >
+                  <span 
+                    className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${featureFlags[key] ? 'left-7' : 'left-1'}`}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* System Stats */}
+        <div className="card p-4">
+          <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
+            <BarChart3 className="w-4 h-4 mr-2" />
+            System Stats
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
+              <p className="text-2xl font-bold" style={{ color: colors.primary }}>{users.length}</p>
+              <p className="text-xs" style={{ color: colors.textSecondary }}>Users</p>
+            </div>
+            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
+              <p className="text-2xl font-bold" style={{ color: colors.primary }}>{jobs.length}</p>
+              <p className="text-xs" style={{ color: colors.textSecondary }}>Jobs</p>
+            </div>
+            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
+              <p className="text-2xl font-bold" style={{ color: colors.primary }}>{equipment.length}</p>
+              <p className="text-xs" style={{ color: colors.textSecondary }}>Equipment</p>
+            </div>
+            <div className="text-center p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
+              <p className="text-2xl font-bold" style={{ color: colors.primary }}>{parts.length}</p>
+              <p className="text-xs" style={{ color: colors.textSecondary }}>Parts</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Password Reset - User Management */}
+        <div className="card p-4">
+          <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
+            <Mail className="w-4 h-4 mr-2" />
+            Password Reset
+          </h3>
+          <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
+            Send password reset emails to users. They'll receive a link to create a new password.
+          </p>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {users.map(user => (
+              <div 
+                key={user.id} 
+                className="flex items-center justify-between p-2 rounded-lg"
+                style={{ backgroundColor: colors.background }}
+              >
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">{user.avatar || '👤'}</span>
+                  <div>
+                    <p className="font-medium text-sm" style={{ color: colors.textPrimary }}>{user.name}</p>
+                    <p className="text-xs" style={{ color: colors.textSecondary }}>{user.email}</p>
+                  </div>
+                  <span 
+                    className="px-2 py-0.5 rounded text-xs"
+                    style={{ 
+                      backgroundColor: user.role === 'manager' ? colors.primary + '20' : 
+                                       user.role === 'tech' ? colors.water + '20' : 
+                                       user.role === 'office' ? colors.accent + '20' : colors.success + '20',
+                      color: user.role === 'manager' ? colors.primary : 
+                             user.role === 'tech' ? colors.water : 
+                             user.role === 'office' ? colors.accent : colors.success
+                    }}
+                  >
+                    {user.role}
+                  </span>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="secondary"
+                  onClick={async () => {
+                    if (!user.email) {
+                      addNotification('error', 'User has no email address');
+                      return;
+                    }
+                    if (window.confirm(`Send password reset email to ${user.email}?`)) {
+                      const result = await resetPassword(user.email);
+                      if (result.success) {
+                        addNotification('success', `Password reset email sent to ${user.email}`);
+                      } else {
+                        addNotification('error', result.error || 'Failed to send reset email');
+                      }
+                    }
+                  }}
+                >
+                  Reset Password
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Dev Users List */}
+        <div className="card p-4">
+          <h3 className="font-semibold mb-3" style={{ color: colors.textPrimary }}>Authorized Dev Users</h3>
+          <div className="space-y-2">
+            {DEV_EMAILS.map(email => (
+              <div key={email} className="flex items-center space-x-2 text-sm">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: currentUser?.email?.toLowerCase() === email ? colors.success : colors.textSecondary }} />
+                <span style={{ color: currentUser?.email?.toLowerCase() === email ? colors.success : colors.textSecondary }}>
+                  {email} {currentUser?.email?.toLowerCase() === email && '(you)'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="card p-4 border-2" style={{ borderColor: colors.danger }}>
+          <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.danger }}>
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Danger Zone
+          </h3>
+          <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
+            These actions can affect all users. Use with caution.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="danger" 
+              size="sm"
+              onClick={() => {
+                if (window.confirm('Clear all localStorage data and reload?')) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}
+            >
+              Clear Local Storage
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                console.log('=== DEBUG DUMP ===');
+                console.log('User count:', users?.length);
+                console.log('Job count:', jobs?.length);
+                console.log('Equipment count:', equipment?.length);
+                console.log('Parts count:', parts?.length);
+                console.log('Feature Flags:', featureFlags);
+                console.log('User Role:', userProfile?.role);
+                // TODO: Remove or secure this debug dump in production
+                addNotification('success', 'Debug data logged to console (F12)');
+              }}
+            >
+              Dump to Console
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
+  // ============================================
   // RENDER CURRENT VIEW
   // ============================================
   const renderView = () => {
@@ -3560,50 +4151,362 @@ const FieldSyncApp = () => {
       return <EquipmentProfileView />;
     }
 
-    const role = userProfile?.role;
+    const role = effectiveRole;
 
     if (role === 'farmer') {
       switch(selectedTab) {
+        case 'dashboard': return <FarmerDashboard />;
         case 'equipment': return <FarmerEquipmentView />;
         case 'jobs': return <FarmerJobsView />;
-        case 'map': return <MapView />;
+        case 'map': return <MapView 
+          colors={colors}
+          equipment={equipment}
+          jobs={jobs}
+          userProfile={userProfile}
+          addNotification={addNotification}
+          handleUpdateEquipmentLocation={handleUpdateEquipmentLocation}
+          formatEquipmentType={formatEquipmentType}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        />;
         case 'weather': return <WeatherView />;
-        default: return <FarmerEquipmentView />;
+        default: return <FarmerDashboard />;
       }
     }
 
     if (role === 'tech') {
       switch(selectedTab) {
-        case 'dashboard': return <TechDashboard />;
-        case 'jobs': return <TechJobsView />;
-        case 'customers': return <CustomersView />;
-        case 'map': return <MapView />;
-        default: return <TechDashboard />;
+        case 'dashboard': return <TechDashboard 
+          colors={colors}
+          jobs={jobs}
+          userProfile={userProfile}
+          setShowAddEquipmentModal={setShowAddEquipmentModal}
+          setShowReportIssueModal={setShowReportIssueModal}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowCompleteJobModal={setShowCompleteJobModal}
+        />;
+        case 'myjobs': return <TechJobsView 
+          colors={colors}
+          jobs={jobs}
+          users={users}
+          equipment={equipment}
+          userProfile={userProfile}
+          isLoading={isLoading}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowCompleteJobModal={setShowCompleteJobModal}
+          setShowJobDetailsModal={setShowJobDetailsModal}
+          handleStartTime={handleStartTime}
+          handleInitiateClockOut={handleInitiateClockOut}
+          handleSelfAssign={handleSelfAssign}
+        />;
+        case 'jobs': return <TechJobsView 
+          colors={colors}
+          jobs={jobs}
+          users={users}
+          equipment={equipment}
+          userProfile={userProfile}
+          isLoading={isLoading}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowCompleteJobModal={setShowCompleteJobModal}
+          handleStartTime={handleStartTime}
+          handleInitiateClockOut={handleInitiateClockOut}
+          handleSelfAssign={handleSelfAssign}
+        />;
+        case 'customers': return <CustomersView 
+          colors={colors}
+          users={users}
+          equipment={equipment}
+          jobs={jobs}
+          userProfile={userProfile}
+          customerSearchQuery={customerSearchQuery}
+          setCustomerSearchQuery={setCustomerSearchQuery}
+          setShowAddUserModal={setShowAddUserModal}
+          setShowAddEquipmentModal={setShowAddEquipmentModal}
+          setShowReportIssueModal={setShowReportIssueModal}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowJobDetailsModal={setShowJobDetailsModal}
+          handleDeleteUser={handleDeleteUser}
+          handleDeleteEquipment={handleDeleteEquipment}
+          handleDeleteJob={handleDeleteJob}
+          updateUser={updateUser}
+          addNotification={addNotification}
+          isLoading={isLoading}
+          formatEquipmentType={formatEquipmentType}
+          formatDate={formatDate}
+          formatStatus={formatStatus}
+          getStatusVariant={getStatusVariant}
+        />;
+        case 'team': return <TechTeamView
+          colors={colors}
+          jobs={jobs}
+          users={users}
+          equipment={equipment}
+          userProfile={userProfile}
+        />;
+        case 'map': return <MapView 
+          colors={colors}
+          equipment={equipment}
+          jobs={jobs}
+          userProfile={userProfile}
+          addNotification={addNotification}
+          handleUpdateEquipmentLocation={handleUpdateEquipmentLocation}
+          formatEquipmentType={formatEquipmentType}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        />;
+        default: return <TechDashboard 
+          colors={colors}
+          jobs={jobs}
+          userProfile={userProfile}
+          setShowAddEquipmentModal={setShowAddEquipmentModal}
+          setShowReportIssueModal={setShowReportIssueModal}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowCompleteJobModal={setShowCompleteJobModal}
+        />;
       }
     }
 
     if (role === 'office') {
       switch(selectedTab) {
-        case 'jobs': return <ManagerJobsView />;
+        case 'jobs': return <ManagerJobsView 
+          colors={colors}
+          jobs={jobs}
+          users={users}
+          equipment={equipment}
+          userProfile={userProfile}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          setShowAddEquipmentModal={setShowAddEquipmentModal}
+          setShowReportIssueModal={setShowReportIssueModal}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowAssignJobModal={setShowAssignJobModal}
+          setShowJobDetailsModal={setShowJobDetailsModal}
+          setShowEditJobModal={setShowEditJobModal}
+          setShowSOModal={setShowSOModal}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+          handleDeleteJob={handleDeleteJob}
+          handleDownloadJobSheet={handleDownloadJobSheet}
+          handleUpdateJobStatus={handleUpdateJobStatus}
+          getStatusVariant={getStatusVariant}
+          formatStatus={formatStatus}
+          formatCurrency={formatCurrency}
+          canSeePricing={canSeePricing}
+        />;
         case 'callin': return <CallInView />;
-        case 'customers': return <CustomersView />;
-        case 'map': return <MapView />;
-        default: return <ManagerJobsView />;
+        case 'customers': return <CustomersView 
+          colors={colors}
+          users={users}
+          equipment={equipment}
+          jobs={jobs}
+          userProfile={userProfile}
+          customerSearchQuery={customerSearchQuery}
+          setCustomerSearchQuery={setCustomerSearchQuery}
+          setShowAddUserModal={setShowAddUserModal}
+          setShowAddEquipmentModal={setShowAddEquipmentModal}
+          setShowReportIssueModal={setShowReportIssueModal}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowJobDetailsModal={setShowJobDetailsModal}
+          handleDeleteUser={handleDeleteUser}
+          handleDeleteEquipment={handleDeleteEquipment}
+          handleDeleteJob={handleDeleteJob}
+          updateUser={updateUser}
+          addNotification={addNotification}
+          isLoading={isLoading}
+          formatEquipmentType={formatEquipmentType}
+          formatDate={formatDate}
+          formatStatus={formatStatus}
+          getStatusVariant={getStatusVariant}
+        />;
+        case 'map': return <MapView 
+          colors={colors}
+          equipment={equipment}
+          jobs={jobs}
+          userProfile={userProfile}
+          addNotification={addNotification}
+          handleUpdateEquipmentLocation={handleUpdateEquipmentLocation}
+          formatEquipmentType={formatEquipmentType}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        />;
+        default: return <ManagerJobsView 
+          colors={colors}
+          jobs={jobs}
+          users={users}
+          equipment={equipment}
+          userProfile={userProfile}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          setShowAddEquipmentModal={setShowAddEquipmentModal}
+          setShowReportIssueModal={setShowReportIssueModal}
+          setSelectedJobForAction={setSelectedJobForAction}
+          setShowAssignJobModal={setShowAssignJobModal}
+          setShowJobDetailsModal={setShowJobDetailsModal}
+          setShowEditJobModal={setShowEditJobModal}
+          setShowSOModal={setShowSOModal}
+          setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+          handleDeleteJob={handleDeleteJob}
+          handleDownloadJobSheet={handleDownloadJobSheet}
+          handleUpdateJobStatus={handleUpdateJobStatus}
+          getStatusVariant={getStatusVariant}
+          formatStatus={formatStatus}
+          formatCurrency={formatCurrency}
+          canSeePricing={canSeePricing}
+        />;
       }
     }
 
     // Manager
     switch(selectedTab) {
-      case 'dashboard': return <ManagerDashboard />;
-      case 'myjobs': return <TechJobsView />;
-      case 'jobs': return <ManagerJobsView />;
+      case 'dashboard': return <ManagerDashboard 
+        colors={colors}
+        jobs={jobs}
+        users={users}
+        equipment={equipment}
+        userProfile={userProfile}
+        setShowReportIssueModal={setShowReportIssueModal}
+        setShowAddEquipmentModal={setShowAddEquipmentModal}
+        setSelectedJobForAction={setSelectedJobForAction}
+        setShowAssignJobModal={setShowAssignJobModal}
+        setShowJobDetailsModal={setShowJobDetailsModal}
+        setShowEditJobModal={setShowEditJobModal}
+        setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        setSelectedTab={setSelectedTab}
+        setFilterStatus={setFilterStatus}
+        handleDeleteJob={handleDeleteJob}
+      />;
+      case 'myjobs': return <TechJobsView 
+        colors={colors}
+        jobs={jobs}
+        users={users}
+        equipment={equipment}
+        userProfile={userProfile}
+        isLoading={isLoading}
+        setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        setSelectedJobForAction={setSelectedJobForAction}
+        setShowCompleteJobModal={setShowCompleteJobModal}
+        handleStartTime={handleStartTime}
+        handleStopTime={handleStopTime}
+        handleSelfAssign={handleSelfAssign}
+      />;
+      case 'jobs': return <ManagerJobsView 
+        colors={colors}
+        jobs={jobs}
+        users={users}
+        equipment={equipment}
+        userProfile={userProfile}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        filterStatus={filterStatus}
+        setFilterStatus={setFilterStatus}
+        setShowAddEquipmentModal={setShowAddEquipmentModal}
+        setShowReportIssueModal={setShowReportIssueModal}
+        setSelectedJobForAction={setSelectedJobForAction}
+        setShowAssignJobModal={setShowAssignJobModal}
+        setShowJobDetailsModal={setShowJobDetailsModal}
+        setShowEditJobModal={setShowEditJobModal}
+        setShowSOModal={setShowSOModal}
+        setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        handleDeleteJob={handleDeleteJob}
+        handleDownloadJobSheet={handleDownloadJobSheet}
+        handleUpdateJobStatus={handleUpdateJobStatus}
+        getStatusVariant={getStatusVariant}
+        formatStatus={formatStatus}
+        formatCurrency={formatCurrency}
+        canSeePricing={canSeePricing}
+      />;
       case 'calendar': return <CalendarView />;
-      case 'customers': return <CustomersView />;
-      case 'team': return <TeamManagement />;
-      case 'map': return <MapView />;
-      case 'analytics': return <AnalyticsView />;
+      case 'customers': return <CustomersView 
+        colors={colors}
+        users={users}
+        equipment={equipment}
+        jobs={jobs}
+        userProfile={userProfile}
+        customerSearchQuery={customerSearchQuery}
+        setCustomerSearchQuery={setCustomerSearchQuery}
+        setShowAddUserModal={setShowAddUserModal}
+        setShowAddEquipmentModal={setShowAddEquipmentModal}
+        setShowReportIssueModal={setShowReportIssueModal}
+        setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        setSelectedJobForAction={setSelectedJobForAction}
+        setShowJobDetailsModal={setShowJobDetailsModal}
+        handleDeleteUser={handleDeleteUser}
+        handleDeleteEquipment={handleDeleteEquipment}
+        handleDeleteJob={handleDeleteJob}
+        updateUser={updateUser}
+        addNotification={addNotification}
+        isLoading={isLoading}
+        formatEquipmentType={formatEquipmentType}
+        formatDate={formatDate}
+        formatStatus={formatStatus}
+        getStatusVariant={getStatusVariant}
+      />;
+      case 'team': return <TeamManagement 
+        colors={colors}
+        users={users}
+        jobs={jobs}
+        userProfile={userProfile}
+        setShowAddUserModal={setShowAddUserModal}
+        handleDeleteUser={handleDeleteUser}
+        updateUser={updateUser}
+        addNotification={addNotification}
+        resetPassword={resetPassword}
+      />;
+      case 'map': return <MapView 
+        colors={colors}
+        equipment={equipment}
+        jobs={jobs}
+        userProfile={userProfile}
+        addNotification={addNotification}
+        handleUpdateEquipmentLocation={handleUpdateEquipmentLocation}
+        formatEquipmentType={formatEquipmentType}
+        setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+      />;
+      case 'analytics': return <AnalyticsView 
+        colors={colors}
+        jobs={jobs}
+        users={users}
+        analytics={analytics}
+      />;
       case 'settings': return <SettingsView />;
-      default: return <ManagerDashboard />;
+      case 'dev': return isDevUser ? <DevSettingsView /> : <ManagerDashboard 
+        colors={colors}
+        jobs={jobs}
+        users={users}
+        equipment={equipment}
+        userProfile={userProfile}
+        setShowReportIssueModal={setShowReportIssueModal}
+        setShowAddEquipmentModal={setShowAddEquipmentModal}
+        setSelectedJobForAction={setSelectedJobForAction}
+        setShowAssignJobModal={setShowAssignJobModal}
+        setShowJobDetailsModal={setShowJobDetailsModal}
+        setShowEditJobModal={setShowEditJobModal}
+        setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        setSelectedTab={setSelectedTab}
+        setFilterStatus={setFilterStatus}
+        handleDeleteJob={handleDeleteJob}
+      />;
+      default: return <ManagerDashboard 
+        colors={colors}
+        jobs={jobs}
+        users={users}
+        equipment={equipment}
+        userProfile={userProfile}
+        setShowReportIssueModal={setShowReportIssueModal}
+        setShowAddEquipmentModal={setShowAddEquipmentModal}
+        setSelectedJobForAction={setSelectedJobForAction}
+        setShowAssignJobModal={setShowAssignJobModal}
+        setShowJobDetailsModal={setShowJobDetailsModal}
+        setShowEditJobModal={setShowEditJobModal}
+        setSelectedEquipmentProfile={setSelectedEquipmentProfile}
+        setSelectedTab={setSelectedTab}
+        setFilterStatus={setFilterStatus}
+        handleDeleteJob={handleDeleteJob}
+      />;
     }
   };
 
@@ -3628,11 +4531,36 @@ const FieldSyncApp = () => {
               </div>
               <div>
                 <h1 className="font-bold" style={{ color: isDarkMode ? '#8FBC3B' : '#2D5016' }}>FieldSync</h1>
-                <p className="text-xs" style={{ color: colors.textSecondary }}>
-                  {userProfile?.role === 'office' ? 'Office Portal' : 
-                   userProfile?.role === 'tech' ? 'Technician Portal' : 
-                   userProfile?.role === 'farmer' ? 'Farmer Portal' : 'Manager Portal'}
-                </p>
+                {isDevUser ? (
+                  <select
+                    value={devRoleOverride || userProfile?.role || 'manager'}
+                    onChange={(e) => {
+                      const newRole = e.target.value;
+                      setDevRoleOverride(newRole === userProfile?.role ? null : newRole);
+                      // Reset to appropriate default tab for the role
+                      if (newRole === 'farmer') setSelectedTab('dashboard');
+                      else if (newRole === 'office') setSelectedTab('jobs');
+                      else setSelectedTab('dashboard');
+                    }}
+                    className="text-xs px-2 py-0.5 rounded border cursor-pointer"
+                    style={{ 
+                      backgroundColor: colors.warning + '20', 
+                      borderColor: colors.warning,
+                      color: colors.warning
+                    }}
+                  >
+                    <option value="manager">🔧 Manager</option>
+                    <option value="tech">👷 Technician</option>
+                    <option value="office">📋 Office</option>
+                    <option value="farmer">🌾 Farmer</option>
+                  </select>
+                ) : (
+                  <p className="text-xs" style={{ color: colors.textSecondary }}>
+                    {effectiveRole === 'office' ? 'Office Portal' : 
+                     effectiveRole === 'tech' ? 'Technician Portal' : 
+                     effectiveRole === 'farmer' ? 'Farmer Portal' : 'Manager Portal'}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -3697,7 +4625,16 @@ const FieldSyncApp = () => {
         {/* Navigation Tabs */}
         <nav className="px-4 flex space-x-1 overflow-x-auto">
           {navItems.map(item => (
-            <button key={item.id} onClick={() => setSelectedTab(item.id)} className={`nav-tab ${selectedTab === item.id ? 'active' : ''}`}>
+            <button 
+              key={item.id} 
+              onClick={() => setSelectedTab(item.id)} 
+              className={`nav-tab ${selectedTab === item.id ? 'active' : ''}`}
+              style={item.isDev ? { 
+                backgroundColor: selectedTab === item.id ? colors.danger : colors.danger + '20',
+                color: selectedTab === item.id ? 'white' : colors.danger,
+                borderColor: colors.danger
+              } : {}}
+            >
               <item.icon className="w-5 h-5" />
               <span>{item.label}</span>
             </button>
@@ -3707,8 +4644,61 @@ const FieldSyncApp = () => {
 
       {/* Main Content */}
       <main className="p-4 max-w-7xl mx-auto">
+        {/* Breadcrumb Navigation */}
+        {selectedEquipmentProfile && (
+          <div className="flex items-center space-x-2 mb-4 text-sm">
+            <button 
+              onClick={() => setSelectedEquipmentProfile(null)}
+              className="hover:underline"
+              style={{ color: colors.primary }}
+            >
+              {selectedTab === 'map' ? 'Map' : selectedTab === 'equipment' ? 'Equipment' : 'Dashboard'}
+            </button>
+            <ChevronRight className="w-4 h-4" style={{ color: colors.muted }} />
+            <span style={{ color: colors.textPrimary }}>{selectedEquipmentProfile.name}</span>
+          </div>
+        )}
+        
         {renderView()}
       </main>
+
+      {/* Floating Action Button (FAB) */}
+      {['manager', 'office', 'tech'].includes(effectiveRole) && !selectedEquipmentProfile && (
+        <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end space-y-2">
+          {/* Quick Actions - shown on hover/tap of main FAB */}
+          <div className="fab-menu flex flex-col items-end space-y-2">
+            <button
+              onClick={() => setShowReportIssueModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105"
+              style={{ backgroundColor: colors.danger, color: 'white' }}
+              title="Report Issue"
+            >
+              <Phone className="w-4 h-4" />
+              <span className="text-sm font-medium">Report Issue</span>
+            </button>
+            <button
+              onClick={() => setShowAddEquipmentModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105"
+              style={{ backgroundColor: colors.primary, color: 'white' }}
+              title="Add Equipment"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="text-sm font-medium">Add Equipment</span>
+            </button>
+            {effectiveRole === 'manager' && (
+              <button
+                onClick={() => setShowAddUserModal(true)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-full shadow-lg transition-all hover:scale-105"
+                style={{ backgroundColor: colors.water, color: 'white' }}
+                title="Add Team Member"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span className="text-sm font-medium">Add User</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Toast Notifications */}
       <div className="fixed bottom-4 right-4 z-50 space-y-2">
@@ -3722,17 +4712,19 @@ const FieldSyncApp = () => {
         ))}
       </div>
 
-      {/* Modals */}
-      <AddEquipmentModal 
-        isOpen={showAddEquipmentModal}
-        onClose={() => setShowAddEquipmentModal(false)}
-        onAdd={handleAddEquipment}
-        users={users}
-        userProfile={userProfile}
-        isLoading={isLoading}
-        colors={colors}
-        addNotification={addNotification}
-      />
+      {/* Modals - Wrapped in Suspense for lazy loading */}
+      <React.Suspense fallback={<Spinner />}>
+        <AddEquipmentModal
+          isOpen={showAddEquipmentModal}
+          onClose={() => setShowAddEquipmentModal(false)}
+          onAdd={handleAddEquipment}
+          users={users}
+          userProfile={effectiveProfile}
+          isLoading={isLoading}
+          colors={colors}
+          addNotification={addNotification}
+        />
+      </React.Suspense>
       <EditEquipmentModal
         isOpen={showEditEquipmentModal}
         onClose={() => setShowEditEquipmentModal(false)}
@@ -3741,11 +4733,12 @@ const FieldSyncApp = () => {
         isLoading={isLoading}
         colors={colors}
       />
-      <ReportIssueModal
+      <React.Suspense fallback={<Spinner />}>
+        <ReportIssueModal
         isOpen={showReportIssueModal}
         onClose={() => { setShowReportIssueModal(false); setSelectedEquipmentForIssue(null); }}
         colors={colors}
-        userProfile={userProfile}
+        userProfile={effectiveProfile}
         users={users}
         equipment={equipment}
         selectedEquipmentForIssue={selectedEquipmentForIssue}
@@ -3756,90 +4749,162 @@ const FieldSyncApp = () => {
         isLoading={isLoading}
         setIsLoading={setIsLoading}
       />
-      <CompleteJobModal
-        isOpen={showCompleteJobModal}
-        onClose={() => { setShowCompleteJobModal(false); setSelectedJobForAction(null); }}
-        colors={colors}
-        selectedJobForAction={selectedJobForAction}
-        parts={parts}
-        pricingSettings={pricingSettings}
-        handleCompleteJob={handleCompleteJob}
-        isLoading={isLoading}
-        canSeePricing={canSeePricing}
-        formatCurrency={formatCurrency}
-      />
-      <AssignJobModal
-        isOpen={showAssignJobModal}
-        onClose={() => { setShowAssignJobModal(false); setSelectedJobForAction(null); }}
-        colors={colors}
-        users={users}
-        jobs={jobs}
-        userProfile={userProfile}
-        selectedJobForAction={selectedJobForAction}
-        handleAssignJob={handleAssignJob}
-        handleRemoveAssignee={handleRemoveAssignee}
-        setShowAddUserModal={setShowAddUserModal}
-        isLoading={isLoading}
-      />
-      <AddUserModal
-        isOpen={showAddUserModal}
-        onClose={() => setShowAddUserModal(false)}
-        colors={colors}
-        signUp={signUp}
-        addNotification={addNotification}
-        isLoading={isLoading}
-        setIsLoading={setIsLoading}
-      />
-      <JobDetailsModal
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <CompleteJobModal
+          isOpen={showCompleteJobModal}
+          onClose={() => { setShowCompleteJobModal(false); setSelectedJobForAction(null); }}
+          colors={colors}
+          selectedJobForAction={selectedJobForAction}
+          parts={parts}
+          pricingSettings={pricingSettings}
+          handleCompleteJob={handleCompleteJob}
+          isLoading={isLoading}
+          canSeePricing={canSeePricing}
+          formatCurrency={formatCurrency}
+          truckLocations={TRUCK_LOCATIONS}
+          users={users}
+          userProfile={userProfile}
+          onDownloadJobSheet={handleDownloadJobSheet}
+          onExportToExcel={handleExportToExcel}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <AssignJobModal
+          isOpen={showAssignJobModal}
+          onClose={() => { setShowAssignJobModal(false); setSelectedJobForAction(null); }}
+          colors={colors}
+          users={users}
+          jobs={jobs}
+          userProfile={userProfile}
+          selectedJobForAction={selectedJobForAction}
+          handleAssignJob={handleAssignJob}
+          handleRemoveAssignee={handleRemoveAssignee}
+          setShowAddUserModal={setShowAddUserModal}
+          isLoading={isLoading}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <AddUserModal
+          isOpen={showAddUserModal}
+          onClose={() => setShowAddUserModal(false)}
+          colors={colors}
+          signUp={signUp}
+          addNotification={addNotification}
+          isLoading={isLoading}
+          setIsLoading={setIsLoading}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <JobDetailsModal
         isOpen={showJobDetailsModal}
         onClose={() => { setShowJobDetailsModal(false); setSelectedJobForAction(null); }}
         job={selectedJobForAction}
         users={users}
+        equipment={equipment}
         userProfile={userProfile}
         canSeePricing={canSeePricing}
         isLoading={isLoading}
         colors={colors}
+        onUpdateJob={async (jobId, data) => {
+          const result = await fbUpdateJob(jobId, data);
+          if (result.success) {
+            addNotification('success', 'Job updated successfully');
+          } else {
+            addNotification('error', 'Failed to update job');
+          }
+        }}
         onAddManualTimeEntry={handleAddManualTimeEntry}
         onDeleteTimeEntry={handleDeleteTimeEntry}
         onDownloadJobSheet={handleDownloadJobSheet}
         onExportToExcel={handleExportToExcel}
         onOpenSOModal={() => setShowSOModal(true)}
         onOpenAssignModal={() => setShowAssignJobModal(true)}
+        onStartTime={handleStartTime}
+        onStopTime={handleStopTime}
         formatDate={formatDate}
         formatCurrency={formatCurrency}
         getStatusVariant={getStatusVariant}
+        formatStatus={formatStatus}
       />
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <ProfileModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          userProfile={userProfile}
+          isLoading={isLoading}
+          colors={colors}
+          onUpdateProfile={(data) => updateUser(userProfile.id, data).then(() => addNotification('success', 'Profile updated'))}
+          onUpdateEmail={updateUserEmail}
+          onUpdatePassword={updateUserPassword}
+          CARRIERS={CARRIERS}
+          sendTestNotification={sendTestNotification}
+          isEmailJSConfigured={isEmailJSConfigured}
+          getSmsEmail={getSmsEmail}
+          addNotification={addNotification}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          colors={colors}
+          pricingSettings={pricingSettings}
+          handleUpdateSettings={handleUpdateSettings}
+          isLoading={isLoading}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <SONumberModal
+          isOpen={showSOModal}
+          onClose={() => { setShowSOModal(false); setSelectedJobForAction(null); }}
+          colors={colors}
+          selectedJobForAction={selectedJobForAction}
+          handleUpdateSONumber={handleUpdateSONumber}
+          isLoading={isLoading}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <EditJobModal
+          isOpen={showEditJobModal}
+          onClose={() => { setShowEditJobModal(false); setSelectedJobForAction(null); }}
+          selectedJobForAction={selectedJobForAction}
+          parts={parts}
+          colors={colors}
+          truckLocations={TRUCK_LOCATIONS}
+          updateJob={async (jobId, data) => {
+            const result = await fbUpdateJob(jobId, data);
+            return result;
+          }}
+          addNotification={addNotification}
+          users={users}
+          userProfile={userProfile}
+          pricingSettings={pricingSettings}
+        />
+      </React.Suspense>
+      <React.Suspense fallback={<Spinner />}>
+        <ClockOutSurveyModal
+          isOpen={showClockOutSurvey}
+          onClose={() => { setShowClockOutSurvey(false); setClockOutJobId(null); }}
+          onComplete={handleClockOutSurveyComplete}
+          job={jobs.find(j => j.id === clockOutJobId)}
+          colors={colors}
+          isLoading={isLoading}
+        />
+      </React.Suspense>
+
+      {/* Floating Clock In Button - DISABLED: using manual time entry only
+      <ClockInFAB
+        colors={colors}
+        jobs={jobs}
+        users={users}
+        equipment={equipment}
         userProfile={userProfile}
-        isLoading={isLoading}
-        colors={colors}
-        onUpdateProfile={(data) => updateUser(userProfile.id, data).then(() => addNotification('success', 'Profile updated'))}
-        onUpdateEmail={updateUserEmail}
-        onUpdatePassword={updateUserPassword}
-        CARRIERS={CARRIERS}
-        sendTestNotification={sendTestNotification}
-        isEmailJSConfigured={isEmailJSConfigured}
-        getSmsEmail={getSmsEmail}
-        addNotification={addNotification}
+        handleStartTime={handleStartTime}
+        handleSelfAssign={handleSelfAssign}
       />
-      <SettingsModal
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        colors={colors}
-        pricingSettings={pricingSettings}
-        handleUpdateSettings={handleUpdateSettings}
-        isLoading={isLoading}
-      />
-      <SONumberModal
-        isOpen={showSOModal}
-        onClose={() => { setShowSOModal(false); setSelectedJobForAction(null); }}
-        colors={colors}
-        selectedJobForAction={selectedJobForAction}
-        handleUpdateSONumber={handleUpdateSONumber}
-        isLoading={isLoading}
-      />
+      */}
 
       {/* Click outside to close notifications dropdown */}
       {showNotificationsDropdown && (
@@ -3849,4 +4914,12 @@ const FieldSyncApp = () => {
   );
 };
 
-export default FieldSyncApp;
+// App Router - decides whether to show TV Dashboard or Main App
+const AppRouter = () => {
+  if (isTVRoute()) {
+    return <TVDashboardWrapper />;
+  }
+  return <FieldSyncApp />;
+};
+
+export default AppRouter;

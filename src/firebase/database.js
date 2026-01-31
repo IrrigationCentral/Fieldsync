@@ -120,10 +120,17 @@ export const deletePivot = async (pivotId) => {
 
 // Real-time pivots listener
 export const subscribeToPivots = (callback) => {
-  return onSnapshot(collection(db, 'pivots'), (snapshot) => {
-    const pivots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(pivots);
-  });
+  return onSnapshot(
+    collection(db, 'pivots'),
+    (snapshot) => {
+      const pivots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(pivots);
+    },
+    (error) => {
+      console.error('Realtime listener error (pivots):', error);
+      // Don't crash - let the app continue with stale data
+    }
+  );
 };
 
 
@@ -256,10 +263,17 @@ export const deleteJob = async (jobId) => {
 // Real-time jobs listener
 export const subscribeToJobs = (callback) => {
   const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snapshot) => {
-    const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(jobs);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(jobs);
+    },
+    (error) => {
+      console.error('Realtime listener error (jobs):', error);
+      // Don't crash - let the app continue with stale data
+    }
+  );
 };
 
 // Real-time listener for specific user's jobs
@@ -272,11 +286,18 @@ export const subscribeToUserJobs = (userId, role, callback) => {
   } else {
     q = collection(db, 'jobs');
   }
-  
-  return onSnapshot(q, (snapshot) => {
-    const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    callback(jobs);
-  });
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const jobs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      callback(jobs);
+    },
+    (error) => {
+      console.error('Realtime listener error (user jobs):', error);
+      // Don't crash - let the app continue with stale data
+    }
+  );
 };
 
 // ============================================
