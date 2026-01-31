@@ -56,6 +56,7 @@ import {
 } from './services/sms';
 
 // Notification Service
+// eslint-disable-next-line no-unused-vars
 import { notifications } from './services/notifications';
 
 // Excel Export
@@ -73,6 +74,7 @@ import {
   SettingsModal,
   SONumberModal,
   AddEquipmentModal,
+  // eslint-disable-next-line no-unused-vars
   EditEquipmentModal,
   JobDetailsModal,
   ProfileModal
@@ -763,6 +765,7 @@ const FieldSyncApp = () => {
   };
 
   // Add assignee to job
+  // eslint-disable-next-line no-unused-vars
   const handleAddAssignee = async (jobId, userId) => {
     setIsLoading(true);
     const result = await fbAddAssignee(jobId, userId);
