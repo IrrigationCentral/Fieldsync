@@ -2,8 +2,6 @@
 // UNIFIED NOTIFICATION SERVICE
 // Sends push notifications via FCM, falls back to SMS/Email
 // ============================================
-import { db } from '../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 import { sendSmsNotification, sendEmailNotification } from './sms';
 
 // Send push notification via FCM HTTP API

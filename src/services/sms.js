@@ -98,7 +98,7 @@ export const sendSmsNotification = async (phone, carrier, subject, message) => {
   }
 
   try {
-    const response = await emailjs.send(
+    await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templateId,
       {
@@ -123,7 +123,7 @@ export const sendEmailNotification = async (email, subject, message) => {
   }
 
   try {
-    const response = await emailjs.send(
+    await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templateId,
       {
