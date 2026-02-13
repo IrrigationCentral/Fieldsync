@@ -1,31 +1,39 @@
-# FieldSync React Web App
+# FieldSync React Web Application
 
 ## Quick Reference
-| Item | Value |
-|------|-------|
-| Deploy | `vercel --prod` |
-| Firebase | fieldsync-2768a |
-| Live URL | https://fieldsync-app.vercel.app |
+- **Deploy:** `vercel --prod` (REQUIRES ORCHESTRATOR APPROVAL)
+- **Dev:** `npm start`
+- **Build:** `npm run build`
+- **Firebase:** `fieldsync-2768a`
 
-## What This Is
-Field service management for Irrigation Central. React web app for office staff and managers. 31 service trucks, Sikeston MO.
+## Architecture
+- Main app: `src/App.js` (~3,855 lines)
+- Modals: `src/components/modals/` (13 extracted modals)
+- Context: `src/context/` (AuthContext, etc.)
+- Firebase: `src/firebase/`
+- Services: `src/services/`
 
-## Key Paths
-```
-src/
-├── App.js              # Main app (~4,900 lines)
-├── components/modals/  # Extracted modal components
-├── components/ui/      # Reusable UI
-├── firebase/           # Firebase config
-└── services/excelExport.js
-```
+## Theme Colors
+- Primary: #2D5016 (forest green)
+- Secondary: #8FBC3B (light green)
+- Accent: #F4B942 (wheat gold)
+- Danger: #C73E1D
 
-## Patterns
-- Role-based: Farmer → Tech → Office → Manager
-- Theme: primary #2D5016, secondary #8FBC3B, accent #F4B942
-- Extract modals when >200 lines
-- Survey-style wizards for tech features
+## Roles
+Farmer → Tech → Office → Manager (increasing permissions)
 
-## Related
-- Expo mobile: `C:\Projects\fieldsync-expo`
-- Knowledge base: `C:\Projects\.claude\INDEX.md`
+## CRITICAL
+- **GOLDEN BUILD:** `fieldsync-qwni76e71-spheresdeep0322s-projects.vercel.app`
+- **Recovery:** `vercel promote fieldsync-qwni76e71-spheresdeep0322s-projects.vercel.app`
+- **Knowledge Base:** `C:\Projects\.claude\`
+- **Worker Rules:** `C:\Projects\.claude\orchestrator\WORKER-RULES.md`
+
+## Before Deploying
+1. `npm run build` succeeds
+2. `git status` is clean
+3. Test critical flows locally
+4. Get Lee's explicit approval
+5. Then and only then: `vercel --prod`
+
+## If You're a Subagent
+You are under orchestrator control. Read the worker rules. Do not deploy.
