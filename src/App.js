@@ -541,8 +541,6 @@ const FieldSyncApp = () => {
     const result = await fbAssignJob(jobId, userProfile.id);
     if (result.success) {
       addNotification('success', 'Job assigned to you');
-      // No need to notify yourself, but log for debugging
-      console.log('Self-assigned job:', jobId);
     } else {
       addNotification('error', 'Failed to assign job');
     }
@@ -1908,7 +1906,7 @@ const FieldSyncApp = () => {
           <h2 className="text-xl font-bold" style={{ color: colors.primary }}>All Jobs</h2>
           <div className="flex items-center space-x-3">
             <Button icon={Plus} size="sm" onClick={() => setShowAddEquipmentModal(true)}>Add Equipment</Button>
-            <Button icon={AlertCircle} size="sm" variant="danger" onClick={() => { console.log('Report Issue clicked'); setShowReportIssueModal(true); }}>Report Issue</Button>
+            <Button icon={AlertCircle} size="sm" variant="danger" onClick={() => setShowReportIssueModal(true)}>Report Issue</Button>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }} />
               <input type="text" placeholder="Search jobs or SO#..." className="input pl-9 py-2 text-sm" style={{ width: '200px' }} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
@@ -3252,6 +3250,17 @@ const FieldSyncApp = () => {
     useEffect(() => {
       if (!googleMapRef.current || !mapLoaded) return;
 
+      // HTML escaping utility to prevent XSS
+      const escapeHtml = (str) => {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      };
+
       // Clear existing markers
       markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current = [];
@@ -3281,12 +3290,12 @@ const FieldSyncApp = () => {
         const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`;
         const infoContent = `
           <div style="padding: 8px; max-width: 250px;">
-            <h3 style="margin: 0 0 8px 0; color: #2D5016; font-weight: bold;">${pivot.name}</h3>
-            <p style="margin: 4px 0; color: #5C6650;">${formatEquipmentType(pivot.type)} • ${pivot.acres} acres</p>
-            ${pivot.address ? `<p style="margin: 4px 0; color: #9CA986; font-size: 12px;">${pivot.address}</p>` : ''}
+            <h3 style="margin: 0 0 8px 0; color: #2D5016; font-weight: bold;">${escapeHtml(pivot.name)}</h3>
+            <p style="margin: 4px 0; color: #5C6650;">${escapeHtml(formatEquipmentType(pivot.type))} • ${escapeHtml(pivot.acres)} acres</p>
+            ${pivot.address ? `<p style="margin: 4px 0; color: #9CA986; font-size: 12px;">${escapeHtml(pivot.address)}</p>` : ''}
             <p style="margin: 8px 0 0 0;">
               <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: ${isNeedsService ? '#C73E1D20' : '#52C41A20'}; color: ${isNeedsService ? '#C73E1D' : '#52C41A'};">
-                ${pivot.status}
+                ${escapeHtml(pivot.status)}
               </span>
             </p>
             <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #2D5016; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500;">

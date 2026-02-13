@@ -21,6 +21,13 @@ const AddUserModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate password length (Firebase minimum)
+    if (formData.password.length < 6) {
+      addNotification('error', 'Password must be at least 6 characters');
+      return;
+    }
+
     setIsLoading(true);
     const userData = {
       name: formData.name,

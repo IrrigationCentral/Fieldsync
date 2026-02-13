@@ -35,20 +35,6 @@ const sendBrowserNotification = (title, body, data = {}) => {
   return false;
 };
 
-// Get user's FCM tokens from Firestore
-// eslint-disable-next-line no-unused-vars
-const getUserTokens = async (userId) => {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-      return userDoc.data().fcmTokens || [];
-    }
-  } catch (error) {
-    console.error('Error getting user tokens:', error);
-  }
-  return [];
-};
-
 // Main notification function - tries push, falls back to SMS/Email
 export const sendNotification = async (user, title, message, options = {}) => {
   if (!user) return { success: false, error: 'No user provided' };
@@ -75,8 +61,7 @@ export const sendNotification = async (user, title, message, options = {}) => {
   }
 
   const success = results.push || results.sms || results.email;
-  console.log('Notification results:', { user: user.name, title, results });
-  
+
   return { success, results };
 };
 

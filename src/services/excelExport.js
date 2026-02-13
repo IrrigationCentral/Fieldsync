@@ -2,6 +2,7 @@
 // EXCEL EXPORT SERVICE - Service Call Job Sheet
 // ============================================
 import ExcelJS from 'exceljs';
+import { TIME_TRACKING } from '../config/businessConfig';
 
 // Format date as mm.dd.yyyy
 const formatDateForFilename = (date) => {
@@ -38,7 +39,7 @@ const calculateHours = (start, end, lunchTaken = false) => {
   const startDate = new Date(start);
   const endDate = new Date(end);
   const diff = (endDate - startDate) / (1000 * 60 * 60);
-  const lunchDeduction = lunchTaken ? 0.5 : 0;
+  const lunchDeduction = lunchTaken ? TIME_TRACKING.lunchBreakHours : 0;
   return Math.max(0, diff - lunchDeduction);
 };
 

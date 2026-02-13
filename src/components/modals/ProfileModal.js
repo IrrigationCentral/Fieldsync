@@ -138,7 +138,6 @@ const ProfileModal = ({
       addNotification('success', `Test SMS sent to ${result.smsEmail}! Check your phone.`);
     } else {
       addNotification('error', `Test failed: ${result.error}`);
-      console.log('SMS Test Debug:', result);
     }
   };
 

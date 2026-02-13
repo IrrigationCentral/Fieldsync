@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthChange, getUserProfile, signIn, signUp, logOut } from '../firebase/auth';
-import { getUsers, getPivots, getJobs, subscribeToPivots, subscribeToJobs } from '../firebase/database';
+import { getUsers, getPivots, getJobs, subscribeToPivots, subscribeToJobs } from '../firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -33,18 +33,18 @@ export const AuthProvider = ({ children }) => {
         // Get user profile from Firestore
         const result = await getUserProfile(user.uid);
         if (result.success) {
-          setUserProfile(result.data);
+          setUserProfile(result.profile);
         }
         
         // Load initial data
-        const [usersData, pivotsData, jobsData] = await Promise.all([
+        const [usersResult, pivotsResult, jobsResult] = await Promise.all([
           getUsers(),
           getPivots(),
           getJobs()
         ]);
-        setUsers(usersData);
-        setPivots(pivotsData);
-        setJobs(jobsData);
+        if (usersResult.success) setUsers(usersResult.users);
+        if (pivotsResult.success) setPivots(pivotsResult.pivots);
+        if (jobsResult.success) setJobs(jobsResult.jobs);
       } else {
         setUserProfile(null);
         setUsers([]);
@@ -94,14 +94,14 @@ export const AuthProvider = ({ children }) => {
   // Refresh data
   const refreshData = async () => {
     if (currentUser) {
-      const [usersData, pivotsData, jobsData] = await Promise.all([
+      const [usersResult, pivotsResult, jobsResult] = await Promise.all([
         getUsers(),
         getPivots(),
         getJobs()
       ]);
-      setUsers(usersData);
-      setPivots(pivotsData);
-      setJobs(jobsData);
+      if (usersResult.success) setUsers(usersResult.users);
+      if (pivotsResult.success) setPivots(pivotsResult.pivots);
+      if (jobsResult.success) setJobs(jobsResult.jobs);
     }
   };
 

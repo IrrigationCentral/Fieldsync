@@ -3,7 +3,7 @@
 // ============================================
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import app from './config';
+import app, { VAPID_KEY } from './config';
 import { db } from './config';
 
 let messaging = null;
@@ -21,9 +21,6 @@ const initializeMessaging = () => {
   }
   return null;
 };
-
-// VAPID key from Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
-const VAPID_KEY = 'BJ4vc3C4hQFrmZbhTnMrngqDUbjBNARK-KtozNQ4XgpQXeBedWTnkzZTfnSx9fM_Hbk585jrQTu_gQMEv2M2pIE';
 
 /**
  * Request notification permission and get FCM token
@@ -45,13 +42,11 @@ export const requestNotificationPermission = async (userId) => {
     const permission = await Notification.requestPermission();
     
     if (permission !== 'granted') {
-      console.log('Notification permission denied');
       return null;
     }
 
     // Register service worker
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    console.log('Service Worker registered:', registration);
 
     // Get FCM token
     const token = await getToken(messaging, {
@@ -60,8 +55,6 @@ export const requestNotificationPermission = async (userId) => {
     });
 
     if (token) {
-      console.log('FCM Token:', token);
-      
       // Save token to user's document in Firestore
       if (userId) {
         await saveTokenToUser(userId, token);
@@ -69,7 +62,6 @@ export const requestNotificationPermission = async (userId) => {
       
       return token;
     } else {
-      console.log('No FCM token available');
       return null;
     }
   } catch (error) {
@@ -88,7 +80,6 @@ const saveTokenToUser = async (userId, token) => {
       fcmTokens: arrayUnion(token),
       lastTokenUpdate: new Date().toISOString()
     });
-    console.log('FCM token saved to user document');
   } catch (error) {
     console.error('Error saving FCM token:', error);
   }
@@ -105,7 +96,6 @@ export const removeNotificationToken = async (userId, token) => {
     await updateDoc(userRef, {
       fcmTokens: arrayRemove(token)
     });
-    console.log('FCM token removed from user document');
   } catch (error) {
     console.error('Error removing FCM token:', error);
   }
@@ -123,7 +113,6 @@ export const onForegroundMessage = (callback) => {
   if (!messaging) return () => {};
 
   return onMessage(messaging, (payload) => {
-    console.log('Foreground message received:', payload);
     callback(payload);
   });
 };

@@ -172,44 +172,49 @@ const ReportIssueModal = ({
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    if (pivotToReport && description) {
-      if (leavePivotRunning && !acknowledged) {
-        return;
-      }
-      
-      let photoUrls = [];
-      if (photos.length > 0) {
-        setUploadingPhotos(true);
-        for (const photo of photos) {
-          const result = await uploadJobPhoto(photo.file, `temp_${Date.now()}`, 'issue');
-          if (result.success) {
-            photoUrls.push(result.url);
-          }
-        }
-        setUploadingPhotos(false);
-      }
-      
-      createJob(pivotToReport.id, description, priority, {
-        leavePivotRunning,
-        pivotDirection: leavePivotRunning ? pivotDirection : '',
-        pivotPercentage: leavePivotRunning ? parseInt(pivotPercentage) : 0,
-        acknowledged: leavePivotRunning ? acknowledged : false,
-        photos: photoUrls,
-        reportedBy: isStaff ? userProfile?.name : null,
-        reportedByRole: isStaff ? userProfile?.role : null
-      });
-      
-      // Reset form
-      setDescription('');
-      setPriority('medium');
-      setLeavePivotRunning(false);
-      setPivotDirection('forward');
-      setPivotPercentage('50');
-      setAcknowledged(false);
-      setPhotos([]);
-      setSelectedFarmerId('');
-      setSelectedPivotId('');
+
+    // Validate required fields first
+    if (!pivotToReport || !description) {
+      return;
     }
+
+    if (leavePivotRunning && !acknowledged) {
+      return;
+    }
+
+    // Upload photos only after validation passes
+    let photoUrls = [];
+    if (photos.length > 0) {
+      setUploadingPhotos(true);
+      for (const photo of photos) {
+        const result = await uploadJobPhoto(photo.file, `temp_${Date.now()}`, 'issue');
+        if (result.success) {
+          photoUrls.push(result.url);
+        }
+      }
+      setUploadingPhotos(false);
+    }
+
+    createJob(pivotToReport.id, description, priority, {
+      leavePivotRunning,
+      pivotDirection: leavePivotRunning ? pivotDirection : '',
+      pivotPercentage: leavePivotRunning ? parseInt(pivotPercentage) : 0,
+      acknowledged: leavePivotRunning ? acknowledged : false,
+      photos: photoUrls,
+      reportedBy: isStaff ? userProfile?.name : null,
+      reportedByRole: isStaff ? userProfile?.role : null
+    });
+
+    // Reset form
+    setDescription('');
+    setPriority('medium');
+    setLeavePivotRunning(false);
+    setPivotDirection('forward');
+    setPivotPercentage('50');
+    setAcknowledged(false);
+    setPhotos([]);
+    setSelectedFarmerId('');
+    setSelectedPivotId('');
   }, [pivotToReport, description, leavePivotRunning, acknowledged, photos, priority, pivotDirection, pivotPercentage, createJob, isStaff, userProfile]);
 
   // Don't render anything if modal is closed

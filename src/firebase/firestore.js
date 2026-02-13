@@ -236,10 +236,10 @@ export const getJobsByFarmer = async (farmerId) => {
 
 export const getJobsByTech = async (techId) => {
   try {
-    const q = query(collection(db, 'jobs'), where('assignedTo', '==', techId), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'jobs'), where('assignedTo', 'array-contains', techId), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
-    const jobs = querySnapshot.docs.map(doc => ({ 
-      id: doc.id, 
+    const jobs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
       updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().updatedAt,
@@ -329,11 +329,17 @@ export const removeAssigneeFromJob = async (jobId, userId) => {
 
 export const completeJob = async (jobId, completionData) => {
   try {
-    await updateDoc(doc(db, 'jobs', jobId), { 
+    // Check if job is already completed to prevent race conditions
+    const jobDoc = await getDoc(doc(db, 'jobs', jobId));
+    if (jobDoc.exists() && jobDoc.data().status === 'completed') {
+      return { success: false, error: 'Job is already completed' };
+    }
+
+    await updateDoc(doc(db, 'jobs', jobId), {
       ...completionData,
       status: 'completed',
       completedAt: serverTimestamp(),
-      updatedAt: serverTimestamp() 
+      updatedAt: serverTimestamp()
     });
     return { success: true };
   } catch (error) {
@@ -366,7 +372,7 @@ export const startTimeEntry = async (jobId, techId, techName) => {
     }
     
     const newEntry = {
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       techId,
       techName,
       startTime: new Date().toISOString(),
@@ -452,16 +458,21 @@ export const addManualTimeEntry = async (jobId, techId, techName, startTime, end
   try {
     const jobRef = doc(db, 'jobs', jobId);
     const jobSnap = await getDoc(jobRef);
-    
+
     if (!jobSnap.exists()) {
       return { success: false, error: 'Job not found' };
     }
-    
+
+    // Validate that startTime is before endTime
+    if (new Date(startTime) >= new Date(endTime)) {
+      return { success: false, error: 'Start time must be before end time' };
+    }
+
     const job = jobSnap.data();
     const timeEntries = job.timeEntries || [];
-    
+
     const newEntry = {
-      id: Date.now().toString(),
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       techId,
       techName,
       startTime: new Date(startTime).toISOString(),
@@ -470,12 +481,12 @@ export const addManualTimeEntry = async (jobId, techId, techName, startTime, end
       notes,
       manualEntry: true // Flag to indicate this was manually added
     };
-    
+
     await updateDoc(jobRef, {
       timeEntries: [...timeEntries, newEntry],
       updatedAt: serverTimestamp()
     });
-    
+
     return { success: true, entryId: newEntry.id };
   } catch (error) {
     console.error('Add manual time entry error:', error);
@@ -647,8 +658,8 @@ export const addPart = async (partData) => {
 export const importParts = async (partsArray) => {
   try {
     let imported = 0;
-    let errors = 0;
-    
+    const failures = [];
+
     for (const part of partsArray) {
       try {
         await addDoc(collection(db, 'parts'), {
@@ -664,11 +675,11 @@ export const importParts = async (partsArray) => {
         imported++;
       } catch (e) {
         console.error('Error importing part:', part, e);
-        errors++;
+        failures.push({ partNumber: part.partNumber, error: e.message });
       }
     }
-    
-    return { success: true, imported, errors };
+
+    return { success: true, imported, failed: failures.length, failures };
   } catch (error) {
     console.error('Import parts error:', error);
     return { success: false, error: error.message };
@@ -713,7 +724,11 @@ export const deletePart = async (partId) => {
 };
 
 // Delete all parts (for reimport)
-export const deleteAllParts = async () => {
+export const deleteAllParts = async (confirmDelete = false) => {
+  if (!confirmDelete) {
+    return { success: false, error: 'Must pass confirmDelete=true to delete all parts' };
+  }
+
   try {
     const querySnapshot = await getDocs(collection(db, 'parts'));
     let deleted = 0;

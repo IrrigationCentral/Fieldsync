@@ -13,7 +13,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 
 // Sign up new user
@@ -34,7 +34,7 @@ export const signUp = async (email, password, name, role = 'farmer', phone = '')
       role: role,
       phone: phone,
       avatar: role === 'tech' ? '👨‍🔧' : role === 'farmer' ? '👩‍🌾' : role === 'manager' ? '👨‍💼' : '👤',
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
       isActive: true
     });
     
@@ -136,9 +136,9 @@ export const updateUserEmail = async (newEmail, currentPassword) => {
     
     // Update email in Firestore
     const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, { 
+    await updateDoc(userRef, {
       email: newEmail,
-      updatedAt: new Date().toISOString()
+      updatedAt: serverTimestamp()
     });
 
     return { success: true };
@@ -186,7 +186,7 @@ export const updateUserProfile = async (uid, profileData) => {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, {
       ...profileData,
-      updatedAt: new Date().toISOString()
+      updatedAt: serverTimestamp()
     });
 
     return { success: true };
