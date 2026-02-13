@@ -14,33 +14,37 @@ import {
   EmailAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './config';
+import { auth, db, secondaryAuth } from './config';
 
-// Sign up new user
-export const signUp = async (email, password, name, role = 'farmer', phone = '') => {
+// Sign up new user using a secondary auth instance so the current
+// manager/office user stays logged in on the primary auth.
+export const signUp = async (email, password, name, role = 'farmer', phone = '', extraData = {}) => {
   try {
-    // Create auth user
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    // Create user on the secondary auth (doesn't affect primary session)
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
     const user = userCredential.user;
-    
-    // Update display name
+
+    // Update display name on the secondary auth user
     await updateProfile(user, { displayName: name });
-    
+
     // Create user document in Firestore
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
-      email: email,
-      name: name,
-      role: role,
-      phone: phone,
+      email,
+      name,
+      role,
+      phone,
       avatar: role === 'tech' ? '👨‍🔧' : role === 'farmer' ? '👩‍🌾' : role === 'manager' ? '👨‍💼' : '👤',
       createdAt: serverTimestamp(),
-      isActive: true
+      isActive: true,
+      ...extraData
     });
-    
+
+    // Sign out from secondary auth (cleanup, doesn't affect primary)
+    await signOut(secondaryAuth);
+
     return { success: true, user };
   } catch (error) {
-    console.error('Sign up error:', error);
     return { success: false, error: getErrorMessage(error.code) };
   }
 };

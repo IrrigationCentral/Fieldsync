@@ -1,7 +1,7 @@
 // ============================================
 // FIREBASE CONFIGURATION - FIELDSYNC
 // ============================================
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -28,6 +28,11 @@ export const db = getFirestore(app, "hardluck");
 
 // Initialize Storage for photo uploads
 export const storage = getStorage(app);
+
+// Secondary app instance for creating users without affecting current auth session
+const secondaryApp = getApps().find(a => a.name === 'userCreation')
+  || initializeApp(firebaseConfig, 'userCreation');
+export const secondaryAuth = getAuth(secondaryApp);
 
 // VAPID key for Firebase Cloud Messaging (FCM) push notifications
 export const VAPID_KEY = process.env.REACT_APP_FIREBASE_VAPID_KEY;

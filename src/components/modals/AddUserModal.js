@@ -29,17 +29,12 @@ const AddUserModal = ({
     }
 
     setIsLoading(true);
-    const userData = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role
-    };
+    const extraData = {};
     if (formData.role === 'farmer') {
-      userData.company = formData.company;
-      userData.billingAddress = formData.billingAddress;
+      extraData.company = formData.company;
+      extraData.billingAddress = formData.billingAddress;
     }
-    const result = await signUp(formData.email, formData.password, formData.name, formData.role, formData.phone, userData);
+    const result = await signUp(formData.email, formData.password, formData.name, formData.role, formData.phone, extraData);
     if (result.success) {
       addNotification('success', `${formData.role.charAt(0).toUpperCase() + formData.role.slice(1)} account created successfully`);
       onClose();

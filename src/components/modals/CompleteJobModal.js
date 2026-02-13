@@ -405,7 +405,27 @@ const CompleteJobModal = ({
 
           <div className="flex space-x-3 pt-4">
             <Button type="submit" className="flex-1" icon={CheckCircle} loading={isLoading || uploadingPhotos}>Complete Job</Button>
-            <Button type="button" variant="secondary" className="flex-1" onClick={handleClose}>Cancel</Button>
+            <Button type="button" variant="warning" className="flex-1" onClick={(e) => {
+              e.preventDefault();
+              if (selectedJobForAction) {
+                handleCompleteJob(selectedJobForAction.id, {
+                  workDescription: formData.workDescription,
+                  partsUsed: selectedParts.map(p => ({ partNumber: p.partNumber, description: p.description, quantity: p.quantity })),
+                  partsCost: parseFloat(formData.partsCost) || 0,
+                  hoursWorked: parseFloat(formData.hoursWorked) || 0,
+                  milesDriven: parseFloat(formData.milesDriven) || 0,
+                  vehicleNumber: formData.vehicleNumber,
+                  odometerBegin: parseFloat(formData.odometerBegin) || 0,
+                  odometerEnd: parseFloat(formData.odometerEnd) || 0,
+                  needsFollowUp: true
+                });
+                setFormData({ workDescription: '', partsCost: '', hoursWorked: '', milesDriven: '', vehicleNumber: '', odometerBegin: '', odometerEnd: '' });
+                setSelectedParts([]);
+                setBeforePhotos([]);
+                setAfterPhotos([]);
+              }
+            }} loading={isLoading}>Needs Follow-up</Button>
+            <Button type="button" variant="secondary" onClick={handleClose}>Cancel</Button>
           </div>
         </form>
       )}
