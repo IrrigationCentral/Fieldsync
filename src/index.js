@@ -2,15 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
-import ErrorBoundary from './components/ErrorBoundary';
+import AppV2 from './AppV2';
 import reportWebVitals from './reportWebVitals';
+
+// Feature flag: set REACT_APP_USE_V2=true in .env to use the new architecture
+const useV2 = process.env.REACT_APP_USE_V2 === 'true';
+const RootApp = useV2 ? AppV2 : App;
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <RootApp />
   </React.StrictMode>
 );
 
