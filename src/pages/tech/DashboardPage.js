@@ -20,7 +20,7 @@ const DashboardPage = () => {
   const { users, equipment, jobs } = useData();
   const { addNotification } = useNotifications();
   const { selfAssign } = useJobs();
-  const { stopTime, isLoading: timeTrackingLoading } = useTimeTracking();
+  const { stopTime } = useTimeTracking();
   const [showPending, setShowPending] = useState(false);
   const [showLunchPrompt, setShowLunchPrompt] = useState(false);
   const [stoppingJobId, setStoppingJobId] = useState(null);

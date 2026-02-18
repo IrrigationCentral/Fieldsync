@@ -3,14 +3,12 @@
 import React from 'react';
 import { Clock, Wrench, CheckCircle, Users, Phone, Plus, Trash2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContextV2';
 import { useData } from '../../context/DataContext';
 import { useJobs } from '../../hooks/useJobs';
 import { StatCard, Badge, Button } from '../../components/ui';
 
 const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquipment }) => {
   const { colors } = useTheme();
-  const { userProfile } = useAuth();
   const { users, jobs } = useData();
   const { deleteJob } = useJobs();
 

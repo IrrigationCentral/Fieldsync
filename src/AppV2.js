@@ -29,6 +29,11 @@ import TeamPage from './pages/manager/TeamPage';
 import CallInPage from './pages/office/CallInPage';
 import CustomersPage from './pages/shared/CustomersPage';
 import WeatherPage from './pages/shared/WeatherPage';
+import AnalyticsPage from './pages/manager/AnalyticsPage';
+import CalendarPage from './pages/manager/CalendarPage';
+import SettingsPage from './pages/manager/SettingsPage';
+import EquipmentProfilePage from './pages/shared/EquipmentProfilePage';
+import MapPage from './pages/shared/MapPage';
 
 // Modals (re-used from existing codebase)
 import {
@@ -47,7 +52,7 @@ import { CARRIERS, sendTestNotification, isEmailJSConfigured, getSmsEmail } from
 // AUTH GATE - Renders login or app based on auth state
 // ============================================
 const AuthGate = () => {
-  const { isAuthenticated, authLoading, role, userProfile, logout } = useAuth();
+  const { isAuthenticated, authLoading, role, logout } = useAuth();
   const { addNotification } = useNotifications();
   const [selectedTab, setSelectedTab] = useState(null);
 
@@ -111,11 +116,12 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
     // Equipment profile overlay
     if (selectedEquipmentProfile) {
       return (
-        <div className="p-4 text-center" style={{ color: colors.textSecondary }}>
-          Equipment Profile view (ID: {selectedEquipmentProfile.id}) — being migrated
-          <br />
-          <button className="mt-4 underline" style={{ color: colors.primary }} onClick={() => setSelectedEquipmentProfile(null)}>Back</button>
-        </div>
+        <EquipmentProfilePage
+          equipment={selectedEquipmentProfile}
+          onBack={() => setSelectedEquipmentProfile(null)}
+          onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }}
+          onEditEquipment={() => setShowEditEquipmentModal(true)}
+        />
       );
     }
 
@@ -136,7 +142,7 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
             />
           );
         case 'weather': return <WeatherPage />;
-        case 'map': return <MapPlaceholder />;
+        case 'map': return <MapPage />;
         default: return <FarmerEquipmentPage onViewEquipment={setSelectedEquipmentProfile} onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }} onAddEquipment={() => setShowAddEquipmentModal(true)} />;
       }
     }
@@ -162,7 +168,7 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
             />
           );
         case 'customers': return <CustomersPage onViewEquipment={setSelectedEquipmentProfile} onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }} />;
-        case 'map': return <MapPlaceholder />;
+        case 'map': return <MapPage />;
         default: return <TechDashboardPage onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }} onOpenCompleteModal={(job) => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }} onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }} onViewEquipment={setSelectedEquipmentProfile} />;
       }
     }
@@ -181,7 +187,7 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
           );
         case 'callin': return <CallInPage />;
         case 'customers': return <CustomersPage onViewEquipment={setSelectedEquipmentProfile} onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }} />;
-        case 'map': return <MapPlaceholder />;
+        case 'map': return <MapPage />;
         default: return <ManagerJobsPage onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }} onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }} onOpenSOModal={(job) => { setSelectedJobForAction(job); setShowSOModal(true); }} onOpenReportIssue={() => setShowReportIssueModal(true)} onOpenAddEquipment={() => setShowAddEquipmentModal(true)} />;
       }
     }
@@ -215,12 +221,12 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
             onOpenAddEquipment={() => setShowAddEquipmentModal(true)}
           />
         );
-      case 'calendar': return <CalendarPlaceholder />;
+      case 'calendar': return <CalendarPage onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }} />;
       case 'customers': return <CustomersPage onViewEquipment={setSelectedEquipmentProfile} onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }} />;
       case 'team': return <TeamPage onOpenAddUser={() => setShowAddUserModal(true)} />;
-      case 'map': return <MapPlaceholder />;
-      case 'analytics': return <AnalyticsPlaceholder />;
-      case 'settings': return <SettingsPlaceholder onOpenSettings={() => setShowSettingsModal(true)} />;
+      case 'map': return <MapPage />;
+      case 'analytics': return <AnalyticsPage />;
+      case 'settings': return <SettingsPage />;
       default: return <ManagerDashboardPage onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }} onOpenReportIssue={() => setShowReportIssueModal(true)} onOpenAddEquipment={() => setShowAddEquipmentModal(true)} />;
     }
   };
@@ -355,36 +361,6 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
   );
 };
 
-// ============================================
-// PLACEHOLDER COMPONENTS (for views not yet migrated)
-// ============================================
-const MapPlaceholder = () => (
-  <div className="p-8 text-center" style={{ color: 'var(--color-text-secondary)' }}>
-    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>Map View</h2>
-    <p>Map view with Google Maps integration — coming in next phase.</p>
-  </div>
-);
-
-const CalendarPlaceholder = () => (
-  <div className="p-8 text-center" style={{ color: 'var(--color-text-secondary)' }}>
-    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>Calendar</h2>
-    <p>Calendar view — coming in next phase.</p>
-  </div>
-);
-
-const AnalyticsPlaceholder = () => (
-  <div className="p-8 text-center" style={{ color: 'var(--color-text-secondary)' }}>
-    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>Analytics</h2>
-    <p>Analytics with charts — coming in next phase.</p>
-  </div>
-);
-
-const SettingsPlaceholder = ({ onOpenSettings }) => (
-  <div className="p-8 text-center" style={{ color: 'var(--color-text-secondary)' }}>
-    <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text-primary)' }}>Settings</h2>
-    <button onClick={onOpenSettings} className="underline" style={{ color: 'var(--color-text-primary)' }}>Open Settings Modal</button>
-  </div>
-);
 
 // ============================================
 // APP V2 - Top-level with providers
