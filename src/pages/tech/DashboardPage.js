@@ -12,7 +12,6 @@ import { useJobs } from '../../hooks/useJobs';
 import { useTimeTracking } from '../../hooks/useTimeTracking';
 import { useModal } from '../../hooks/useModal';
 import { StatCard, EmptyState, Badge, Button } from '../../components/ui';
-import { startTimeEntry } from '../../firebase';
 
 const DashboardPage = () => {
   const { colors } = useTheme();
@@ -67,17 +66,6 @@ const DashboardPage = () => {
       addNotification('success', 'Job assigned to you');
     } else {
       addNotification('error', 'Failed to assign job');
-    }
-    setIsLoading(false);
-  };
-
-  const handleStartTime = async (jobId) => {
-    setIsLoading(true);
-    const result = await startTimeEntry(jobId, userProfile.id, userProfile.name);
-    if (result.success) {
-      addNotification('success', 'Time tracking started');
-    } else {
-      addNotification('error', result.error || 'Failed to start time tracking');
     }
     setIsLoading(false);
   };
@@ -258,16 +246,6 @@ const DashboardPage = () => {
 
                   {/* Action Buttons */}
                   <div className="space-y-2">
-                    {!isTracking && (
-                      <Button
-                        className="w-full"
-                        icon={Play}
-                        onClick={() => handleStartTime(job.id)}
-                        loading={isLoading}
-                      >
-                        Start Time
-                      </Button>
-                    )}
                     {isTracking && (
                       <Button
                         className="w-full"
