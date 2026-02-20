@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import {
   CheckCircle, Clock, Wrench, Navigation, Plus, AlertCircle,
   Briefcase, Clipboard, ChevronUp, ChevronDown, UserPlus,
-  MapPin, Phone, Play, Square
+  MapPin, Phone
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContextV2';
 import { useData } from '../../context/DataContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useJobs } from '../../hooks/useJobs';
-import { useTimeTracking } from '../../hooks/useTimeTracking';
 import { useModal } from '../../hooks/useModal';
 import { StatCard, EmptyState, Badge, Button } from '../../components/ui';
 
@@ -19,10 +18,7 @@ const DashboardPage = () => {
   const { users, equipment, jobs } = useData();
   const { addNotification } = useNotifications();
   const { selfAssign } = useJobs();
-  const { stopTime } = useTimeTracking();
   const [showPending, setShowPending] = useState(false);
-  const [showLunchPrompt, setShowLunchPrompt] = useState(false);
-  const [stoppingJobId, setStoppingJobId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Modal hooks
@@ -43,21 +39,6 @@ const DashboardPage = () => {
   const activeJobs = myJobs.filter(j => ['assigned', 'in-progress'].includes(j.status));
   const completedJobs = myJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
   const pendingJobs = jobs.filter(j => j.status === 'pending');
-
-  // Check if user has active time entry on a job
-  const hasActiveTimeEntry = (job) => {
-    return job.timeEntries?.some(e => e.techId === userProfile?.id && !e.endTime);
-  };
-
-  const handleStopTime = async (jobId, lunchTaken = false) => {
-    await stopTime(jobId, lunchTaken);
-  };
-
-  const handleStopTimeWithLunch = (jobId, tookLunch) => {
-    handleStopTime(jobId, tookLunch);
-    setShowLunchPrompt(false);
-    setStoppingJobId(null);
-  };
 
   const handleSelfAssign = async (jobId) => {
     setIsLoading(true);
@@ -136,15 +117,6 @@ const DashboardPage = () => {
             {activeJobs.map(job => {
               const pivot = equipment.find(p => p.id === job.pivotId);
               const farmer = users.find(u => u.id === job.farmerId);
-              const isTracking = hasActiveTimeEntry(job);
-              const timeEntries = job.timeEntries || [];
-              const totalTrackedTime = timeEntries.reduce((total, e) => {
-                if (e.startTime && e.endTime) {
-                  return total + (new Date(e.endTime) - new Date(e.startTime)) / (1000 * 60 * 60);
-                }
-                return total;
-              }, 0);
-
               return (
                 <div key={job.id} className="card p-4">
                   <div className="flex items-start justify-between mb-3">
@@ -177,24 +149,6 @@ const DashboardPage = () => {
                   <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>
                     {job.description}
                   </p>
-
-                  {/* Time Tracking Status */}
-                  {(isTracking || timeEntries.length > 0) && (
-                    <div
-                      className="p-2 rounded-lg mb-3"
-                      style={{ backgroundColor: isTracking ? colors.success + '15' : colors.water + '15' }}
-                    >
-                      {isTracking ? (
-                        <p className="text-xs font-medium flex items-center" style={{ color: colors.success }}>
-                          <Play className="w-3 h-3 mr-1 animate-pulse" /> Time tracking active...
-                        </p>
-                      ) : (
-                        <p className="text-xs" style={{ color: colors.water }}>
-                          <Clock className="w-3 h-3 inline mr-1" /> {totalTrackedTime.toFixed(1)} hrs tracked ({timeEntries.length} entries)
-                        </p>
-                      )}
-                    </div>
-                  )}
 
                   {/* Farmer Contact */}
                   {farmer && (
@@ -246,19 +200,6 @@ const DashboardPage = () => {
 
                   {/* Action Buttons */}
                   <div className="space-y-2">
-                    {isTracking && (
-                      <Button
-                        className="w-full"
-                        variant="danger"
-                        icon={Square}
-                        onClick={() => {
-                          setStoppingJobId(job.id);
-                          setShowLunchPrompt(true);
-                        }}
-                      >
-                        Stop Time
-                      </Button>
-                    )}
                     <Button
                       className="w-full"
                       icon={CheckCircle}
@@ -346,35 +287,6 @@ const DashboardPage = () => {
           </div>
         )}
       </div>
-
-      {/* Lunch Prompt Modal */}
-      {showLunchPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-bold mb-4" style={{ color: colors.textPrimary }}>
-              Did you take lunch?
-            </h3>
-            <p className="text-sm mb-4" style={{ color: colors.textSecondary }}>
-              30 minutes will be deducted if you took a lunch break.
-            </p>
-            <div className="flex space-x-3">
-              <Button
-                className="flex-1"
-                variant="secondary"
-                onClick={() => handleStopTimeWithLunch(stoppingJobId, false)}
-              >
-                No Lunch
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => handleStopTimeWithLunch(stoppingJobId, true)}
-              >
-                Yes, Took Lunch
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* TODO: Wire up modals when modal components are created */}
       {/* completeJobModal, addEquipmentModal, reportIssueModal, equipmentProfileModal */}
