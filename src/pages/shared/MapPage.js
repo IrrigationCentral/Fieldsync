@@ -104,7 +104,7 @@ const MapPage = () => {
       if (!pivot.lat || !pivot.lng) return;
 
       const isNeedsService = pivot.status === 'needs-service';
-      const hasActiveJob = jobs.some(j => j.pivotId === pivot.id && ['pending', 'assigned', 'in-progress'].includes(j.status));
+      const hasActiveJob = jobs.some(j => j.pivotId === pivot.id && ['pending', 'assigned', 'in-progress', 'needs-followup'].includes(j.status));
 
       const marker = new window.google.maps.Marker({
         position: { lat: pivot.lat, lng: pivot.lng },
@@ -209,7 +209,7 @@ const MapPage = () => {
         </h2>
         <div className="flex items-center space-x-2">
           <Badge variant="success">{visibleEquipment.filter(p => p.status === 'active').length} Active</Badge>
-          <Badge variant="warning">{jobs.filter(j => ['pending', 'assigned', 'in-progress'].includes(j.status)).length} Jobs</Badge>
+          <Badge variant="warning">{jobs.filter(j => ['pending', 'assigned', 'in-progress', 'needs-followup'].includes(j.status)).length} Jobs</Badge>
           <Badge variant="danger">{visibleEquipment.filter(p => p.status === 'needs-service').length} Need Service</Badge>
         </div>
       </div>

@@ -13,7 +13,7 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
   const { deleteJob } = useJobs();
 
   const pendingJobs = jobs.filter(j => j.status === 'pending');
-  const assignedJobs = jobs.filter(j => ['assigned', 'in-progress'].includes(j.status));
+  const assignedJobs = jobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status));
   const completedJobs = jobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
   const techs = users.filter(u => u.role === 'tech');
 
@@ -79,7 +79,7 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
                   const assigned = j.assignedTo;
                   return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
                 });
-                const active = techJobs.filter(j => ['assigned', 'in-progress'].includes(j.status)).length;
+                const active = techJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status)).length;
                 const completed = techJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length;
                 return (
                   <div key={tech.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>

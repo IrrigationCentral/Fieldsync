@@ -1781,7 +1781,7 @@ const FieldSyncApp = () => {
   // ============================================
   const ManagerDashboard = () => {
     const pendingJobs = jobs.filter(j => j.status === 'pending');
-    const assignedJobs = jobs.filter(j => ['assigned', 'in-progress'].includes(j.status));
+    const assignedJobs = jobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status));
     const completedJobs = jobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
     const techs = users.filter(u => u.role === 'tech');
 
@@ -1847,7 +1847,7 @@ const FieldSyncApp = () => {
                     const assigned = j.assignedTo;
                     return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
                   });
-                  const active = techJobs.filter(j => ['assigned', 'in-progress'].includes(j.status)).length;
+                  const active = techJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status)).length;
                   const completed = techJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length;
                   return (
                     <div key={tech.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>
@@ -1959,7 +1959,7 @@ const FieldSyncApp = () => {
                         <div className="flex items-center justify-end space-x-2">
                           {job.status === 'pending' ? (
                             <Button size="sm" onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}>Assign</Button>
-                          ) : ['assigned', 'in-progress'].includes(job.status) ? (
+                          ) : ['assigned', 'in-progress', 'needs-followup'].includes(job.status) ? (
                             <>
                               <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}>Edit Team</Button>
                               <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}>View</Button>
@@ -2093,7 +2093,7 @@ const FieldSyncApp = () => {
                   </div>
                   {(member.role === 'tech' || member.role === 'manager') && (
                     <div className="mt-3 pt-3 border-t flex justify-between" style={{ borderColor: colors.border }}>
-                      <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => ['assigned', 'in-progress'].includes(j.status)).length}</strong></span>
+                      <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status)).length}</strong></span>
                       <span className="text-sm" style={{ color: colors.textSecondary }}>Completed: <strong>{memberJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length}</strong></span>
                     </div>
                   )}
@@ -3253,7 +3253,7 @@ const FieldSyncApp = () => {
         if (!pivot.lat || !pivot.lng) return;
 
         const isNeedsService = pivot.status === 'needs-service';
-        const hasActiveJob = jobs.some(j => j.pivotId === pivot.id && ['pending', 'assigned', 'in-progress'].includes(j.status));
+        const hasActiveJob = jobs.some(j => j.pivotId === pivot.id && ['pending', 'assigned', 'in-progress', 'needs-followup'].includes(j.status));
 
         const marker = new window.google.maps.Marker({
           position: { lat: pivot.lat, lng: pivot.lng },
@@ -3362,7 +3362,7 @@ const FieldSyncApp = () => {
           </h2>
           <div className="flex items-center space-x-2">
             <Badge variant="success">{visibleEquipment.filter(p => p.status === 'active').length} Active</Badge>
-            <Badge variant="warning">{jobs.filter(j => ['pending', 'assigned', 'in-progress'].includes(j.status)).length} Jobs</Badge>
+            <Badge variant="warning">{jobs.filter(j => ['pending', 'assigned', 'in-progress', 'needs-followup'].includes(j.status)).length} Jobs</Badge>
             <Badge variant="danger">{visibleEquipment.filter(p => p.status === 'needs-service').length} Need Service</Badge>
           </div>
         </div>

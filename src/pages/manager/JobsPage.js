@@ -105,7 +105,7 @@ const ManagerJobsPage = ({ onOpenAssignModal, onOpenJobDetails, onOpenSOModal, o
                       <div className="flex items-center justify-end space-x-2">
                         {job.status === 'pending' ? (
                           <Button size="sm" onClick={() => onOpenAssignModal(job)}>Assign</Button>
-                        ) : ['assigned', 'in-progress'].includes(job.status) ? (
+                        ) : ['assigned', 'in-progress', 'needs-followup'].includes(job.status) ? (
                           <>
                             <Button size="sm" variant="secondary" onClick={() => onOpenAssignModal(job)}>Edit Team</Button>
                             <Button size="sm" variant="secondary" onClick={() => onOpenJobDetails(job)}>View</Button>

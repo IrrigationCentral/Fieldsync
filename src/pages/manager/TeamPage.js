@@ -120,7 +120,7 @@ const TeamPage = ({ onOpenAddUser }) => {
                 </div>
                 {(member.role === 'tech' || member.role === 'manager') && (
                   <div className="mt-3 pt-3 border-t flex justify-between" style={{ borderColor: colors.border }}>
-                    <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => ['assigned', 'in-progress'].includes(j.status)).length}</strong></span>
+                    <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status)).length}</strong></span>
                     <span className="text-sm" style={{ color: colors.textSecondary }}>Completed: <strong>{memberJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length}</strong></span>
                   </div>
                 )}
