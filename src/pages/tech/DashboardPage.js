@@ -36,7 +36,7 @@ const DashboardPage = () => {
     return assigned === userProfile?.id;
   });
 
-  const activeJobs = myJobs.filter(j => ['assigned', 'in-progress'].includes(j.status));
+  const activeJobs = myJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status));
   const completedJobs = myJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
   const pendingJobs = jobs.filter(j => j.status === 'pending');
 

@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import MapViewComponent from './components/MapView';
-import EquipmentProfileViewComponent from './components/EquipmentProfileView';
 import {
   MapPin, Users, CheckCircle, AlertCircle, Clock, Wrench,
-  Navigation, Droplets, Phone, Mail, Calendar,
+  Navigation, Droplets, Phone, Mail, Calendar, FileText,
   LogOut, ChevronRight, ChevronDown, ChevronUp,
-  Plus, Trash2, X, Search,
+  Plus, Edit, Trash2, X, Search,
   Bell, User, DollarSign, Briefcase, BarChart3,
   Home, Map, Clipboard, UserPlus, Cloud, Wifi,
   WifiOff, Eye, Check, Settings, Moon, Sun,
@@ -42,7 +40,6 @@ import {
   deletePivot as fbDeletePivot,
   deleteJob as fbDeleteJob,
   getAnalytics,
-  startTimeEntry as fbStartTimeEntry,
   stopTimeEntry as fbStopTimeEntry,
   addManualTimeEntry as fbAddManualTimeEntry,
   deleteTimeEntry as fbDeleteTimeEntry,
@@ -76,7 +73,7 @@ import {
   SettingsModal,
   SONumberModal,
   AddEquipmentModal,
-  EditEquipmentModal,
+  EditEquipmentModal, // eslint-disable-line no-unused-vars
   JobDetailsModal,
   ProfileModal
 } from './components/modals';
@@ -243,43 +240,6 @@ const FieldSyncApp = () => {
   const [selectedEquipmentProfile, setSelectedEquipmentProfile] = useState(null);
   const [showEditEquipmentModal, setShowEditEquipmentModal] = useState(false);
   // const [viewingFarmerProfile, setViewingFarmerProfile] = useState(null); // TODO: Implement farmer profile viewing
-
-  // Hoisted state from inner components (prevents remount on re-render)
-  // LoginScreen state
-  const [loginMode, setLoginMode] = useState('login');
-  const [loginFormData, setLoginFormData] = useState({ email: '', password: '', confirmPassword: '', name: '', phone: '' });
-  const [loginErrors, setLoginErrors] = useState({});
-
-  // FarmerJobsView state
-  const [ratingJobId, setRatingJobId] = useState(null);
-  const [tempRating, setTempRating] = useState(0);
-  const [ratingFeedback, setRatingFeedback] = useState('');
-
-  // TechJobsView state
-  const [showPending, setShowPending] = useState(false);
-  const [showLunchPrompt, setShowLunchPrompt] = useState(false);
-  const [stoppingJobId, setStoppingJobId] = useState(null);
-
-  // CallInView state
-  const [callInFormData, setCallInFormData] = useState({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '' });
-
-  // CustomersView state
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [editingUserRole, setEditingUserRole] = useState(null);
-  const [selectedCustomerProfile, setSelectedCustomerProfile] = useState(null);
-
-  // TeamManagement state
-  const [editingMemberRole, setEditingMemberRole] = useState(null);
-
-  // CalendarView state
-  const [calendarDate, setCalendarDate] = useState(new Date());
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
-
-  // SettingsView state
-  const [settingsFormData, setSettingsFormData] = useState(null);
-
-  // Note: MapView, EditEquipmentModal keep their own state
-  // because they use hooks (useEffect/useRef) that require component lifecycle
 
   // Toggle dark mode
   const toggleDarkMode = () => {
@@ -579,20 +539,10 @@ const FieldSyncApp = () => {
     const result = await fbAssignJob(jobId, userProfile.id);
     if (result.success) {
       addNotification('success', 'Job assigned to you');
+      // No need to notify yourself, but log for debugging
+      console.log('Self-assigned job:', jobId);
     } else {
       addNotification('error', 'Failed to assign job');
-    }
-    setIsLoading(false);
-  };
-
-  // Start time tracking
-  const handleStartTime = async (jobId) => {
-    setIsLoading(true);
-    const result = await fbStartTimeEntry(jobId, userProfile.id, userProfile.name);
-    if (result.success) {
-      addNotification('success', 'Time tracking started ⏱️');
-    } else {
-      addNotification('error', result.error || 'Failed to start time tracking');
     }
     setIsLoading(false);
   };
@@ -656,32 +606,11 @@ const FieldSyncApp = () => {
 
   const handleCompleteJob = async (jobId, completionData) => {
     setIsLoading(true);
-    const totalCost = (completionData.hoursWorked * pricingSettings.hourlyRate) +
-                      (completionData.milesDriven * pricingSettings.mileageRate) +
-                      (completionData.partsCost || 0) * (1 + pricingSettings.partsMarkup / 100);
+    try {
+      const totalCost = (completionData.hoursWorked * pricingSettings.hourlyRate) +
+                        (completionData.milesDriven * pricingSettings.mileageRate) +
+                        (completionData.partsCost || 0) * (1 + pricingSettings.partsMarkup / 100);
 
-    const isFollowUp = completionData.needsFollowUp;
-
-    if (isFollowUp) {
-      // Save work data but keep job in progress
-      const { needsFollowUp, ...dataToSave } = completionData;
-      const result = await fbUpdateJob(jobId, {
-        ...dataToSave,
-        totalCost,
-        hourlyRate: pricingSettings.hourlyRate,
-        mileageRate: pricingSettings.mileageRate,
-        needsFollowUp: true,
-        lastUpdatedBy: userProfile.id
-      });
-
-      if (result.success) {
-        addNotification('success', 'Job saved - marked for follow-up');
-        setShowCompleteJobModal(false);
-        setSelectedJobForAction(null);
-      } else {
-        addNotification('error', 'Failed to save job data');
-      }
-    } else {
       const result = await fbCompleteJob(jobId, {
         ...completionData,
         completedBy: userProfile.id,
@@ -692,27 +621,32 @@ const FieldSyncApp = () => {
 
       if (result.success) {
         addNotification('success', 'Job completed successfully!');
-
-        // Send notifications
-        const job = jobs.find(j => j.id === jobId);
-        const completedByName = userProfile?.name || 'Technician';
-        if (job) {
-          const farmer = users.find(u => u.id === job.farmerId);
-          if (farmer) {
-            notifications.jobCompletedFarmer(farmer, job);
-          }
-          const managers = users.filter(u => u.role === 'manager');
-          const officeStaff = users.filter(u => u.role === 'office');
-          notifications.jobCompletedStaff(managers, officeStaff, job, completedByName);
-        }
-
         setShowCompleteJobModal(false);
         setSelectedJobForAction(null);
+
+        // Send notifications (don't block UI)
+        try {
+          const job = jobs.find(j => j.id === jobId);
+          const completedByName = userProfile?.name || 'Technician';
+          if (job) {
+            const farmer = users.find(u => u.id === job.farmerId);
+            if (farmer) notifications.jobCompletedFarmer(farmer, job);
+            const managers = users.filter(u => u.role === 'manager');
+            const officeStaff = users.filter(u => u.role === 'office');
+            notifications.jobCompletedStaff(managers, officeStaff, job, completedByName);
+          }
+        } catch (notifErr) {
+          console.error('Notification error:', notifErr);
+        }
       } else {
         addNotification('error', 'Failed to complete job');
       }
+    } catch (err) {
+      console.error('Complete job error:', err);
+      addNotification('error', 'Failed to complete job');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleUpdateSONumber = async (jobId, soNumber) => {
@@ -822,8 +756,7 @@ const FieldSyncApp = () => {
   };
 
   // Add assignee to job
-  // eslint-disable-next-line no-unused-vars
-  const handleAddAssignee = async (jobId, userId) => {
+  const handleAddAssignee = async (jobId, userId) => { // eslint-disable-line no-unused-vars
     setIsLoading(true);
     const result = await fbAddAssignee(jobId, userId);
     if (result.success) {
@@ -874,7 +807,11 @@ const FieldSyncApp = () => {
     switch(status) {
       case 'pending': return 'warning';
       case 'assigned': return 'water';
+      case 'in-progress': return 'water';
       case 'completed': return 'success';
+      case 'billed': return 'success';
+      case 'ready-to-bill': return 'accent';
+      case 'needs-followup': return 'danger';
       case 'active': return 'success';
       case 'needs-service': return 'danger';
       default: return 'default';
@@ -916,26 +853,30 @@ const FieldSyncApp = () => {
   // ============================================
   // LOGIN SCREEN
   // ============================================
-  const renderLoginScreen = () => {
+  const LoginScreen = () => {
+    const [mode, setMode] = useState('login');
+    const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '', name: '', phone: '' });
+    const [errors, setErrors] = useState({});
+
     const validate = () => {
       const newErrors = {};
-      if (!loginFormData.email) newErrors.email = 'Email is required';
-      else if (!/\S+@\S+\.\S+/.test(loginFormData.email)) newErrors.email = 'Invalid email format';
-      if (!loginFormData.password) newErrors.password = 'Password is required';
-      else if (loginFormData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-      if (loginMode === 'signup') {
-        if (!loginFormData.name) newErrors.name = 'Name is required';
-        if (loginFormData.password !== loginFormData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+      if (!formData.email) newErrors.email = 'Email is required';
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
+      if (!formData.password) newErrors.password = 'Password is required';
+      else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+      if (mode === 'signup') {
+        if (!formData.name) newErrors.name = 'Name is required';
+        if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
       }
-      setLoginErrors(newErrors);
+      setErrors(newErrors);
       return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e) => {
       e.preventDefault();
       if (!validate()) return;
-      if (loginMode === 'login') handleLogin(loginFormData.email, loginFormData.password);
-      else handleSignup(loginFormData);
+      if (mode === 'login') handleLogin(formData.email, formData.password);
+      else handleSignup(formData);
     };
 
     return (
@@ -950,26 +891,26 @@ const FieldSyncApp = () => {
           </div>
 
           <div className="flex mb-6 p-1 rounded-xl" style={{ backgroundColor: colors.background }}>
-            <button onClick={() => { setLoginMode('login'); setLoginErrors({}); }} className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${loginMode === 'login' ? 'bg-white shadow' : ''}`} style={{ color: loginMode === 'login' ? colors.primary : colors.textSecondary }}>Sign In</button>
-            <button onClick={() => { setLoginMode('signup'); setLoginErrors({}); }} className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${loginMode === 'signup' ? 'bg-white shadow' : ''}`} style={{ color: loginMode === 'signup' ? colors.primary : colors.textSecondary }}>Sign Up</button>
+            <button onClick={() => { setMode('login'); setErrors({}); }} className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === 'login' ? 'bg-white shadow' : ''}`} style={{ color: mode === 'login' ? colors.primary : colors.textSecondary }}>Sign In</button>
+            <button onClick={() => { setMode('signup'); setErrors({}); }} className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${mode === 'signup' ? 'bg-white shadow' : ''}`} style={{ color: mode === 'signup' ? colors.primary : colors.textSecondary }}>Sign Up</button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {loginMode === 'signup' && (
+            {mode === 'signup' && (
               <>
-                <Input label="Full Name" placeholder="John Smith" icon={User} value={loginFormData.name} onChange={(e) => { setLoginFormData({...loginFormData, name: e.target.value}); setLoginErrors({...loginErrors, name: ''}); }} error={loginErrors.name} />
-                <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={loginFormData.phone} onChange={(e) => setLoginFormData({...loginFormData, phone: e.target.value})} />
+                <Input label="Full Name" placeholder="John Smith" icon={User} value={formData.name} onChange={(e) => { setFormData({...formData, name: e.target.value}); setErrors({...errors, name: ''}); }} error={errors.name} />
+                <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
               </>
             )}
-            <Input label="Email Address" type="email" placeholder="you@example.com" icon={Mail} value={loginFormData.email} onChange={(e) => { setLoginFormData({...loginFormData, email: e.target.value}); setLoginErrors({...loginErrors, email: ''}); }} error={loginErrors.email} />
-            <Input label="Password" type="password" placeholder="••••••••" value={loginFormData.password} onChange={(e) => { setLoginFormData({...loginFormData, password: e.target.value}); setLoginErrors({...loginErrors, password: ''}); }} error={loginErrors.password} />
-            {loginMode === 'signup' && (
-              <Input label="Confirm Password" type="password" placeholder="••••••••" value={loginFormData.confirmPassword} onChange={(e) => { setLoginFormData({...loginFormData, confirmPassword: e.target.value}); setLoginErrors({...loginErrors, confirmPassword: ''}); }} error={loginErrors.confirmPassword} />
+            <Input label="Email Address" type="email" placeholder="you@example.com" icon={Mail} value={formData.email} onChange={(e) => { setFormData({...formData, email: e.target.value}); setErrors({...errors, email: ''}); }} error={errors.email} />
+            <Input label="Password" type="password" placeholder="••••••••" value={formData.password} onChange={(e) => { setFormData({...formData, password: e.target.value}); setErrors({...errors, password: ''}); }} error={errors.password} />
+            {mode === 'signup' && (
+              <Input label="Confirm Password" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={(e) => { setFormData({...formData, confirmPassword: e.target.value}); setErrors({...errors, confirmPassword: ''}); }} error={errors.confirmPassword} />
             )}
-            <Button type="submit" className="w-full" loading={isLoading}>{loginMode === 'login' ? 'Sign In' : 'Create Account'}</Button>
+            <Button type="submit" className="w-full" loading={isLoading}>{mode === 'login' ? 'Sign In' : 'Create Account'}</Button>
           </form>
 
-          {loginMode === 'signup' && (
+          {mode === 'signup' && (
             <p className="text-xs text-center mt-4" style={{ color: colors.textSecondary }}>
               New accounts are created as Farmer accounts. Contact your manager to change your role.
             </p>
@@ -1019,7 +960,7 @@ const FieldSyncApp = () => {
   // ============================================
   // NOTIFICATIONS DROPDOWN
   // ============================================
-  const renderNotificationsDropdown = () => {
+  const NotificationsDropdown = () => {
     if (!showNotificationsDropdown) return null;
 
     return (
@@ -1077,7 +1018,7 @@ const FieldSyncApp = () => {
   // ============================================
   // FARMER VIEWS
   // ============================================
-  const renderFarmerEquipmentView = () => {
+  const FarmerEquipmentView = () => {
     const myEquipment = equipment.filter(p => p.farmerId === userProfile?.id);
 
     return (
@@ -1127,14 +1068,17 @@ const FieldSyncApp = () => {
     );
   };
 
-  const renderFarmerJobsView = () => {
+  const FarmerJobsView = () => {
     const myJobs = jobs.filter(j => j.farmerId === userProfile?.id);
+    const [ratingJobId, setRatingJobId] = useState(null);
+    const [tempRating, setTempRating] = useState(0);
+    const [feedback, setFeedback] = useState('');
 
     const submitRating = async (jobId) => {
-      await handleRateJob(jobId, tempRating, ratingFeedback);
+      await handleRateJob(jobId, tempRating, feedback);
       setRatingJobId(null);
       setTempRating(0);
-      setRatingFeedback('');
+      setFeedback('');
     };
 
     return (
@@ -1169,7 +1113,7 @@ const FieldSyncApp = () => {
                 </div>
                 
                 {/* Rating Section for Completed Jobs */}
-                {job.status === 'completed' && (
+                {['completed', 'billed', 'ready-to-bill'].includes(job.status) && (
                   <div className="mt-3 pt-3 border-t" style={{ borderColor: colors.border }}>
                     {job.rating ? (
                       <div className="flex items-center justify-between">
@@ -1177,7 +1121,7 @@ const FieldSyncApp = () => {
                           <span className="text-sm" style={{ color: colors.textSecondary }}>Your rating:</span>
                           <StarRating rating={job.rating} readonly size="sm" />
                         </div>
-                        {job.ratingFeedback && <p className="text-xs italic" style={{ color: colors.muted }}>"{job.ratingFeedback}"</p>}
+                        {job.feedback && <p className="text-xs italic" style={{ color: colors.muted }}>"{job.feedback}"</p>}
                       </div>
                     ) : ratingJobId === job.id ? (
                       <div className="space-y-3">
@@ -1186,15 +1130,15 @@ const FieldSyncApp = () => {
                           <StarRating rating={tempRating} onRate={setTempRating} />
                         </div>
                         <textarea
-                          value={ratingFeedback}
-                          onChange={(e) => setRatingFeedback(e.target.value)}
+                          value={feedback}
+                          onChange={(e) => setFeedback(e.target.value)}
                           placeholder="Add a comment (optional)"
                           className="input text-sm"
                           rows={2}
                         />
                         <div className="flex space-x-2">
                           <Button size="sm" onClick={() => submitRating(job.id)} disabled={tempRating === 0}>Submit</Button>
-                          <Button size="sm" variant="secondary" onClick={() => { setRatingJobId(null); setTempRating(0); setRatingFeedback(''); }}>Cancel</Button>
+                          <Button size="sm" variant="secondary" onClick={() => { setRatingJobId(null); setTempRating(0); setFeedback(''); }}>Cancel</Button>
                         </div>
                       </div>
                     ) : (
@@ -1220,7 +1164,7 @@ const FieldSyncApp = () => {
   // ============================================
   // TECH VIEWS
   // ============================================
-  const renderTechDashboard = () => {
+  const TechDashboard = () => {
     const myJobs = jobs.filter(j => {
       const assigned = j.assignedTo;
       if (Array.isArray(assigned)) {
@@ -1228,8 +1172,8 @@ const FieldSyncApp = () => {
       }
       return assigned === userProfile?.id;
     });
-    const activeJobs = myJobs.filter(j => j.status === 'assigned');
-    const completedJobs = myJobs.filter(j => j.status === 'completed');
+    const activeJobs = myJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status));
+    const completedJobs = myJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
 
     return (
       <div className="space-y-6">
@@ -1282,13 +1226,16 @@ const FieldSyncApp = () => {
     );
   };
 
-  const renderTechJobsView = () => {
+  const TechJobsView = () => {
     const myJobs = jobs.filter(j => {
       const assigned = j.assignedTo;
       const isAssignedToMe = Array.isArray(assigned) ? assigned.includes(userProfile?.id) : assigned === userProfile?.id;
-      return isAssignedToMe && j.status === 'assigned';
+      return isAssignedToMe && ['assigned', 'in-progress', 'needs-followup'].includes(j.status);
     });
     const pendingJobs = jobs.filter(j => j.status === 'pending');
+    const [showPending, setShowPending] = useState(false);
+    const [showLunchPrompt, setShowLunchPrompt] = useState(false);
+    const [stoppingJobId, setStoppingJobId] = useState(null);
 
     // Check if user has active time entry on a job
     const hasActiveTimeEntry = (job) => {
@@ -1394,34 +1341,19 @@ const FieldSyncApp = () => {
 
                     {/* Action Buttons */}
                     <div className="space-y-2">
-                      {/* Start/Stop Time Buttons */}
-                      <div className="flex space-x-2">
-                        {!isTracking ? (
-                          <Button 
-                            className="flex-1" 
-                            variant="secondary"
-                            icon={Play} 
-                            onClick={() => handleStartTime(job.id)}
-                            loading={isLoading}
-                          >
-                            Start Time
-                          </Button>
-                        ) : (
-                          <Button 
-                            className="flex-1" 
-                            variant="danger"
-                            icon={Square} 
-                            onClick={() => { setStoppingJobId(job.id); setShowLunchPrompt(true); }}
-                          >
-                            Stop Time
-                          </Button>
-                        )}
-                      </div>
-                      
-                      {/* Complete Job Button */}
-                      <Button 
-                        className="w-full" 
-                        icon={CheckCircle} 
+                      {isTracking && (
+                        <Button
+                          className="w-full"
+                          variant="danger"
+                          icon={Square}
+                          onClick={() => { setStoppingJobId(job.id); setShowLunchPrompt(true); }}
+                        >
+                          Stop Time
+                        </Button>
+                      )}
+                      <Button
+                        className="w-full"
+                        icon={CheckCircle}
                         onClick={() => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}
                       >
                         Complete Job
@@ -1518,28 +1450,29 @@ const FieldSyncApp = () => {
   // ============================================
   // OFFICE VIEWS
   // ============================================
-  const renderCallInView = () => {
+  const CallInView = () => {
+    const [formData, setFormData] = useState({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '' });
     const farmers = users.filter(u => u.role === 'farmer');
 
     const handleSubmit = async (e) => {
       e.preventDefault();
-      const pivot = equipment.find(p => p.id === callInFormData.pivotId);
+      const pivot = equipment.find(p => p.id === formData.pivotId);
       const result = await createCallInJob({
-        title: `Call-in: ${callInFormData.customerName}`,
-        description: callInFormData.description,
-        priority: callInFormData.priority,
-        farmerId: callInFormData.farmerId,
-        pivotId: callInFormData.pivotId,
+        title: `Call-in: ${formData.customerName}`,
+        description: formData.description,
+        priority: formData.priority,
+        farmerId: formData.farmerId,
+        pivotId: formData.pivotId,
         pivotName: pivot?.name || 'Unknown',
-        customerPhone: callInFormData.customerPhone,
+        customerPhone: formData.customerPhone,
         location: { lat: pivot?.lat || 40.7614, lng: pivot?.lng || -96.6856 }
       });
       if (result.success) {
-        setCallInFormData({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '' });
+        setFormData({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '' });
       }
     };
 
-    const farmerEquipment = callInFormData.farmerId ? equipment.filter(p => p.farmerId === callInFormData.farmerId) : [];
+    const farmerEquipment = formData.farmerId ? equipment.filter(p => p.farmerId === formData.farmerId) : [];
 
     return (
       <div className="max-w-2xl mx-auto">
@@ -1547,18 +1480,18 @@ const FieldSyncApp = () => {
         <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Customer Name" placeholder="John Smith" value={callInFormData.customerName} onChange={e => setCallInFormData({...callInFormData, customerName: e.target.value})} required />
-              <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={callInFormData.customerPhone} onChange={e => setCallInFormData({...callInFormData, customerPhone: e.target.value})} />
+              <Input label="Customer Name" placeholder="John Smith" value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} required />
+              <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={formData.customerPhone} onChange={e => setFormData({...formData, customerPhone: e.target.value})} />
             </div>
-            <SearchableSelect label="Select Customer Account" value={callInFormData.farmerId} onChange={e => setCallInFormData({...callInFormData, farmerId: e.target.value, pivotId: ''})} options={[{ value: '', label: 'Select a customer...' }, ...farmers.map(f => ({ value: f.id, label: `${f.name}${f.company ? ` (${f.company})` : ''}` }))]} placeholder="Search customers..." colors={colors} />
-            {callInFormData.farmerId && (
-              <Select label="Select Pivot" value={callInFormData.pivotId} onChange={e => setCallInFormData({...callInFormData, pivotId: e.target.value})} options={[{ value: '', label: 'Select a pivot...' }, ...farmerEquipment.map(p => ({ value: p.id, label: `${p.name} (${p.acres} acres)` }))]} required />
+            <SearchableSelect label="Select Customer Account" value={formData.farmerId} onChange={e => setFormData({...formData, farmerId: e.target.value, pivotId: ''})} options={[{ value: '', label: 'Select a customer...' }, ...farmers.map(f => ({ value: f.id, label: `${f.name}${f.company ? ` (${f.company})` : ''}` }))]} placeholder="Search customers..." colors={colors} />
+            {formData.farmerId && (
+              <Select label="Select Pivot" value={formData.pivotId} onChange={e => setFormData({...formData, pivotId: e.target.value})} options={[{ value: '', label: 'Select a pivot...' }, ...farmerEquipment.map(p => ({ value: p.id, label: `${p.name} (${p.acres} acres)` }))]} required />
             )}
             <div className="space-y-2">
               <label className="block text-sm font-medium" style={{ color: colors.textPrimary }}>Issue Description</label>
-              <textarea value={callInFormData.description} onChange={e => setCallInFormData({...callInFormData, description: e.target.value})} placeholder="Describe the issue reported by the customer..." className="input min-h-[120px] resize-none" required />
+              <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Describe the issue reported by the customer..." className="input min-h-[120px] resize-none" required />
             </div>
-            <Select label="Priority" value={callInFormData.priority} onChange={e => setCallInFormData({...callInFormData, priority: e.target.value})} options={[{ value: 'low', label: 'Low - Can wait' }, { value: 'medium', label: 'Medium - Soon' }, { value: 'high', label: 'High - Urgent' }]} />
+            <Select label="Priority" value={formData.priority} onChange={e => setFormData({...formData, priority: e.target.value})} options={[{ value: 'low', label: 'Low - Can wait' }, { value: 'medium', label: 'Medium - Soon' }, { value: 'high', label: 'High - Urgent' }]} />
             <Button type="submit" className="w-full" icon={Phone} loading={isLoading}>Create Service Request</Button>
           </form>
         </div>
@@ -1569,7 +1502,10 @@ const FieldSyncApp = () => {
   // ============================================
   // MANAGER/OFFICE - CUSTOMERS VIEW
   // ============================================
-  const renderCustomersView = () => {
+  const CustomersView = () => {
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [editingUserRole, setEditingUserRole] = useState(null);
+    const [selectedCustomerProfile, setSelectedCustomerProfile] = useState(null);
     
     // Filter by search and sort alphabetically
     const farmers = users
@@ -1844,10 +1780,10 @@ const FieldSyncApp = () => {
   // ============================================
   // MANAGER VIEWS
   // ============================================
-  const renderManagerDashboard = () => {
+  const ManagerDashboard = () => {
     const pendingJobs = jobs.filter(j => j.status === 'pending');
-    const assignedJobs = jobs.filter(j => j.status === 'assigned');
-    const completedJobs = jobs.filter(j => j.status === 'completed');
+    const assignedJobs = jobs.filter(j => ['assigned', 'in-progress'].includes(j.status));
+    const completedJobs = jobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
     const techs = users.filter(u => u.role === 'tech');
 
     return (
@@ -1912,8 +1848,8 @@ const FieldSyncApp = () => {
                     const assigned = j.assignedTo;
                     return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
                   });
-                  const active = techJobs.filter(j => j.status === 'assigned').length;
-                  const completed = techJobs.filter(j => j.status === 'completed').length;
+                  const active = techJobs.filter(j => ['assigned', 'in-progress'].includes(j.status)).length;
+                  const completed = techJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length;
                   return (
                     <div key={tech.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>
                       <div className="flex items-center space-x-3">
@@ -1938,7 +1874,7 @@ const FieldSyncApp = () => {
     );
   };
 
-  const renderManagerJobsView = () => {
+  const ManagerJobsView = () => {
     const filteredJobs = jobs.filter(job => {
       const matchesSearch = job.title?.toLowerCase().includes(searchQuery.toLowerCase()) || job.description?.toLowerCase().includes(searchQuery.toLowerCase()) || job.soNumber?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesFilter = filterStatus === 'all' || job.status === filterStatus;
@@ -1951,16 +1887,20 @@ const FieldSyncApp = () => {
           <h2 className="text-xl font-bold" style={{ color: colors.primary }}>All Jobs</h2>
           <div className="flex items-center space-x-3">
             <Button icon={Plus} size="sm" onClick={() => setShowAddEquipmentModal(true)}>Add Equipment</Button>
-            <Button icon={AlertCircle} size="sm" variant="danger" onClick={() => setShowReportIssueModal(true)}>Report Issue</Button>
+            <Button icon={AlertCircle} size="sm" variant="danger" onClick={() => { console.log('Report Issue clicked'); setShowReportIssueModal(true); }}>Report Issue</Button>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: colors.textSecondary }} />
-              <input type="text" placeholder="Search jobs or SO#..." className="input pl-9 py-2 text-sm w-full sm:w-64" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <input type="text" placeholder="Search jobs or SO#..." className="input pl-9 py-2 text-sm" style={{ width: '200px' }} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </div>
             <select className="input py-2 text-sm" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
               <option value="assigned">Assigned</option>
+              <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
+              <option value="ready-to-bill">Ready to Bill</option>
+              <option value="billed">Billed</option>
+              <option value="needs-followup">Needs Follow-up</option>
             </select>
           </div>
         </div>
@@ -2018,7 +1958,7 @@ const FieldSyncApp = () => {
                         <div className="flex items-center justify-end space-x-2">
                           {job.status === 'pending' ? (
                             <Button size="sm" onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}>Assign</Button>
-                          ) : job.status === 'assigned' ? (
+                          ) : ['assigned', 'in-progress'].includes(job.status) ? (
                             <>
                               <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}>Edit Team</Button>
                               <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}>View</Button>
@@ -2026,7 +1966,7 @@ const FieldSyncApp = () => {
                           ) : (
                             <>
                               <Button size="sm" variant="secondary" onClick={() => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}>View</Button>
-                              {job.status === 'completed' && (
+                              {['completed', 'billed', 'ready-to-bill'].includes(job.status) && (
                                 <Button size="sm" variant="secondary" icon={FileSpreadsheet} onClick={() => handleDownloadJobSheet(job)} title="Export to Excel" />
                               )}
                             </>
@@ -2053,8 +1993,9 @@ const FieldSyncApp = () => {
     );
   };
 
-  const renderTeamManagement = () => {
+  const TeamManagement = () => {
     const teamMembers = users.filter(u => u.role !== 'farmer');
+    const [editingMemberRole, setEditingMemberRole] = useState(null);
 
     const handleRoleChange = async (userId, newRole) => {
       const result = await updateUser(userId, { role: newRole });
@@ -2151,8 +2092,8 @@ const FieldSyncApp = () => {
                   </div>
                   {(member.role === 'tech' || member.role === 'manager') && (
                     <div className="mt-3 pt-3 border-t flex justify-between" style={{ borderColor: colors.border }}>
-                      <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => j.status === 'assigned').length}</strong></span>
-                      <span className="text-sm" style={{ color: colors.textSecondary }}>Completed: <strong>{memberJobs.filter(j => j.status === 'completed').length}</strong></span>
+                      <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => ['assigned', 'in-progress'].includes(j.status)).length}</strong></span>
+                      <span className="text-sm" style={{ color: colors.textSecondary }}>Completed: <strong>{memberJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length}</strong></span>
                     </div>
                   )}
                 </div>
@@ -2164,7 +2105,7 @@ const FieldSyncApp = () => {
     );
   };
 
-  const renderAnalyticsView = () => {
+  const AnalyticsView = () => {
     // Calculate monthly data for charts
     const getMonthlyData = () => {
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -2175,7 +2116,7 @@ const FieldSyncApp = () => {
           const date = new Date(j.completedAt || j.createdAt);
           return date.getMonth() === index && date.getFullYear() === currentYear;
         });
-        const completed = monthJobs.filter(j => j.status === 'completed');
+        const completed = monthJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
         const revenue = completed.reduce((sum, j) => sum + (j.totalCost || 0), 0);
         
         return { name: month, jobs: monthJobs.length, completed: completed.length, revenue };
@@ -2189,7 +2130,7 @@ const FieldSyncApp = () => {
           const assigned = j.assignedTo;
           return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
         });
-        const completed = techJobs.filter(j => j.status === 'completed');
+        const completed = techJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
         // const revenue = completed.reduce((sum, j) => sum + (j.totalCost || 0), 0); // Pricing disabled
         const avgRating = completed.length > 0 
           ? completed.reduce((sum, j) => sum + (j.rating || 0), 0) / completed.filter(j => j.rating).length 
@@ -2220,8 +2161,12 @@ const FieldSyncApp = () => {
     const statusData = [
       { name: 'Pending', value: analytics?.pendingJobs || 0, color: colors.warning },
       { name: 'Assigned', value: analytics?.assignedJobs || 0, color: colors.water },
-      { name: 'Completed', value: analytics?.completedJobs || 0, color: colors.success }
-    ];
+      { name: 'In Progress', value: analytics?.inProgressJobs || 0, color: '#1890FF' },
+      { name: 'Completed', value: analytics?.completedJobs || 0, color: colors.success },
+      { name: 'Ready to Bill', value: analytics?.readyToBillJobs || 0, color: colors.accent || '#722ED1' },
+      { name: 'Billed', value: analytics?.billedJobs || 0, color: '#13C2C2' },
+      { name: 'Needs Follow-up', value: analytics?.needsFollowupJobs || 0, color: '#C73E1D' }
+    ].filter(d => d.value > 0);
 
     const monthlyData = getMonthlyData();
     const techData = getTechPerformance();
@@ -2425,7 +2370,9 @@ const FieldSyncApp = () => {
   // ============================================
   // CALENDAR VIEW
   // ============================================
-  const renderCalendarView = () => {
+  const CalendarView = () => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(null);
 
     const getDaysInMonth = (date) => {
       const year = date.getFullYear();
@@ -2464,15 +2411,15 @@ const FieldSyncApp = () => {
       });
     };
 
-    const days = getDaysInMonth(calendarDate);
+    const days = getDaysInMonth(currentDate);
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    const prevMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
-    const nextMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
-    const goToToday = () => setCalendarDate(new Date());
+    const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    const goToToday = () => setCurrentDate(new Date());
 
-    const selectedDateJobs = selectedCalendarDate ? getJobsForDate(selectedCalendarDate) : [];
+    const selectedDateJobs = selectedDate ? getJobsForDate(selectedDate) : [];
 
     return (
       <div className="space-y-4">
@@ -2489,7 +2436,7 @@ const FieldSyncApp = () => {
                 <ChevronLeft className="w-5 h-5" style={{ color: colors.textSecondary }} />
               </button>
               <h3 className="text-lg font-semibold" style={{ color: colors.textPrimary }}>
-                {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
+                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h3>
               <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                 <ChevronRight className="w-5 h-5" style={{ color: colors.textSecondary }} />
@@ -2510,12 +2457,12 @@ const FieldSyncApp = () => {
               {days.map((day, index) => {
                 const dayJobs = getJobsForDate(day.date);
                 const isToday = day.date.toDateString() === new Date().toDateString();
-                const isSelected = selectedCalendarDate && day.date.toDateString() === selectedCalendarDate.toDateString();
+                const isSelected = selectedDate && day.date.toDateString() === selectedDate.toDateString();
                 
                 return (
                   <div
                     key={index}
-                    onClick={() => setSelectedCalendarDate(day.date)}
+                    onClick={() => setSelectedDate(day.date)}
                     className={`
                       min-h-[80px] p-1 rounded-lg cursor-pointer transition-all border
                       ${!day.isCurrentMonth ? 'opacity-40' : ''}
@@ -2536,10 +2483,12 @@ const FieldSyncApp = () => {
                           key={i}
                           className="text-xs px-1 py-0.5 rounded truncate"
                           style={{
-                            backgroundColor: job.status === 'completed' ? colors.success + '20' : 
-                                           job.status === 'assigned' ? colors.water + '20' : colors.warning + '20',
-                            color: job.status === 'completed' ? colors.success : 
-                                   job.status === 'assigned' ? colors.water : colors.warning
+                            backgroundColor: ['completed', 'billed', 'ready-to-bill'].includes(job.status) ? colors.success + '20' :
+                                           ['assigned', 'in-progress'].includes(job.status) ? colors.water + '20' :
+                                           job.status === 'needs-followup' ? '#C73E1D20' : colors.warning + '20',
+                            color: ['completed', 'billed', 'ready-to-bill'].includes(job.status) ? colors.success :
+                                   ['assigned', 'in-progress'].includes(job.status) ? colors.water :
+                                   job.status === 'needs-followup' ? '#C73E1D' : colors.warning
                           }}
                         >
                           {job.title}
@@ -2558,10 +2507,10 @@ const FieldSyncApp = () => {
           {/* Selected Date Jobs */}
           <div className="card p-4">
             <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>
-              {selectedCalendarDate ? selectedCalendarDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Select a date'}
+              {selectedDate ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Select a date'}
             </h3>
             
-            {selectedCalendarDate ? (
+            {selectedDate ? (
               selectedDateJobs.length === 0 ? (
                 <div className="text-center py-8">
                   <Calendar className="w-12 h-12 mx-auto mb-2" style={{ color: colors.muted }} />
@@ -2582,7 +2531,9 @@ const FieldSyncApp = () => {
                       </div>
                       <p className="text-sm mb-1" style={{ color: colors.textSecondary }}>{job.pivotName}</p>
                       <p className="text-xs" style={{ color: colors.muted }}>
-                        {users.find(u => u.id === job.assignedTo)?.name || 'Unassigned'}
+                        {Array.isArray(job.assignedTo)
+                          ? job.assignedTo.map(id => users.find(u => u.id === id)?.name).filter(Boolean).join(', ') || 'Unassigned'
+                          : users.find(u => u.id === job.assignedTo)?.name || 'Unassigned'}
                       </p>
                     </div>
                   ))}
@@ -2621,8 +2572,12 @@ const FieldSyncApp = () => {
   // ============================================
   // SETTINGS VIEW - Pricing & Configuration
   // ============================================
-  const renderSettingsView = () => {
-    const formData = settingsFormData || { hourlyRate: pricingSettings.hourlyRate, mileageRate: pricingSettings.mileageRate, partsMarkup: pricingSettings.partsMarkup };
+  const SettingsView = () => {
+    const [formData, setFormData] = useState({
+      hourlyRate: pricingSettings.hourlyRate,
+      mileageRate: pricingSettings.mileageRate,
+      partsMarkup: pricingSettings.partsMarkup
+    });
 
     const handleSave = async () => {
       setIsLoading(true);
@@ -2663,7 +2618,7 @@ const FieldSyncApp = () => {
                   type="number"
                   className="input pl-8"
                   value={formData.hourlyRate}
-                  onChange={e => setSettingsFormData({...formData, hourlyRate: parseFloat(e.target.value) || 0})}
+                  onChange={e => setFormData({...formData, hourlyRate: parseFloat(e.target.value) || 0})}
                   step="0.01"
                 />
               </div>
@@ -2678,7 +2633,7 @@ const FieldSyncApp = () => {
                   type="number"
                   className="input pl-8"
                   value={formData.mileageRate}
-                  onChange={e => setSettingsFormData({...formData, mileageRate: parseFloat(e.target.value) || 0})}
+                  onChange={e => setFormData({...formData, mileageRate: parseFloat(e.target.value) || 0})}
                   step="0.01"
                 />
               </div>
@@ -2692,7 +2647,7 @@ const FieldSyncApp = () => {
                   type="number"
                   className="input pr-8"
                   value={formData.partsMarkup}
-                  onChange={e => setSettingsFormData({...formData, partsMarkup: parseFloat(e.target.value) || 0})}
+                  onChange={e => setFormData({...formData, partsMarkup: parseFloat(e.target.value) || 0})}
                   step="1"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">%</span>
@@ -2746,34 +2701,784 @@ const FieldSyncApp = () => {
   };
 
 
-
-
-
-
   // ============================================
-  // MAP VIEW - Renders the extracted MapView component
+  // Equipment Profile VIEW
   // ============================================
-  const renderMapView = () => {
+  const EquipmentProfileView = () => {
+    const pivot = selectedEquipmentProfile;
+    
+    // Mini map ref - must be called before any conditional returns
+    const miniMapRef = React.useRef(null);
+    const miniMapInstance = React.useRef(null);
+
+    useEffect(() => {
+      if (!pivot) return;
+      if (pivot.lat && pivot.lng && window.google && miniMapRef.current && !miniMapInstance.current) {
+        miniMapInstance.current = new window.google.maps.Map(miniMapRef.current, {
+          center: { lat: parseFloat(pivot.lat), lng: parseFloat(pivot.lng) },
+          zoom: 14,
+          mapTypeId: 'hybrid',
+          disableDefaultUI: true,
+          gestureHandling: 'none'
+        });
+        new window.google.maps.Marker({
+          position: { lat: parseFloat(pivot.lat), lng: parseFloat(pivot.lng) },
+          map: miniMapInstance.current,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#2D5016',
+            fillOpacity: 1,
+            strokeColor: '#FFFFFF',
+            strokeWeight: 2
+          }
+        });
+      }
+      return () => { miniMapInstance.current = null; };
+    }, [pivot]);
+
+    // Early return after hooks
+    if (!pivot) return null;
+
+    // Get farmer info
+    const farmer = users.find(u => u.id === pivot.farmerId);
+    
+    // Get service history for this pivot
+    const equipmentJobs = jobs.filter(j => j.pivotId === pivot.id).sort((a, b) => 
+      new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    const canEdit = ['tech', 'manager', 'office'].includes(userProfile?.role) || pivot.farmerId === userProfile?.id;
+
     return (
-      <MapViewComponent
-        colors={colors}
-        userProfile={userProfile}
-        equipment={equipment}
-        jobs={jobs}
-        addNotification={addNotification}
-        handleUpdateEquipmentLocation={handleUpdateEquipmentLocation}
-        formatEquipmentType={formatEquipmentType}
-        Badge={Badge}
-        Button={Button}
-        Spinner={Spinner}
-      />
+      <div className="space-y-6">
+        {/* Header with back button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={() => setSelectedEquipmentProfile(null)}
+              className="p-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <ChevronLeft className="w-6 h-6" style={{ color: colors.textPrimary }} />
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold" style={{ color: colors.primary }}>{pivot.name}</h2>
+              <p className="text-sm" style={{ color: colors.textSecondary }}>
+                {farmer?.name || 'Unknown Farmer'} • {formatEquipmentType(pivot.type)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Badge variant={getStatusVariant(pivot.status)}>{pivot.status}</Badge>
+            {canEdit && (
+              <Button icon={Edit} onClick={() => setShowEditEquipmentModal(true)}>Edit Details</Button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left column - Equipment & Specs */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Equipment Details */}
+            <div className="card p-6">
+              <h3 className="font-semibold mb-4 flex items-center" style={{ color: colors.textPrimary }}>
+                <Wrench className="w-5 h-5 mr-2" style={{ color: colors.primary }} />
+                Equipment Details
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <InfoItem label="Brand" value={pivot.brand || 'Not specified'} />
+                <InfoItem label="Model" value={pivot.model || 'Not specified'} />
+                <InfoItem label="Serial Number" value={pivot.serialNumber || 'Not specified'} />
+                <InfoItem label="Power Type" value={pivot.powerType || 'Not specified'} />
+                <InfoItem label="Panel Type" value={pivot.panelType || 'Not specified'} />
+                <InfoItem label="Date Installed" value={pivot.dateInstalled || 'Unknown'} />
+              </div>
+            </div>
+
+            {/* Specifications */}
+            <div className="card p-6">
+              <h3 className="font-semibold mb-4 flex items-center" style={{ color: colors.textPrimary }}>
+                <BarChart3 className="w-5 h-5 mr-2" style={{ color: colors.secondary }} />
+                Specifications
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <InfoItem label="Acres" value={pivot.acres ? `${pivot.acres} acres` : 'N/A'} />
+                <InfoItem label="Length" value={pivot.length ? `${pivot.length} ft` : 'N/A'} />
+                <InfoItem label="Spans" value={pivot.spans || 'N/A'} />
+                <InfoItem label="GPM" value={pivot.gpm || pivot.flow || 'N/A'} />
+                <InfoItem label="Nozzles" value={pivot.nozzles || 'N/A'} />
+                <InfoItem label="Pressure" value={pivot.pressure ? `${pivot.pressure} PSI` : 'N/A'} />
+                <InfoItem label="End Gun" value={pivot.endGun || 'None'} />
+                <InfoItem label="Tire Size" value={pivot.tireSize || 'N/A'} />
+                <InfoItem label="Nozzle Package" value={pivot.nozzlePackage || 'N/A'} />
+                <InfoItem label="Gearbox Ratio" value={pivot.gearboxRatio || 'N/A'} />
+                <InfoItem label="Last Service" value={pivot.lastService || 'Never'} />
+                <InfoItem label="Drive Type" value={pivot.driveType || 'N/A'} />
+              </div>
+            </div>
+
+            {/* Notes */}
+            {pivot.notes && (
+              <div className="card p-6">
+                <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
+                  <FileText className="w-5 h-5 mr-2" style={{ color: colors.muted }} />
+                  Notes
+                </h3>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: colors.textSecondary }}>{pivot.notes}</p>
+              </div>
+            )}
+
+            {/* Service History */}
+            <div className="card p-6">
+              <h3 className="font-semibold mb-4 flex items-center" style={{ color: colors.textPrimary }}>
+                <Clock className="w-5 h-5 mr-2" style={{ color: colors.water }} />
+                Service History ({equipmentJobs.length})
+              </h3>
+              {equipmentJobs.length === 0 ? (
+                <p className="text-sm text-center py-4" style={{ color: colors.textSecondary }}>No service history yet</p>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {equipmentJobs.map(job => (
+                    <div key={job.id} className="p-3 rounded-lg border" style={{ borderColor: colors.border, backgroundColor: colors.background }}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-sm" style={{ color: colors.textPrimary }}>{job.title}</p>
+                          <p className="text-xs" style={{ color: colors.textSecondary }}>{job.description}</p>
+                        </div>
+                        <Badge variant={getStatusVariant(job.status)} className="text-xs">{job.status}</Badge>
+                      </div>
+                      <div className="flex items-center space-x-4 mt-2 text-xs" style={{ color: colors.muted }}>
+                        <span>{formatDate(job.createdAt)}</span>
+                        {job.hoursWorked && <span>• {job.hoursWorked} hrs</span>}
+                        {job.techName && <span>• {job.techName}</span>}
+                        {job.rating && (
+                          <span className="flex items-center">
+                            • <Star className="w-3 h-3 mr-1" style={{ color: colors.accent }} /> {job.rating}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right column - Location & Quick Actions */}
+          <div className="space-y-6">
+            {/* Location */}
+            <div className="card p-6">
+              <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
+                <MapPin className="w-5 h-5 mr-2" style={{ color: colors.danger }} />
+                Location
+              </h3>
+              {pivot.lat && pivot.lng ? (
+                <>
+                  <div ref={miniMapRef} className="w-full h-40 rounded-lg mb-3" />
+                  <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>{pivot.address || 'No address'}</p>
+                  <p className="text-xs mb-3" style={{ color: colors.muted }}>
+                    {parseFloat(pivot.lat).toFixed(6)}, {parseFloat(pivot.lng).toFixed(6)}
+                  </p>
+                  <a 
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center space-x-2 p-2 rounded-lg text-white text-sm font-medium"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    <Navigation className="w-4 h-4" />
+                    <span>Get Directions</span>
+                  </a>
+                </>
+              ) : (
+                <p className="text-sm text-center py-4" style={{ color: colors.textSecondary }}>
+                  No location set
+                </p>
+              )}
+            </div>
+
+            {/* Farmer Contact */}
+            {farmer && (
+              <div className="card p-6">
+                <h3 className="font-semibold mb-3 flex items-center" style={{ color: colors.textPrimary }}>
+                  <User className="w-5 h-5 mr-2" style={{ color: colors.water }} />
+                  Farmer Contact
+                </h3>
+                <div className="flex items-center space-x-3 mb-3">
+                  <span className="text-3xl">{farmer.avatar || '👤'}</span>
+                  <div>
+                    <p className="font-medium" style={{ color: colors.textPrimary }}>{farmer.name}</p>
+                    <p className="text-sm" style={{ color: colors.textSecondary }}>{farmer.company || 'Independent'}</p>
+                  </div>
+                </div>
+                {farmer.phone && (
+                  <a href={`tel:${farmer.phone}`} className="flex items-center space-x-2 text-sm mb-2" style={{ color: colors.primary }}>
+                    <Phone className="w-4 h-4" />
+                    <span>{farmer.phone}</span>
+                  </a>
+                )}
+                {farmer.email && (
+                  <a href={`mailto:${farmer.email}`} className="flex items-center space-x-2 text-sm" style={{ color: colors.primary }}>
+                    <Mail className="w-4 h-4" />
+                    <span>{farmer.email}</span>
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="card p-6">
+              <h3 className="font-semibold mb-3" style={{ color: colors.textPrimary }}>Quick Actions</h3>
+              <div className="space-y-2">
+                <Button 
+                  variant="danger" 
+                  className="w-full" 
+                  icon={AlertCircle}
+                  onClick={() => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }}
+                >
+                  Report Issue
+                </Button>
+                {canEdit && (
+                  <Button 
+                    variant="secondary" 
+                    className="w-full" 
+                    icon={Trash2}
+                    onClick={() => handleDeleteEquipment(pivot.id, pivot.name)}
+                  >
+                    delete equipment
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Info Item Component for Equipment Profile
+  const InfoItem = ({ label, value }) => (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide" style={{ color: colors.muted }}>{label}</p>
+      <p className="font-medium" style={{ color: colors.textPrimary }}>{value}</p>
+    </div>
+  );
+
+
+  // ============================================
+  // Edit Equipment MODAL
+  // ============================================
+  const EditEquipmentModal = () => {
+    const pivot = selectedEquipmentProfile;
+    const [formData, setFormData] = useState({
+      name: pivot?.name || '',
+      type: pivot?.type || 'center',
+      brand: pivot?.brand || '',
+      model: pivot?.model || '',
+      serialNumber: pivot?.serialNumber || '',
+      powerType: pivot?.powerType || '',
+      panelType: pivot?.panelType || '',
+      dateInstalled: pivot?.dateInstalled || '',
+      acres: pivot?.acres || '',
+      length: pivot?.length || '',
+      spans: pivot?.spans || '',
+      gpm: pivot?.gpm || pivot?.flow || '',
+      nozzles: pivot?.nozzles || '',
+      pressure: pivot?.pressure || '',
+      endGun: pivot?.endGun || '',
+      tireSize: pivot?.tireSize || '',
+      nozzlePackage: pivot?.nozzlePackage || '',
+      gearboxRatio: pivot?.gearboxRatio || '',
+      driveType: pivot?.driveType || '',
+      address: pivot?.address || '',
+      lat: pivot?.lat || '',
+      lng: pivot?.lng || '',
+      notes: pivot?.notes || ''
+    });
+
+    useEffect(() => {
+      if (pivot) {
+        setFormData({
+          name: pivot.name || '',
+          type: pivot.type || 'center',
+          brand: pivot.brand || '',
+          model: pivot.model || '',
+          serialNumber: pivot.serialNumber || '',
+          powerType: pivot.powerType || '',
+          panelType: pivot.panelType || '',
+          dateInstalled: pivot.dateInstalled || '',
+          acres: pivot.acres || '',
+          length: pivot.length || '',
+          spans: pivot.spans || '',
+          gpm: pivot.gpm || pivot.flow || '',
+          nozzles: pivot.nozzles || '',
+          pressure: pivot.pressure || '',
+          endGun: pivot.endGun || '',
+          tireSize: pivot.tireSize || '',
+          nozzlePackage: pivot.nozzlePackage || '',
+          gearboxRatio: pivot.gearboxRatio || '',
+          driveType: pivot.driveType || '',
+          address: pivot.address || '',
+          lat: pivot.lat || '',
+          lng: pivot.lng || '',
+          notes: pivot.notes || ''
+        });
+      }
+    }, [pivot]);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      handleUpdateEquipmentDetails(pivot.id, {
+        ...formData,
+        acres: parseFloat(formData.acres) || 0,
+        length: parseFloat(formData.length) || null,
+        spans: parseInt(formData.spans) || null,
+        gpm: parseFloat(formData.gpm) || null,
+        nozzles: parseInt(formData.nozzles) || null,
+        pressure: parseFloat(formData.pressure) || null,
+        lat: parseFloat(formData.lat) || null,
+        lng: parseFloat(formData.lng) || null
+      });
+    };
+
+    return (
+      <Modal isOpen={showEditEquipmentModal} onClose={() => setShowEditEquipmentModal(false)} title="Edit Equipment details" size="2xl">
+        <form onSubmit={handleSubmit} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Basic Info */}
+          <div>
+            <h4 className="font-medium mb-3 pb-2 border-b" style={{ color: colors.textPrimary, borderColor: colors.border }}>Basic Information</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Equipment Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+              <Select label="Equipment Type" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} options={[
+                { value: 'center', label: 'Center Pivot' },
+                { value: 'linear', label: 'Linear Pivot' },
+                { value: 'corner', label: 'Corner System' },
+                { value: 'power_unit', label: 'Power Unit' },
+                { value: 'generator', label: 'Generator' },
+                { value: 'pump', label: 'Pump' },
+                { value: 'well', label: 'Well' },
+                { value: 'motor', label: 'Motor' },
+                { value: 'panel', label: 'Control Panel' },
+                { value: 'other', label: 'Other' }
+              ]} />
+            </div>
+          </div>
+
+          {/* Equipment Details */}
+          <div>
+            <h4 className="font-medium mb-3 pb-2 border-b" style={{ color: colors.textPrimary, borderColor: colors.border }}>Equipment Details</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Select label="Brand" value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} options={[
+                { value: '', label: 'Select Brand' },
+                { value: 'Valley', label: 'Valley' },
+                { value: 'Zimmatic', label: 'Zimmatic' },
+                { value: 'Reinke', label: 'Reinke' },
+                { value: 'T-L', label: 'T-L' },
+                { value: 'Pierce', label: 'Pierce' },
+                { value: 'Other', label: 'Other' }
+              ]} />
+              <Input label="Model" placeholder="e.g. 8000 Series" value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} />
+              <Input label="Serial Number" placeholder="S/N" value={formData.serialNumber} onChange={e => setFormData({...formData, serialNumber: e.target.value})} />
+              <Select label="Power Type" value={formData.powerType} onChange={e => setFormData({...formData, powerType: e.target.value})} options={[
+                { value: '', label: 'Select Power' },
+                { value: 'Shore Power', label: 'Shore Power' },
+                { value: 'Generator', label: 'Generator' },
+                { value: 'Diesel', label: 'Diesel' },
+                { value: 'Solar', label: 'Solar' }
+              ]} />
+              <Select label="Panel Type" value={formData.panelType} onChange={e => setFormData({...formData, panelType: e.target.value})} options={[
+                { value: '', label: 'Select Panel' },
+                { value: 'Mechanical', label: 'Mechanical' },
+                { value: 'Electronic', label: 'Electronic' },
+                { value: 'GPS', label: 'GPS Guided' },
+                { value: 'VRI', label: 'VRI' }
+              ]} />
+              <Input label="Date Installed" type="date" value={formData.dateInstalled} onChange={e => setFormData({...formData, dateInstalled: e.target.value})} />
+            </div>
+          </div>
+
+          {/* Specifications */}
+          <div>
+            <h4 className="font-medium mb-3 pb-2 border-b" style={{ color: colors.textPrimary, borderColor: colors.border }}>Specifications</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Input label="Acres" type="number" placeholder="125" value={formData.acres} onChange={e => setFormData({...formData, acres: e.target.value})} />
+              <Input label="Length (ft)" type="number" placeholder="1320" value={formData.length} onChange={e => setFormData({...formData, length: e.target.value})} />
+              <Input label="Number of Spans" type="number" placeholder="7" value={formData.spans} onChange={e => setFormData({...formData, spans: e.target.value})} />
+              <Input label="GPM" type="number" placeholder="800" value={formData.gpm} onChange={e => setFormData({...formData, gpm: e.target.value})} />
+              <Input label="Nozzles" type="number" placeholder="250" value={formData.nozzles} onChange={e => setFormData({...formData, nozzles: e.target.value})} />
+              <Input label="Pressure (PSI)" type="number" placeholder="35" value={formData.pressure} onChange={e => setFormData({...formData, pressure: e.target.value})} />
+              <Input label="End Gun" placeholder="e.g. Nelson" value={formData.endGun} onChange={e => setFormData({...formData, endGun: e.target.value})} />
+              <Input label="Tire Size" placeholder="e.g. 14.9x24" value={formData.tireSize} onChange={e => setFormData({...formData, tireSize: e.target.value})} />
+              <Input label="Nozzle Package" placeholder="e.g. Nelson 3000" value={formData.nozzlePackage} onChange={e => setFormData({...formData, nozzlePackage: e.target.value})} />
+              <Input label="Gearbox Ratio" placeholder="e.g. 50:1" value={formData.gearboxRatio} onChange={e => setFormData({...formData, gearboxRatio: e.target.value})} />
+              <Select label="Drive Type" value={formData.driveType} onChange={e => setFormData({...formData, driveType: e.target.value})} options={[
+                { value: '', label: 'Select Drive' },
+                { value: 'Electric', label: 'Electric' },
+                { value: 'Hydraulic', label: 'Hydraulic' },
+                { value: 'Oil', label: 'Oil' }
+              ]} />
+            </div>
+          </div>
+
+          {/* Location */}
+          <div>
+            <h4 className="font-medium mb-3 pb-2 border-b" style={{ color: colors.textPrimary, borderColor: colors.border }}>Location</h4>
+            <div className="space-y-4">
+              <Input label="Address" placeholder="123 Farm Road" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Latitude" type="number" step="any" value={formData.lat} onChange={e => setFormData({...formData, lat: e.target.value})} />
+                <Input label="Longitude" type="number" step="any" value={formData.lng} onChange={e => setFormData({...formData, lng: e.target.value})} />
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <h4 className="font-medium mb-3 pb-2 border-b" style={{ color: colors.textPrimary, borderColor: colors.border }}>Notes</h4>
+            <textarea 
+              className="input"
+              rows={3}
+              placeholder="Any additional notes about this pivot..."
+              value={formData.notes}
+              onChange={e => setFormData({...formData, notes: e.target.value})}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex space-x-3 pt-4 border-t" style={{ borderColor: colors.border }}>
+            <Button type="submit" className="flex-1" icon={Check} loading={isLoading}>Save Changes</Button>
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowEditEquipmentModal(false)}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
+    );
+  };
+
+
+  // ============================================
+  // MAP VIEW - Google Maps Integration
+  // ============================================
+  const MapView = () => {
+    const mapRef = React.useRef(null);
+    const googleMapRef = React.useRef(null);
+    const markersRef = React.useRef([]);
+    const [mapLoaded, setMapLoaded] = useState(false);
+    const [_selectedPivot, setSelectedPivot] = useState(null); // eslint-disable-line no-unused-vars
+    const [editingPivot, setEditingPivot] = useState(null);
+    const [searchAddress, setSearchAddress] = useState('');
+
+    const [_userLocation, setUserLocation] = useState(null); // eslint-disable-line no-unused-vars
+
+    // Filter pivots based on role
+    const visibleEquipment = userProfile?.role === 'farmer'
+      ? equipment.filter(p => p.farmerId === userProfile?.id)
+      : equipment;
+
+    // Default center (Sikeston, MO area)
+    const defaultCenter = { lat: 36.88, lng: -89.59 };
+
+    // Get user's current location
+    const handleMyLocation = () => {
+      if (!navigator.geolocation) {
+        addNotification('error', 'Geolocation is not supported by your browser');
+        return;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setUserLocation(pos);
+          if (googleMapRef.current) {
+            googleMapRef.current.panTo(pos);
+            googleMapRef.current.setZoom(14);
+          }
+          addNotification('success', 'Moved to your location');
+        },
+        (error) => {
+          addNotification('error', 'Unable to get your location. Please check permissions.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
+    // Initialize map (only run once on mount)
+    useEffect(() => {
+      if (!window.google || !mapRef.current || googleMapRef.current) return;
+
+      // Calculate center from pivots or use default
+      let center = defaultCenter;
+      const equipmentWithLocation = visibleEquipment.filter(p => p.lat && p.lng);
+      if (equipmentWithLocation.length > 0) {
+        const avgLat = equipmentWithLocation.reduce((sum, p) => sum + p.lat, 0) / equipmentWithLocation.length;
+        const avgLng = equipmentWithLocation.reduce((sum, p) => sum + p.lng, 0) / equipmentWithLocation.length;
+        center = { lat: avgLat, lng: avgLng };
+      }
+
+      googleMapRef.current = new window.google.maps.Map(mapRef.current, {
+        center,
+        zoom: 12,
+        mapTypeId: 'hybrid',
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: window.google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+          position: window.google.maps.ControlPosition.TOP_RIGHT
+        },
+        fullscreenControl: true,
+        streetViewControl: false,
+        zoomControl: true,
+        zoomControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_CENTER
+        },
+        scaleControl: true,
+        rotateControl: false,
+        gestureHandling: 'greedy',
+        scrollwheel: true
+      });
+
+      setMapLoaded(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Update markers when pivots change
+    useEffect(() => {
+      if (!googleMapRef.current || !mapLoaded) return;
+
+      // Clear existing markers
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
+
+      // Add markers for each pivot
+      visibleEquipment.forEach(pivot => {
+        if (!pivot.lat || !pivot.lng) return;
+
+        const isNeedsService = pivot.status === 'needs-service';
+        const hasActiveJob = jobs.some(j => j.pivotId === pivot.id && ['pending', 'assigned', 'in-progress'].includes(j.status));
+
+        const marker = new window.google.maps.Marker({
+          position: { lat: pivot.lat, lng: pivot.lng },
+          map: googleMapRef.current,
+          title: pivot.name,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: hasActiveJob ? '#FAAD14' : isNeedsService ? '#C73E1D' : '#52C41A',
+            fillOpacity: 1,
+            strokeColor: '#FFFFFF',
+            strokeWeight: 3
+          }
+        });
+
+        // Info window content with directions link
+        const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`;
+        const infoContent = `
+          <div style="padding: 8px; max-width: 250px;">
+            <h3 style="margin: 0 0 8px 0; color: #2D5016; font-weight: bold;">${pivot.name}</h3>
+            <p style="margin: 4px 0; color: #5C6650;">${formatEquipmentType(pivot.type)} • ${pivot.acres} acres</p>
+            ${pivot.address ? `<p style="margin: 4px 0; color: #9CA986; font-size: 12px;">${pivot.address}</p>` : ''}
+            <p style="margin: 8px 0 0 0;">
+              <span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; background: ${isNeedsService ? '#C73E1D20' : '#52C41A20'}; color: ${isNeedsService ? '#C73E1D' : '#52C41A'};">
+                ${pivot.status}
+              </span>
+            </p>
+            <a href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 10px; padding: 8px 16px; background: #2D5016; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 500;">
+              📍 Get Directions
+            </a>
+          </div>
+        `;
+
+        const infoWindow = new window.google.maps.InfoWindow({ content: infoContent });
+
+        marker.addListener('click', () => {
+          setSelectedPivot(pivot);
+          infoWindow.open(googleMapRef.current, marker);
+        });
+
+        markersRef.current.push(marker);
+      });
+
+      // Fit bounds if we have multiple pivots
+      if (visibleEquipment.filter(p => p.lat && p.lng).length > 1) {
+        const bounds = new window.google.maps.LatLngBounds();
+        visibleEquipment.forEach(p => {
+          if (p.lat && p.lng) bounds.extend({ lat: p.lat, lng: p.lng });
+        });
+        googleMapRef.current.fitBounds(bounds, 50);
+      }
+    // jobs is needed to update marker colors based on active jobs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [visibleEquipment, jobs, mapLoaded]);
+
+    // Search for address
+    const handleAddressSearch = () => {
+      if (!window.google || !searchAddress || !editingPivot) return;
+
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ address: searchAddress }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const location = results[0].geometry.location;
+          const lat = location.lat();
+          const lng = location.lng();
+          const address = results[0].formatted_address;
+
+          handleUpdateEquipmentLocation(editingPivot.id, lat, lng, address);
+          setSearchAddress('');
+          setEditingPivot(null);
+
+          // Pan to location
+          googleMapRef.current.panTo({ lat, lng });
+          googleMapRef.current.setZoom(14);
+        } else {
+          addNotification('error', 'Address not found. Try a different search.');
+        }
+      });
+    };
+
+    // Click on map to set location
+    useEffect(() => {
+      if (!googleMapRef.current || !mapLoaded || !editingPivot) return;
+
+      const clickListener = googleMapRef.current.addListener('click', (e) => {
+        const lat = e.latLng.lat();
+        const lng = e.latLng.lng();
+
+        // Reverse geocode to get address
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+          const address = status === 'OK' && results[0] ? results[0].formatted_address : '';
+          handleUpdateEquipmentLocation(editingPivot.id, lat, lng, address);
+          setEditingPivot(null);
+        });
+      });
+
+      return () => window.google.maps.event.removeListener(clickListener);
+    }, [editingPivot, mapLoaded]);
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold" style={{ color: colors.primary }}>
+            {userProfile?.role === 'farmer' ? 'My Equipment Map' : 'Field Map'}
+          </h2>
+          <div className="flex items-center space-x-2">
+            <Badge variant="success">{visibleEquipment.filter(p => p.status === 'active').length} Active</Badge>
+            <Badge variant="warning">{jobs.filter(j => ['pending', 'assigned', 'in-progress'].includes(j.status)).length} Jobs</Badge>
+            <Badge variant="danger">{visibleEquipment.filter(p => p.status === 'needs-service').length} Need Service</Badge>
+          </div>
+        </div>
+
+        {/* Editing Mode Banner */}
+        {editingPivot && (
+          <div className="p-4 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.accent + '20', border: `2px solid ${colors.accent}` }}>
+            <div>
+              <p className="font-semibold" style={{ color: colors.textPrimary }}>📍 Setting location for: {editingPivot.name}</p>
+              <p className="text-sm" style={{ color: colors.textSecondary }}>Click on the map or search for an address below</p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => setEditingPivot(null)}>Cancel</Button>
+          </div>
+        )}
+
+        {/* Address Search */}
+        {editingPivot && (
+          <div className="card p-4">
+            <div className="flex space-x-3">
+              <input
+                type="text"
+                placeholder="Search address (e.g., 123 Farm Road, Nebraska)"
+                className="input flex-1"
+                value={searchAddress}
+                onChange={e => setSearchAddress(e.target.value)}
+                onKeyPress={e => e.key === 'Enter' && handleAddressSearch()}
+              />
+              <Button icon={Search} onClick={handleAddressSearch}>Search</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Google Map */}
+        <div className="card overflow-hidden">
+          {/* Map Controls */}
+          <div className="flex items-center justify-between p-3 border-b" style={{ borderColor: colors.border }}>
+            <div className="flex items-center space-x-2">
+              <Button size="sm" variant="secondary" icon={Navigation} onClick={handleMyLocation}>My Location</Button>
+              <Button size="sm" variant="secondary" onClick={() => googleMapRef.current?.setZoom((googleMapRef.current?.getZoom() || 12) + 1)}>Zoom +</Button>
+              <Button size="sm" variant="secondary" onClick={() => googleMapRef.current?.setZoom((googleMapRef.current?.getZoom() || 12) - 1)}>Zoom -</Button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button className="px-3 py-1 text-sm rounded-lg" style={{ backgroundColor: colors.background }} onClick={() => googleMapRef.current?.setMapTypeId('hybrid')}>Satellite</button>
+              <button className="px-3 py-1 text-sm rounded-lg" style={{ backgroundColor: colors.background }} onClick={() => googleMapRef.current?.setMapTypeId('roadmap')}>Map</button>
+              <button className="px-3 py-1 text-sm rounded-lg" style={{ backgroundColor: colors.background }} onClick={() => googleMapRef.current?.setMapTypeId('terrain')}>Terrain</button>
+            </div>
+          </div>
+          <div ref={mapRef} style={{ height: '500px', width: '100%' }}>
+            {!window.google && (
+              <div className="h-full flex items-center justify-center bg-gray-100">
+                <div className="text-center">
+                  <Spinner size="lg" />
+                  <p className="mt-2" style={{ color: colors.textSecondary }}>Loading map...</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center justify-center space-x-6 p-4 border-t" style={{ borderColor: colors.border }}>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-green-500" />
+              <span className="text-sm" style={{ color: colors.textSecondary }}>Active Pivot</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-red-500" />
+              <span className="text-sm" style={{ color: colors.textSecondary }}>Needs Service</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 rounded-full bg-yellow-500" />
+              <span className="text-sm" style={{ color: colors.textSecondary }}>Active Job</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Pivot List with Location Edit */}
+        <div className="card p-4">
+          <h3 className="font-semibold mb-3" style={{ color: colors.textPrimary }}>Equipment Locations</h3>
+          {visibleEquipment.length === 0 ? (
+            <p className="text-center py-4" style={{ color: colors.textSecondary }}>No Equipment to display</p>
+          ) : (
+            <div className="space-y-2">
+              {visibleEquipment.map(pivot => (
+                <div key={pivot.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${pivot.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <div>
+                      <p className="font-medium" style={{ color: colors.textPrimary }}>{pivot.name}</p>
+                      <p className="text-sm" style={{ color: colors.textSecondary }}>{pivot.address || 'No address set'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <p className="text-sm" style={{ color: colors.textSecondary }}>{pivot.acres} acres</p>
+                      {pivot.lat && pivot.lng && (
+                        <p className="text-xs" style={{ color: colors.muted }}>{pivot.lat.toFixed(4)}, {pivot.lng.toFixed(4)}</p>
+                      )}
+                    </div>
+                    {(userProfile?.role === 'farmer' && pivot.farmerId === userProfile?.id) || userProfile?.role === 'manager' ? (
+                      <Button size="sm" variant={editingPivot?.id === pivot.id ? 'primary' : 'secondary'} icon={MapPin} onClick={() => setEditingPivot(editingPivot?.id === pivot.id ? null : pivot)}>
+                        {pivot.lat && pivot.lng ? 'Edit' : 'Set Location'}
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     );
   };
 
   // ============================================
   // WEATHER VIEW
   // ============================================
-  const renderWeatherView = () => {
+  const WeatherView = () => {
     const getWeatherEmoji = (conditions) => {
       switch(conditions) {
         case 'sunny': return '☀️';
@@ -2846,71 +3551,53 @@ const FieldSyncApp = () => {
   const renderView = () => {
     // If viewing a Equipment Profile, show that instead
     if (selectedEquipmentProfile) {
-      return (
-        <EquipmentProfileViewComponent
-          equipment={selectedEquipmentProfile}
-          users={users}
-          jobs={jobs}
-          userProfile={userProfile}
-          colors={colors}
-          formatEquipmentType={formatEquipmentType}
-          formatDate={formatDate}
-          getStatusVariant={getStatusVariant}
-          onBack={() => setSelectedEquipmentProfile(null)}
-          onEdit={() => setShowEditEquipmentModal(true)}
-          onReportIssue={(pivot) => {
-            setSelectedEquipmentForIssue(pivot);
-            setShowReportIssueModal(true);
-          }}
-          onDelete={handleDeleteEquipment}
-        />
-      );
+      return <EquipmentProfileView />;
     }
 
     const role = userProfile?.role;
 
     if (role === 'farmer') {
       switch(selectedTab) {
-        case 'equipment': return renderFarmerEquipmentView();
-        case 'jobs': return renderFarmerJobsView();
-        case 'map': return renderMapView();
-        case 'weather': return renderWeatherView();
-        default: return renderFarmerEquipmentView();
+        case 'equipment': return <FarmerEquipmentView />;
+        case 'jobs': return <FarmerJobsView />;
+        case 'map': return <MapView />;
+        case 'weather': return <WeatherView />;
+        default: return <FarmerEquipmentView />;
       }
     }
 
     if (role === 'tech') {
       switch(selectedTab) {
-        case 'dashboard': return renderTechDashboard();
-        case 'jobs': return renderTechJobsView();
-        case 'customers': return renderCustomersView();
-        case 'map': return renderMapView();
-        default: return renderTechDashboard();
+        case 'dashboard': return <TechDashboard />;
+        case 'jobs': return <TechJobsView />;
+        case 'customers': return <CustomersView />;
+        case 'map': return <MapView />;
+        default: return <TechDashboard />;
       }
     }
 
     if (role === 'office') {
       switch(selectedTab) {
-        case 'jobs': return renderManagerJobsView();
-        case 'callin': return renderCallInView();
-        case 'customers': return renderCustomersView();
-        case 'map': return renderMapView();
-        default: return renderManagerJobsView();
+        case 'jobs': return <ManagerJobsView />;
+        case 'callin': return <CallInView />;
+        case 'customers': return <CustomersView />;
+        case 'map': return <MapView />;
+        default: return <ManagerJobsView />;
       }
     }
 
     // Manager
     switch(selectedTab) {
-      case 'dashboard': return renderManagerDashboard();
-      case 'myjobs': return renderTechJobsView();
-      case 'jobs': return renderManagerJobsView();
-      case 'calendar': return renderCalendarView();
-      case 'customers': return renderCustomersView();
-      case 'team': return renderTeamManagement();
-      case 'map': return renderMapView();
-      case 'analytics': return renderAnalyticsView();
-      case 'settings': return renderSettingsView();
-      default: return renderManagerDashboard();
+      case 'dashboard': return <ManagerDashboard />;
+      case 'myjobs': return <TechJobsView />;
+      case 'jobs': return <ManagerJobsView />;
+      case 'calendar': return <CalendarView />;
+      case 'customers': return <CustomersView />;
+      case 'team': return <TeamManagement />;
+      case 'map': return <MapView />;
+      case 'analytics': return <AnalyticsView />;
+      case 'settings': return <SettingsView />;
+      default: return <ManagerDashboard />;
     }
   };
 
@@ -2918,7 +3605,7 @@ const FieldSyncApp = () => {
   // MAIN RENDER
   // ============================================
   if (authLoading) return <LoadingScreen />;
-  if (currentView === 'login') return renderLoginScreen();
+  if (currentView === 'login') return <LoginScreen />;
 
   const navItems = getNavItems();
 
@@ -2981,7 +3668,7 @@ const FieldSyncApp = () => {
                     <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: colors.danger }} />
                   )}
                 </button>
-                {renderNotificationsDropdown()}
+                <NotificationsDropdown />
               </div>
 
               {/* User Menu */}
@@ -3074,6 +3761,10 @@ const FieldSyncApp = () => {
         isLoading={isLoading}
         canSeePricing={canSeePricing}
         formatCurrency={formatCurrency}
+        users={users}
+        userProfile={userProfile}
+        onDownloadJobSheet={handleDownloadJobSheet}
+        onExportToExcel={handleExportToExcel}
       />
       <AssignJobModal
         isOpen={showAssignJobModal}

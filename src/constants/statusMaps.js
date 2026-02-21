@@ -14,7 +14,7 @@ export const STATUS_VARIANTS = {
 
 export const JOB_STATUSES = ['pending', 'assigned', 'in-progress', 'completed', 'ready-to-bill', 'billed', 'needs-followup'];
 
-export const ACTIVE_STATUSES = ['assigned', 'in-progress'];
+export const ACTIVE_STATUSES = ['assigned', 'in-progress', 'needs-followup'];
 
 export const COMPLETED_STATUSES = ['completed', 'billed', 'ready-to-bill'];
 
