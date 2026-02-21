@@ -210,8 +210,7 @@ const FieldSyncApp = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [syncStatus, setSyncStatus] = useState('online');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  // searchQuery and filterStatus moved into ManagerJobsView to avoid full App re-renders
   const [weatherData, setWeatherData] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   
@@ -1875,6 +1874,8 @@ const FieldSyncApp = () => {
   };
 
   const ManagerJobsView = () => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all');
     const filteredJobs = jobs.filter(job => {
       const matchesSearch = job.title?.toLowerCase().includes(searchQuery.toLowerCase()) || job.description?.toLowerCase().includes(searchQuery.toLowerCase()) || job.soNumber?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesFilter = filterStatus === 'all' || job.status === filterStatus;
