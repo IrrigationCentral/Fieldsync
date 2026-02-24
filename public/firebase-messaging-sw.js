@@ -1,13 +1,10 @@
 // Firebase Cloud Messaging Service Worker
 // This handles background push notifications
 
-importScripts('https://www.gstatic.com/firebasejs/12.6.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/12.6.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
-// NOTE: Service workers cannot access environment variables from process.env
-// These Firebase client-side keys are safe to be public (they identify the project, not authenticate it)
-// Access is controlled via Firebase Security Rules on the backend
-// IMPORTANT: Ensure Firebase Security Rules are properly configured to restrict data access
+// Initialize Firebase in the service worker
 firebase.initializeApp({
   apiKey: "AIzaSyB2_veGmiiask_IBUqspw9wmYcPbVrfTxc",
   authDomain: "fieldsync-2768a.firebaseapp.com",

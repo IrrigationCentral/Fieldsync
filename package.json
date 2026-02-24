@@ -16,12 +16,15 @@
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-router-dom": "^6.30.3",
     "react-scripts": "^5.0.1",
     "recharts": "^3.5.1",
     "web-vitals": "^2.1.4"
   },
   "devDependencies": {
+    "@google-cloud/firestore": "^8.3.0",
     "autoprefixer": "^10.4.16",
+    "firebase-admin": "^13.6.1",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0"
   },
