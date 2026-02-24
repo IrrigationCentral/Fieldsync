@@ -24,15 +24,17 @@ const AssignJobModal = ({
   const managers = users.filter(u => u.role === 'manager');
   const assignableUsers = [...techs, ...managers];
   
-  const currentAssignees = selectedJobForAction?.assignedTo 
-    ? (Array.isArray(selectedJobForAction.assignedTo) ? selectedJobForAction.assignedTo : [selectedJobForAction.assignedTo])
-    : [];
-
   useEffect(() => {
     if (isOpen && selectedJobForAction) {
-      setSelectedTechs(currentAssignees);
+      const assigned = selectedJobForAction.assignedTo;
+      const assignees = Array.isArray(assigned) ? assigned : [assigned].filter(Boolean);
+      setSelectedTechs(assignees);
     }
-  }, [isOpen, selectedJobForAction?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedJobForAction]);
+
+  const currentAssignees = selectedJobForAction?.assignedTo
+    ? (Array.isArray(selectedJobForAction.assignedTo) ? selectedJobForAction.assignedTo : [selectedJobForAction.assignedTo])
+    : [];
 
   const toggleTech = (techId) => {
     setSelectedTechs(prev => 

@@ -12,6 +12,7 @@ const AddEquipmentModal = ({
   users,
   userProfile,
   isLoading,
+  setIsLoading,
   colors,
   addNotification
 }) => {
@@ -170,7 +171,7 @@ const AddEquipmentModal = ({
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Use selected farmerId for staff, or current user's ID for farmers
     const targetFarmerId = isStaff ? formData.farmerId : userProfile?.id;
@@ -178,26 +179,33 @@ const AddEquipmentModal = ({
       addNotification('error', 'Please select a customer');
       return;
     }
-    onAdd({
-      ...formData,
-      farmerId: targetFarmerId,
-      acres: parseFloat(formData.acres) || 0,
-      nozzles: parseInt(formData.nozzles) || 0,
-      pressure: parseFloat(formData.pressure) || 0,
-      gpm: parseFloat(formData.gpm) || 0,
-      length: parseFloat(formData.length) || null,
-      spans: parseInt(formData.spans) || null,
-      lat: parseFloat(formData.lat) || null,
-      lng: parseFloat(formData.lng) || null
-    });
-    // Reset form
-    setFormData({ 
-      farmerId: '', name: '', type: 'center', acres: '', brand: '', model: '', serialNumber: '',
-      powerType: '', panelType: '', dateInstalled: '', length: '', spans: '',
-      nozzles: '', pressure: '', gpm: '', endGun: '', tireSize: '', nozzlePackage: '',
-      gearboxRatio: '', driveType: '', lat: '', lng: '', address: '', notes: ''
-    });
-    setShowAdvanced(false);
+    if (setIsLoading) setIsLoading(true);
+    try {
+      await onAdd({
+        ...formData,
+        farmerId: targetFarmerId,
+        acres: parseFloat(formData.acres) || 0,
+        nozzles: parseInt(formData.nozzles) || 0,
+        pressure: parseFloat(formData.pressure) || 0,
+        gpm: parseFloat(formData.gpm) || 0,
+        length: parseFloat(formData.length) || null,
+        spans: parseInt(formData.spans) || null,
+        lat: parseFloat(formData.lat) || null,
+        lng: parseFloat(formData.lng) || null
+      });
+      // Reset form only on success
+      setFormData({
+        farmerId: '', name: '', type: 'center', acres: '', brand: '', model: '', serialNumber: '',
+        powerType: '', panelType: '', dateInstalled: '', length: '', spans: '',
+        nozzles: '', pressure: '', gpm: '', endGun: '', tireSize: '', nozzlePackage: '',
+        gearboxRatio: '', driveType: '', lat: '', lng: '', address: '', notes: ''
+      });
+      setShowAdvanced(false);
+    } catch (error) {
+      // Form stays as-is so user can retry
+    } finally {
+      if (setIsLoading) setIsLoading(false);
+    }
   };
 
   const equipmentTypeOptions = [

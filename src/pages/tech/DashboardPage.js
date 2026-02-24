@@ -155,12 +155,12 @@ const DashboardPage = ({
                       style={{ backgroundColor: colors.background }}
                     >
                       <div className="flex items-center space-x-2">
-                        <span className="text-lg">{farmer.avatar || '👨‍🌾'}</span>
+                        <span className="text-lg">{farmer?.avatar || '👨‍🌾'}</span>
                         <div>
                           <p className="text-sm font-medium" style={{ color: colors.textPrimary }}>
-                            {farmer.name}
+                            {farmer?.name || 'Unknown'}
                           </p>
-                          {farmer.phone && (
+                          {farmer?.phone && (
                             <a
                               href={`tel:${farmer.phone}`}
                               className="text-xs flex items-center"

@@ -1,5 +1,8 @@
 // FieldSync v2 - Job Management Hook
 // Extracted from App.js lines 432-676
+// Note: Context values (users, equipment, jobs, etc.) are included in useCallback
+// dependency arrays. Callbacks are recreated when context values change, which is
+// correct behavior - React re-renders on context change and provides fresh closures.
 import { useState, useCallback } from 'react';
 import {
   addJob as fbAddJob,
@@ -190,6 +193,7 @@ export const useJobs = () => {
   }, [addNotification]);
 
   const deleteJob = useCallback(async (jobId, jobTitle) => {
+    // TODO: Replace with custom confirmation modal
     if (!window.confirm(`Are you sure you want to delete "${jobTitle}"? This cannot be undone.`)) return;
     setIsLoading(true);
     const result = await fbDeleteJob(jobId);
@@ -217,6 +221,7 @@ export const useJobs = () => {
 
   const removeAssignee = useCallback(async (jobId, userId) => {
     const user = users.find(u => u.id === userId);
+    // TODO: Replace with custom confirmation modal
     if (!window.confirm(`Remove ${user?.name || 'this person'} from this job?`)) return;
     setIsLoading(true);
     const result = await fbRemoveAssignee(jobId, userId);

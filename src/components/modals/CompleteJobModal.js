@@ -155,7 +155,11 @@ const Step3Time = ({
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
     const startMins = sh * 60 + sm;
-    const endMins = eh * 60 + em;
+    let endMins = eh * 60 + em;
+    // Handle midnight crossover (e.g., 9PM to 1AM)
+    if (endMins < startMins) {
+      endMins += 24 * 60;
+    }
     const diff = (endMins - startMins) / 60;
     return Math.max(0, diff - (lunch ? 0.5 : 0));
   };
@@ -496,7 +500,8 @@ const Step5Vehicle = ({
   colors,
   onNext,
   onBack,
-  isLoading
+  isLoading,
+  addNotification
 }) => {
   useEffect(() => {
     const begin = parseFloat(vehicleInfo.odometerBegin) || 0;
@@ -522,6 +527,7 @@ const Step5Vehicle = ({
         newPhotos.push({ file: compressed, preview, name: file.name });
       } catch (err) {
         console.error('Photo compression error:', err);
+        addNotification?.('error', `Failed to process photo ${file.name}: ${err.message}`);
         // Fallback to original file if compression fails
         try {
           const reader = new FileReader();
@@ -532,6 +538,7 @@ const Step5Vehicle = ({
           newPhotos.push({ file, preview, name: file.name });
         } catch (fallbackErr) {
           console.error('Photo fallback error:', fallbackErr);
+          addNotification?.('error', `Cannot load photo ${file.name}`);
           // Skip this photo only if both compression and fallback fail
         }
       }
@@ -806,7 +813,8 @@ const CompleteJobModal = ({
   users = [],
   userProfile,
   onDownloadJobSheet,
-  onExportToExcel
+  onExportToExcel,
+  addNotification
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const TOTAL_STEPS = 6;
@@ -827,9 +835,11 @@ const CompleteJobModal = ({
   const job = selectedJobForAction;
   const techs = users.filter(u => u.role === 'tech' || u.role === 'manager');
 
-  // Reset form when modal opens
+  // Reset form only when modal opens (not when job data changes)
+  const prevIsOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen && selectedJobForAction) {
+    if (isOpen && !prevIsOpenRef.current && selectedJobForAction) {
+      // Only reset when modal opens (transition from closed to open)
       setCurrentStep(1);
       setProblemDescription('');
       setWorkDescription('');
@@ -842,6 +852,7 @@ const CompleteJobModal = ({
       setFollowUpNotes('');
       setTimeEntries(selectedJobForAction.timeEntries || []);
     }
+    prevIsOpenRef.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, selectedJobForAction?.id]);
 
@@ -993,6 +1004,7 @@ const CompleteJobModal = ({
                 onNext={nextStep}
                 onBack={prevStep}
                 isLoading={isLoading}
+                addNotification={addNotification}
               />
             )}
             {currentStep === 6 && (

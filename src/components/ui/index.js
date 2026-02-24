@@ -11,8 +11,16 @@ import {
 // MODAL COMPONENT
 // ============================================
 export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
+  const modalRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (isOpen && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
-  
+
   const sizeClasses = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -21,18 +29,30 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     '2xl': 'max-w-2xl'
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') onClose();
+  };
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div 
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        ref={modalRef}
         className={`modal-content ${sizeClasses[size]} w-full mx-4 p-6 max-h-[90vh] overflow-y-auto`}
         onClick={e => e.stopPropagation()}
         style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+        tabIndex={-1}
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
             {title}
           </h3>
-          <button 
+          <button
             onClick={onClose}
             className="p-2 rounded-lg transition-colors"
             style={{ color: 'var(--color-text-secondary)' }}

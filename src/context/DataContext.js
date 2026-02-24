@@ -48,55 +48,71 @@ export const DataProvider = ({ children }) => {
       return;
     }
 
+    let mounted = true;
     const loadedSubs = new Set();
     const totalSubs = 5;
     const checkLoaded = (name) => {
-      loadedSubs.add(name);
-      if (loadedSubs.size >= totalSubs) setDataLoading(false);
+      if (mounted) {
+        loadedSubs.add(name);
+        if (loadedSubs.size >= totalSubs) setDataLoading(false);
+      }
     };
 
     const handleError = (name, error) => {
-      console.error(`${name} subscription error:`, error);
-      checkLoaded(name);
+      if (mounted) {
+        console.error(`${name} subscription error:`, error);
+        checkLoaded(name);
+      }
     };
 
     const unsubUsers = subscribeToUsers(
       (data) => {
-        setUsers(data);
-        checkLoaded('users');
+        if (mounted) {
+          setUsers(data);
+          checkLoaded('users');
+        }
       },
       (error) => handleError('users', error)
     );
     const unsubEquipment = subscribeToPivots(
       (data) => {
-        setEquipment(data);
-        checkLoaded('equipment');
+        if (mounted) {
+          setEquipment(data);
+          checkLoaded('equipment');
+        }
       },
       (error) => handleError('equipment', error)
     );
     const unsubJobs = subscribeToJobs(
       (data) => {
-        setJobs(data);
-        checkLoaded('jobs');
+        if (mounted) {
+          setJobs(data);
+          checkLoaded('jobs');
+        }
       },
       (error) => handleError('jobs', error)
     );
     const unsubSettings = subscribeToSettings(
       (data) => {
-        setPricingSettings(data);
-        checkLoaded('settings');
+        if (mounted) {
+          setPricingSettings(data);
+          checkLoaded('settings');
+        }
       },
       (error) => handleError('settings', error)
     );
     const unsubParts = subscribeToParts(
       (data) => {
-        setParts(data);
-        checkLoaded('parts');
+        if (mounted) {
+          setParts(data);
+          checkLoaded('parts');
+        }
       },
       (error) => handleError('parts', error)
     );
 
     return () => {
+      mounted = false;
       unsubUsers();
       unsubEquipment();
       unsubJobs();

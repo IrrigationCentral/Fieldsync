@@ -284,10 +284,23 @@ export const assignJob = async (jobId, techIds) => {
 
 export const addAssigneeToJob = async (jobId, userId) => {
   try {
-    await updateDoc(doc(db, 'jobs', jobId), {
-      assignedTo: arrayUnion(userId),
-      status: 'assigned',
-      updatedAt: serverTimestamp()
+    await runTransaction(db, async (transaction) => {
+      const jobRef = doc(db, 'jobs', jobId);
+      const jobSnap = await transaction.get(jobRef);
+      if (!jobSnap.exists()) throw new Error('Job not found');
+
+      const currentStatus = jobSnap.data().status;
+      const updateData = {
+        assignedTo: arrayUnion(userId),
+        updatedAt: serverTimestamp()
+      };
+
+      // Only change status to assigned if currently pending
+      if (currentStatus === 'pending') {
+        updateData.status = 'assigned';
+      }
+
+      transaction.update(jobRef, updateData);
     });
     return { success: true };
   } catch (error) {

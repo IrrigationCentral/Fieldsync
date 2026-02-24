@@ -1,7 +1,7 @@
 // ============================================
 // PROFILE MODAL
 // ============================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Lock, Check, MessageSquare, Shield, Bell, Smartphone } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { requestNotificationPermission, getNotificationStatus } from '../../firebase';
@@ -44,9 +44,10 @@ const ProfileModal = ({
     setPushStatus(getNotificationStatus());
   }, [isOpen]);
 
-  // Reset form when modal opens or userProfile changes
+  // Reset form only when modal opens (not when userProfile changes)
+  const prevIsOpenRef = useRef(false);
   useEffect(() => {
-    if (userProfile) {
+    if (isOpen && !prevIsOpenRef.current && userProfile) {
       setFormData({
         name: userProfile.name || '',
         phone: userProfile.phone || '',
@@ -60,7 +61,8 @@ const ProfileModal = ({
       setEmailError('');
       setPasswordError('');
     }
-  }, [userProfile, isOpen]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, userProfile]);
 
   const avatarOptions = ['👨‍🌾', '👩‍🌾', '👷', '👷‍♀️', '👔', '👩‍💼', '🧑‍🔧', '🌾', '🚜'];
 

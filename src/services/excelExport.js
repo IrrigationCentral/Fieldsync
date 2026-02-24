@@ -190,7 +190,10 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
 
   // If no time entries but we have hoursWorked, add a single row
   if (timeEntries.length === 0 && job.hoursWorked) {
-    const techName = techs?.find(t => t.id === job.assignedTo)?.name || 'Unknown';
+    // Handle both array and single assignee formats
+    const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+    const primaryAssignee = assignees[0];
+    const techName = techs?.find(t => t.id === primaryAssignee)?.name || 'Unknown';
     sheet.getCell(`A${currentRow}`).value = techName;
     sheet.getCell(`B${currentRow}`).value = formatDate(job.completedAt || job.createdAt);
     sheet.getCell(`C${currentRow}`).value = '';
@@ -296,9 +299,13 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
   const customerName = (farmer?.name || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
   const soNumber = job.soNumber || 'NoSO';
   const dateStr = formatDateForFilename(job.completedAt || new Date());
-  const primaryTech = techs?.find(t => t.id === job.assignedTo);
+
+  // Handle both array and single assignee formats
+  const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+  const primaryAssignee = assignees[0];
+  const primaryTech = techs?.find(t => t.id === primaryAssignee);
   const techInitials = getTechInitials(primaryTech?.name);
-  
+
   const fileName = `${customerName}.${soNumber}.${dateStr}.${techInitials}.xlsx`;
 
   // Generate buffer and trigger download

@@ -60,6 +60,9 @@ const ManagerJobsPage = ({ onOpenAssignModal, onOpenJobDetails, onOpenSOModal, o
         <EmptyState icon={Briefcase} title="No Jobs Found" description="No jobs match your search criteria." />
       ) : (
         <div className="card overflow-hidden" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}` }}>
+          <p className="text-xs sm:hidden mb-2 px-4 pt-4" style={{ color: colors.textSecondary }}>
+            Swipe to see more columns →
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead style={{ backgroundColor: colors.background }}>
