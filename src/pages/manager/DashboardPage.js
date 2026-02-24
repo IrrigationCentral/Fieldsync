@@ -7,7 +7,7 @@ import { useData } from '../../context/DataContext';
 import { useJobs } from '../../hooks/useJobs';
 import { StatCard, Badge, Button } from '../../components/ui';
 
-const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquipment }) => {
+const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquipment, onOpenJobDetails }) => {
   const { colors } = useTheme();
   const { users, jobs } = useData();
   const { deleteJob } = useJobs();
@@ -44,7 +44,7 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {pendingJobs.map(job => (
                 <div key={job.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>
-                  <div className="flex-1">
+                  <div className="flex-1 cursor-pointer" onClick={() => onOpenJobDetails && onOpenJobDetails(job)}>
                     <div className="flex items-center space-x-2">
                       <p className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</p>
                       <Badge variant={job.priority === 'high' ? 'danger' : 'warning'}>{job.priority}</Badge>
@@ -52,9 +52,9 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
                     <p className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName || 'Location TBD'}</p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button size="sm" onClick={() => onOpenAssignModal(job)}>Assign</Button>
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); onOpenAssignModal(job); }}>Assign</Button>
                     <button
-                      onClick={() => deleteJob(job.id, job.title)}
+                      onClick={(e) => { e.stopPropagation(); deleteJob(job.id, job.title); }}
                       className="p-2 rounded text-red-500 hover:bg-red-50 transition-colors"
                       title="Delete job"
                     >

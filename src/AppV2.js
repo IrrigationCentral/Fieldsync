@@ -55,6 +55,9 @@ const AuthGate = () => {
   const { isAuthenticated, authLoading, role, logout } = useAuth();
   const { addNotification } = useNotifications();
   const [selectedTab, setSelectedTab] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedJobForNotification, setSelectedJobForNotification] = useState(null);
+  const [showJobDetailsFromNotif, setShowJobDetailsFromNotif] = useState(false);
 
   if (authLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <LoginPage />;
@@ -66,14 +69,30 @@ const AuthGate = () => {
     addNotification('info', 'Logged out successfully');
   };
 
+  const handleOpenJobDetails = (job) => {
+    setSelectedJobForNotification(job);
+    setShowJobDetailsFromNotif(true);
+    setSelectedTab('jobs');
+  };
+
   return (
     <AppLayout
       selectedTab={currentTab}
       onSelectTab={setSelectedTab}
-      onOpenProfile={() => {/* handled by ModalManager */}}
+      onOpenProfile={() => setShowProfileModal(true)}
       onLogout={handleLogout}
+      onOpenJobDetails={handleOpenJobDetails}
     >
-      <ModalManager selectedTab={currentTab} onSelectTab={setSelectedTab} />
+      <ModalManager
+        selectedTab={currentTab}
+        onSelectTab={setSelectedTab}
+        showProfileModal={showProfileModal}
+        setShowProfileModal={setShowProfileModal}
+        selectedJobForNotification={selectedJobForNotification}
+        showJobDetailsFromNotif={showJobDetailsFromNotif}
+        setShowJobDetailsFromNotif={setShowJobDetailsFromNotif}
+        setSelectedJobForNotification={setSelectedJobForNotification}
+      />
     </AppLayout>
   );
 };
@@ -81,7 +100,7 @@ const AuthGate = () => {
 // ============================================
 // MODAL MANAGER - Handles all modals + routes views
 // ============================================
-const ModalManager = ({ selectedTab, onSelectTab }) => {
+const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfileModal, selectedJobForNotification, showJobDetailsFromNotif, setShowJobDetailsFromNotif, setSelectedJobForNotification }) => {
   const { colors } = useTheme();
   const { userProfile } = useAuth();
   const { users, equipment, jobs, parts, pricingSettings } = useData();
@@ -97,7 +116,6 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
   const [showCompleteJobModal, setShowCompleteJobModal] = useState(false);
   const [showAssignJobModal, setShowAssignJobModal] = useState(false);
   const [showJobDetailsModal, setShowJobDetailsModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showSOModal, setShowSOModal] = useState(false);
@@ -107,7 +125,12 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
   const [selectedEquipmentProfile, setSelectedEquipmentProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const canSeePricing = false;
+  const canSeePricing = ['manager', 'office'].includes(userProfile?.role);
+
+  // Scroll to top when tab changes
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [selectedTab]);
 
   // View routing
   const renderView = () => {
@@ -156,6 +179,8 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
               onOpenCompleteModal={(job) => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}
               onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
               onViewEquipment={setSelectedEquipmentProfile}
+              onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
+              onReportIssueClick={() => setShowReportIssueModal(true)}
             />
           );
         case 'jobs':
@@ -165,11 +190,33 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
               onOpenCompleteModal={(job) => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}
               onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
               onViewEquipment={setSelectedEquipmentProfile}
+              onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
+              onReportIssueClick={() => setShowReportIssueModal(true)}
             />
           );
-        case 'customers': return <CustomersPage onViewEquipment={setSelectedEquipmentProfile} onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }} />;
+        case 'customers':
+          return (
+            <CustomersPage
+              onViewEquipment={setSelectedEquipmentProfile}
+              onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }}
+              onAddUserClick={() => setShowAddUserModal(true)}
+              onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
+              onReportIssueClick={() => setShowReportIssueModal(true)}
+              onEquipmentClick={setSelectedEquipmentProfile}
+            />
+          );
         case 'map': return <MapPage />;
-        default: return <TechDashboardPage onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }} onOpenCompleteModal={(job) => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }} onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }} onViewEquipment={setSelectedEquipmentProfile} />;
+        default:
+          return (
+            <TechDashboardPage
+              onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}
+              onOpenCompleteModal={(job) => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}
+              onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+              onViewEquipment={setSelectedEquipmentProfile}
+              onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
+              onReportIssueClick={() => setShowReportIssueModal(true)}
+            />
+          );
       }
     }
 
@@ -186,9 +233,28 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
             />
           );
         case 'callin': return <CallInPage />;
-        case 'customers': return <CustomersPage onViewEquipment={setSelectedEquipmentProfile} onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }} />;
+        case 'customers':
+          return (
+            <CustomersPage
+              onViewEquipment={setSelectedEquipmentProfile}
+              onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }}
+              onAddUserClick={() => setShowAddUserModal(true)}
+              onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
+              onReportIssueClick={() => setShowReportIssueModal(true)}
+              onEquipmentClick={setSelectedEquipmentProfile}
+            />
+          );
         case 'map': return <MapPage />;
-        default: return <ManagerJobsPage onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }} onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }} onOpenSOModal={(job) => { setSelectedJobForAction(job); setShowSOModal(true); }} onOpenReportIssue={() => setShowReportIssueModal(true)} onOpenAddEquipment={() => setShowAddEquipmentModal(true)} />;
+        default:
+          return (
+            <ManagerJobsPage
+              onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}
+              onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+              onOpenSOModal={(job) => { setSelectedJobForAction(job); setShowSOModal(true); }}
+              onOpenReportIssue={() => setShowReportIssueModal(true)}
+              onOpenAddEquipment={() => setShowAddEquipmentModal(true)}
+            />
+          );
       }
     }
 
@@ -198,6 +264,7 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
         return (
           <ManagerDashboardPage
             onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}
+            onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
             onOpenReportIssue={() => setShowReportIssueModal(true)}
             onOpenAddEquipment={() => setShowAddEquipmentModal(true)}
           />
@@ -209,6 +276,8 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
             onOpenCompleteModal={(job) => { setSelectedJobForAction(job); setShowCompleteJobModal(true); }}
             onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
             onViewEquipment={setSelectedEquipmentProfile}
+            onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
+            onReportIssueClick={() => setShowReportIssueModal(true)}
           />
         );
       case 'jobs':
@@ -222,12 +291,30 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
           />
         );
       case 'calendar': return <CalendarPage onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }} />;
-      case 'customers': return <CustomersPage onViewEquipment={setSelectedEquipmentProfile} onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }} />;
+      case 'customers':
+        return (
+          <CustomersPage
+            onViewEquipment={setSelectedEquipmentProfile}
+            onReportIssue={(pivot) => { setSelectedEquipmentForIssue(pivot); setShowReportIssueModal(true); }}
+            onAddUserClick={() => setShowAddUserModal(true)}
+            onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
+            onReportIssueClick={() => setShowReportIssueModal(true)}
+            onEquipmentClick={setSelectedEquipmentProfile}
+          />
+        );
       case 'team': return <TeamPage onOpenAddUser={() => setShowAddUserModal(true)} />;
       case 'map': return <MapPage />;
       case 'analytics': return <AnalyticsPage />;
       case 'settings': return <SettingsPage />;
-      default: return <ManagerDashboardPage onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }} onOpenReportIssue={() => setShowReportIssueModal(true)} onOpenAddEquipment={() => setShowAddEquipmentModal(true)} />;
+      default:
+        return (
+          <ManagerDashboardPage
+            onOpenAssignModal={(job) => { setSelectedJobForAction(job); setShowAssignJobModal(true); }}
+            onOpenJobDetails={(job) => { setSelectedJobForAction(job); setShowJobDetailsModal(true); }}
+            onOpenReportIssue={() => setShowReportIssueModal(true)}
+            onOpenAddEquipment={() => setShowAddEquipmentModal(true)}
+          />
+        );
     }
   };
 
@@ -311,6 +398,26 @@ const ModalManager = ({ selectedTab, onSelectTab }) => {
         isOpen={showJobDetailsModal}
         onClose={() => { setShowJobDetailsModal(false); setSelectedJobForAction(null); }}
         job={selectedJobForAction}
+        users={users}
+        userProfile={userProfile}
+        canSeePricing={canSeePricing}
+        isLoading={isLoading}
+        colors={colors}
+        onAddManualTimeEntry={timeActions.addManualEntry}
+        onDeleteTimeEntry={timeActions.deleteEntry}
+        onDownloadJobSheet={jobActions.exportToExcel}
+        onExportToExcel={jobActions.exportToExcel}
+        onOpenSOModal={() => setShowSOModal(true)}
+        onOpenAssignModal={() => setShowAssignJobModal(true)}
+        formatDate={formatDate}
+        formatCurrency={formatCurrency}
+        getStatusVariant={getStatusVariant}
+      />
+      {/* Job Details Modal from notification click */}
+      <JobDetailsModal
+        isOpen={showJobDetailsFromNotif}
+        onClose={() => { setShowJobDetailsFromNotif(false); setSelectedJobForNotification(null); }}
+        job={selectedJobForNotification}
         users={users}
         userProfile={userProfile}
         canSeePricing={canSeePricing}

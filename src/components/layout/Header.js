@@ -18,7 +18,7 @@ const PORTAL_LABELS = {
   manager: 'Manager Portal'
 };
 
-const Header = ({ selectedTab, onSelectTab, onOpenProfile, onLogout }) => {
+const Header = ({ selectedTab, onSelectTab, onOpenProfile, onLogout, onOpenJobDetails }) => {
   const { isDarkMode, colors, toggleDarkMode } = useTheme();
   const { userProfile } = useAuth();
   const { jobNotifications } = useData();
@@ -119,7 +119,19 @@ const Header = ({ selectedTab, onSelectTab, onOpenProfile, onLogout }) => {
                         </div>
                       ) : (
                         jobNotifications.map(notif => (
-                          <div key={notif.id} className="p-4 border-b hover:bg-gray-50 cursor-pointer" style={{ borderColor: colors.border }}>
+                          <div
+                            key={notif.id}
+                            className="p-4 border-b hover:bg-gray-50 cursor-pointer"
+                            style={{ borderColor: colors.border }}
+                            onClick={() => {
+                              if (onOpenJobDetails && notif.job) {
+                                onOpenJobDetails(notif.job);
+                              } else {
+                                onSelectTab('jobs');
+                              }
+                              setShowNotificationsDropdown(false);
+                            }}
+                          >
                             <div className="flex items-start space-x-3">
                               <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: colors.warning + '20' }}>
                                 <AlertCircle className="w-4 h-4" style={{ color: colors.warning }} />

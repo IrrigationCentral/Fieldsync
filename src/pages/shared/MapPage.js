@@ -309,7 +309,7 @@ const MapPage = () => {
                       <p className="text-xs" style={{ color: colors.muted }}>{pivot.lat.toFixed(4)}, {pivot.lng.toFixed(4)}</p>
                     )}
                   </div>
-                  {(userProfile?.role === 'farmer' && pivot.farmerId === userProfile?.id) || userProfile?.role === 'manager' ? (
+                  {(userProfile?.role === 'farmer' && pivot.farmerId === userProfile?.id) || ['manager', 'tech', 'office'].includes(userProfile?.role) ? (
                     <Button size="sm" variant={editingPivot?.id === pivot.id ? 'primary' : 'secondary'} icon={MapPin} onClick={() => setEditingPivot(editingPivot?.id === pivot.id ? null : pivot)}>
                       {pivot.lat && pivot.lng ? 'Edit' : 'Set Location'}
                     </Button>

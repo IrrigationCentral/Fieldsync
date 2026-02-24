@@ -7,7 +7,7 @@ import NavTabs from './NavTabs';
 import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../context/NotificationContext';
 
-const AppLayout = ({ selectedTab, onSelectTab, onOpenProfile, onLogout, children }) => {
+const AppLayout = ({ selectedTab, onSelectTab, onOpenProfile, onLogout, onOpenJobDetails, children }) => {
   const { colors } = useTheme();
   const { notifications } = useNotifications();
 
@@ -18,6 +18,7 @@ const AppLayout = ({ selectedTab, onSelectTab, onOpenProfile, onLogout, children
         onSelectTab={onSelectTab}
         onOpenProfile={onOpenProfile}
         onLogout={onLogout}
+        onOpenJobDetails={onOpenJobDetails}
       />
       <NavTabs selectedTab={selectedTab} onSelectTab={onSelectTab} />
 

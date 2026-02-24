@@ -162,7 +162,9 @@ const EquipmentProfilePage = ({ equipment: pivot, onBack, onReportIssue, onEditE
                     <div className="flex items-center space-x-4 mt-2 text-xs" style={{ color: colors.muted }}>
                       <span>{formatDate(job.createdAt)}</span>
                       {job.hoursWorked && <span>{'\u2022'} {job.hoursWorked} hrs</span>}
-                      {job.techName && <span>{'\u2022'} {job.techName}</span>}
+                      {job.assignedTo && (Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean)).length > 0 && (
+                        <span>{'\u2022'} {(Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean)).map(id => users.find(u => u.id === id)?.name).filter(Boolean).join(', ')}</span>
+                      )}
                       {job.rating && (
                         <span className="flex items-center">
                           {'\u2022'} <Star className="w-3 h-3 mr-1" style={{ color: colors.accent }} /> {job.rating}

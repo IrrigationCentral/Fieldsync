@@ -9,10 +9,14 @@ import { useAuth } from '../../context/AuthContextV2';
 import { useData } from '../../context/DataContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useJobs } from '../../hooks/useJobs';
-import { useModal } from '../../hooks/useModal';
 import { StatCard, EmptyState, Badge, Button } from '../../components/ui';
 
-const DashboardPage = () => {
+const DashboardPage = ({
+  onOpenCompleteModal,
+  onAddEquipmentClick,
+  onReportIssueClick,
+  onViewEquipment
+}) => {
   const { colors } = useTheme();
   const { userProfile } = useAuth();
   const { users, equipment, jobs } = useData();
@@ -20,12 +24,6 @@ const DashboardPage = () => {
   const { selfAssign } = useJobs();
   const [showPending, setShowPending] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // Modal hooks
-  const completeJobModal = useModal();
-  const addEquipmentModal = useModal();
-  const reportIssueModal = useModal();
-  const equipmentProfileModal = useModal();
 
   // Filter jobs assigned to current user
   const myJobs = jobs.filter(j => {
@@ -60,7 +58,7 @@ const DashboardPage = () => {
           <Button
             icon={Plus}
             size="sm"
-            onClick={() => addEquipmentModal.open()}
+            onClick={onAddEquipmentClick}
           >
             Add Equipment
           </Button>
@@ -68,7 +66,7 @@ const DashboardPage = () => {
             icon={AlertCircle}
             size="sm"
             variant="secondary"
-            onClick={() => reportIssueModal.open()}
+            onClick={onReportIssueClick}
           >
             Report Issue
           </Button>
@@ -133,7 +131,7 @@ const DashboardPage = () => {
                         )}
                       </div>
                       <button
-                        onClick={() => pivot && equipmentProfileModal.open(pivot)}
+                        onClick={() => pivot && onViewEquipment && onViewEquipment(pivot)}
                         className="text-sm hover:underline flex items-center"
                         style={{ color: colors.primary }}
                       >
@@ -203,7 +201,7 @@ const DashboardPage = () => {
                     <Button
                       className="w-full"
                       icon={CheckCircle}
-                      onClick={() => completeJobModal.open(job)}
+                      onClick={() => onOpenCompleteModal && onOpenCompleteModal(job)}
                     >
                       Complete Job
                     </Button>
@@ -288,8 +286,6 @@ const DashboardPage = () => {
         )}
       </div>
 
-      {/* TODO: Wire up modals when modal components are created */}
-      {/* completeJobModal, addEquipmentModal, reportIssueModal, equipmentProfileModal */}
     </div>
   );
 };

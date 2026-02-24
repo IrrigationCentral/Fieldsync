@@ -138,6 +138,7 @@ const ProfileModal = ({
       addNotification('success', `Test SMS sent to ${result.smsEmail}! Check your phone.`);
     } else {
       addNotification('error', `Test failed: ${result.error}`);
+      console.log('SMS Test Debug:', result);
     }
   };
 
@@ -199,7 +200,7 @@ const ProfileModal = ({
                 <button 
                   key={emoji} 
                   type="button" 
-                  onClick={() => setFormData({...formData, avatar: emoji})} 
+                  onClick={() => setFormData(prev => ({...prev, avatar: emoji}))} 
                   className={`text-2xl p-2 rounded-lg transition-colors ${formData.avatar === emoji ? 'bg-green-100' : 'hover:bg-gray-100'}`}
                 >
                   {emoji}
@@ -207,8 +208,8 @@ const ProfileModal = ({
               ))}
             </div>
           </div>
-          <Input label="Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-          <Input label="Phone" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(555) 123-4567" />
+          <Input label="Name" value={formData.name} onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} required />
+          <Input label="Phone" value={formData.phone} onChange={e => setFormData(prev => ({...prev, phone: e.target.value}))} placeholder="(555) 123-4567" />
           
           {/* Farmer-specific fields */}
           {userProfile?.role === 'farmer' && (
@@ -216,7 +217,7 @@ const ProfileModal = ({
               <Input 
                 label="Company/Farm Name" 
                 value={formData.company} 
-                onChange={e => setFormData({...formData, company: e.target.value})} 
+                onChange={e => setFormData(prev => ({...prev, company: e.target.value}))} 
                 placeholder="Smith Family Farms" 
               />
               <div>
@@ -226,7 +227,7 @@ const ProfileModal = ({
                   rows={2} 
                   placeholder="123 Farm Road&#10;City, State 12345"
                   value={formData.billingAddress}
-                  onChange={e => setFormData({...formData, billingAddress: e.target.value})}
+                  onChange={e => setFormData(prev => ({...prev, billingAddress: e.target.value}))}
                 />
               </div>
             </>
@@ -241,7 +242,7 @@ const ProfileModal = ({
             <select
               className="input"
               value={formData.carrier}
-              onChange={e => setFormData({...formData, carrier: e.target.value})}
+              onChange={e => setFormData(prev => ({...prev, carrier: e.target.value}))}
             >
               <option value="">Select your carrier...</option>
               <option value="email_only">📧 Email Only (no SMS)</option>
