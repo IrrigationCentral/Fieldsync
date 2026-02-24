@@ -71,31 +71,31 @@ export const getSmsEmail = (phone, carrier) => {
 // 4. Copy your Service ID, Template ID, and Public Key below
 // ============================================
 const EMAILJS_CONFIG = {
-  serviceId: process.env.REACT_APP_EMAILJS_SERVICE_ID || 'service_ib03hq8',
-  templateId: process.env.REACT_APP_EMAILJS_TEMPLATE_ID || 'template_gplxon3',
-  publicKey: process.env.REACT_APP_EMAILJS_PUBLIC_KEY || 'B0ZGixiWn4HLw6YRY'
+  serviceId: process.env.REACT_APP_EMAILJS_SERVICE_ID || '',
+  templateId: process.env.REACT_APP_EMAILJS_TEMPLATE_ID || '',
+  publicKey: process.env.REACT_APP_EMAILJS_PUBLIC_KEY || ''
 };
 
 // Check if EmailJS is configured
 export const isEmailJSConfigured = () => {
-  const configured = EMAILJS_CONFIG.serviceId && 
-         EMAILJS_CONFIG.templateId && 
-         EMAILJS_CONFIG.publicKey &&
-         !EMAILJS_CONFIG.templateId.includes('YOUR_') &&
-         !EMAILJS_CONFIG.templateId.includes('__ejs-test');
-  console.log('EmailJS configured:', configured, EMAILJS_CONFIG);
+  const configured = !!(
+    process.env.REACT_APP_EMAILJS_SERVICE_ID &&
+    process.env.REACT_APP_EMAILJS_TEMPLATE_ID &&
+    process.env.REACT_APP_EMAILJS_PUBLIC_KEY
+  );
+  console.log('EmailJS configured:', configured);
   return configured;
 };
 
 // Send SMS notification via EmailJS
 export const sendSmsNotification = async (phone, carrier, subject, message) => {
   console.log('Attempting to send SMS:', { phone, carrier, subject });
-  
+
   if (!isEmailJSConfigured()) {
-    console.warn('EmailJS not properly configured. Check template ID.');
+    console.warn('EmailJS not configured. Missing environment variables.');
     console.log('Would send to:', getSmsEmail(phone, carrier));
     console.log('Message:', message);
-    return { success: false, error: 'EmailJS template not configured - check dashboard' };
+    return { success: false, error: 'EmailJS not configured - check environment variables' };
   }
 
   const toEmail = getSmsEmail(phone, carrier);

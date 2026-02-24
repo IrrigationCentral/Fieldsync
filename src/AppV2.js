@@ -123,7 +123,11 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
   const [selectedEquipmentForIssue, setSelectedEquipmentForIssue] = useState(null);
   const [selectedJobForAction, setSelectedJobForAction] = useState(null);
   const [selectedEquipmentProfile, setSelectedEquipmentProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Per-modal loading states to prevent cross-contamination
+  const [equipmentLoading] = useState(false); // eslint-disable-line no-unused-vars
+  const [userLoading, setUserLoading] = useState(false);
+  const [issueLoading, setIssueLoading] = useState(false);
 
   const canSeePricing = ['manager', 'office'].includes(userProfile?.role);
 
@@ -203,6 +207,8 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
               onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
               onReportIssueClick={() => setShowReportIssueModal(true)}
               onEquipmentClick={setSelectedEquipmentProfile}
+              onDeleteEquipment={(id, name) => equipActions.deleteEquipment(id, name)}
+              onDeleteJob={(id, title) => jobActions.deleteJob(id, title)}
             />
           );
         case 'map': return <MapPage />;
@@ -242,6 +248,8 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
               onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
               onReportIssueClick={() => setShowReportIssueModal(true)}
               onEquipmentClick={setSelectedEquipmentProfile}
+              onDeleteEquipment={(id, name) => equipActions.deleteEquipment(id, name)}
+              onDeleteJob={(id, title) => jobActions.deleteJob(id, title)}
             />
           );
         case 'map': return <MapPage />;
@@ -300,6 +308,8 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
             onAddEquipmentClick={() => setShowAddEquipmentModal(true)}
             onReportIssueClick={() => setShowReportIssueModal(true)}
             onEquipmentClick={setSelectedEquipmentProfile}
+            onDeleteEquipment={(id, name) => equipActions.deleteEquipment(id, name)}
+            onDeleteJob={(id, title) => jobActions.deleteJob(id, title)}
           />
         );
       case 'team': return <TeamPage onOpenAddUser={() => setShowAddUserModal(true)} />;
@@ -329,7 +339,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         onAdd={(data) => { equipActions.addEquipment(data).then(() => setShowAddEquipmentModal(false)); }}
         users={users}
         userProfile={userProfile}
-        isLoading={isLoading}
+        isLoading={equipmentLoading}
         colors={colors}
         addNotification={addNotification}
       />
@@ -338,7 +348,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         onClose={() => setShowEditEquipmentModal(false)}
         equipment={selectedEquipmentProfile}
         onUpdate={(id, data) => { equipActions.updateDetails(id, data).then(() => setShowEditEquipmentModal(false)); }}
-        isLoading={isLoading}
+        isLoading={equipmentLoading}
         colors={colors}
       />
       <ReportIssueModal
@@ -353,8 +363,8 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         createJob={jobActions.createJob}
         addPivot={fbAddPivot}
         addNotification={addNotification}
-        isLoading={isLoading}
-        setIsLoading={setIsLoading}
+        isLoading={issueLoading}
+        setIsLoading={setIssueLoading}
       />
       <CompleteJobModal
         isOpen={showCompleteJobModal}
@@ -364,7 +374,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         parts={parts}
         pricingSettings={pricingSettings}
         handleCompleteJob={(id, data) => jobActions.completeJob(id, data).then(() => { setShowCompleteJobModal(false); setSelectedJobForAction(null); })}
-        isLoading={isLoading}
+        isLoading={false}
         canSeePricing={canSeePricing}
         formatCurrency={formatCurrency}
         users={users}
@@ -383,7 +393,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         handleAssignJob={(id, techId) => jobActions.assignJob(id, techId).then(() => { setShowAssignJobModal(false); setSelectedJobForAction(null); })}
         handleRemoveAssignee={jobActions.removeAssignee}
         setShowAddUserModal={setShowAddUserModal}
-        isLoading={isLoading}
+        isLoading={false}
       />
       <AddUserModal
         isOpen={showAddUserModal}
@@ -391,8 +401,8 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         colors={colors}
         signUp={signUp}
         addNotification={addNotification}
-        isLoading={isLoading}
-        setIsLoading={setIsLoading}
+        isLoading={userLoading}
+        setIsLoading={setUserLoading}
       />
       <JobDetailsModal
         isOpen={showJobDetailsModal}
@@ -401,7 +411,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         users={users}
         userProfile={userProfile}
         canSeePricing={canSeePricing}
-        isLoading={isLoading}
+        isLoading={false}
         colors={colors}
         onAddManualTimeEntry={timeActions.addManualEntry}
         onDeleteTimeEntry={timeActions.deleteEntry}
@@ -421,7 +431,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         users={users}
         userProfile={userProfile}
         canSeePricing={canSeePricing}
-        isLoading={isLoading}
+        isLoading={false}
         colors={colors}
         onAddManualTimeEntry={timeActions.addManualEntry}
         onDeleteTimeEntry={timeActions.deleteEntry}
@@ -437,7 +447,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
         userProfile={userProfile}
-        isLoading={isLoading}
+        isLoading={false}
         colors={colors}
         onUpdateProfile={(data) => updateUser(userProfile.id, data).then(() => addNotification('success', 'Profile updated'))}
         onUpdateEmail={updateUserEmail}
@@ -454,7 +464,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         colors={colors}
         pricingSettings={pricingSettings}
         handleUpdateSettings={(s) => settingsActions.updateSettings(s).then(() => setShowSettingsModal(false))}
-        isLoading={isLoading}
+        isLoading={false}
       />
       <SONumberModal
         isOpen={showSOModal}
@@ -462,7 +472,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         colors={colors}
         selectedJobForAction={selectedJobForAction}
         handleUpdateSONumber={(id, so) => jobActions.updateSONumber(id, so).then(() => { setShowSOModal(false); setSelectedJobForAction(null); })}
-        isLoading={isLoading}
+        isLoading={false}
       />
     </>
   );

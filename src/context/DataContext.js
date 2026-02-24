@@ -48,33 +48,53 @@ export const DataProvider = ({ children }) => {
       return;
     }
 
-    let loaded = 0;
+    const loadedSubs = new Set();
     const totalSubs = 5;
-    const checkLoaded = () => {
-      loaded++;
-      if (loaded >= totalSubs) setDataLoading(false);
+    const checkLoaded = (name) => {
+      loadedSubs.add(name);
+      if (loadedSubs.size >= totalSubs) setDataLoading(false);
     };
 
-    const unsubUsers = subscribeToUsers((data) => {
-      setUsers(data);
-      checkLoaded();
-    });
-    const unsubEquipment = subscribeToPivots((data) => {
-      setEquipment(data);
-      checkLoaded();
-    });
-    const unsubJobs = subscribeToJobs((data) => {
-      setJobs(data);
-      checkLoaded();
-    });
-    const unsubSettings = subscribeToSettings((data) => {
-      setPricingSettings(data);
-      checkLoaded();
-    });
-    const unsubParts = subscribeToParts((data) => {
-      setParts(data);
-      checkLoaded();
-    });
+    const handleError = (name, error) => {
+      console.error(`${name} subscription error:`, error);
+      checkLoaded(name);
+    };
+
+    const unsubUsers = subscribeToUsers(
+      (data) => {
+        setUsers(data);
+        checkLoaded('users');
+      },
+      (error) => handleError('users', error)
+    );
+    const unsubEquipment = subscribeToPivots(
+      (data) => {
+        setEquipment(data);
+        checkLoaded('equipment');
+      },
+      (error) => handleError('equipment', error)
+    );
+    const unsubJobs = subscribeToJobs(
+      (data) => {
+        setJobs(data);
+        checkLoaded('jobs');
+      },
+      (error) => handleError('jobs', error)
+    );
+    const unsubSettings = subscribeToSettings(
+      (data) => {
+        setPricingSettings(data);
+        checkLoaded('settings');
+      },
+      (error) => handleError('settings', error)
+    );
+    const unsubParts = subscribeToParts(
+      (data) => {
+        setParts(data);
+        checkLoaded('parts');
+      },
+      (error) => handleError('parts', error)
+    );
 
     return () => {
       unsubUsers();
@@ -89,14 +109,18 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     if (!currentUser || !['manager', 'office'].includes(userProfile?.role)) return;
 
+    let mounted = true;
     const loadAnalytics = async () => {
       const result = await getAnalytics();
-      if (result.success) setAnalytics(result.analytics);
+      if (result.success && mounted) setAnalytics(result.analytics);
     };
 
     loadAnalytics();
     const interval = setInterval(loadAnalytics, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [currentUser, userProfile]);
 
   // Job notifications (pending jobs for dropdown)

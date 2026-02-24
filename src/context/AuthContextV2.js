@@ -18,9 +18,11 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to Firebase auth state changes
   useEffect(() => {
+    let cancelled = false;
     const unsubscribe = onAuthChange(async (user) => {
       if (user) {
         const result = await getUserProfile(user.uid);
+        if (cancelled) return;
         if (result.success) {
           setCurrentUser(user);
           setUserProfile(result.profile);
@@ -31,12 +33,16 @@ export const AuthProvider = ({ children }) => {
           setUserProfile(null);
         }
       } else {
+        if (cancelled) return;
         setCurrentUser(null);
         setUserProfile(null);
       }
-      setAuthLoading(false);
+      if (!cancelled) setAuthLoading(false);
     });
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   const login = useCallback(async (email, password) => {

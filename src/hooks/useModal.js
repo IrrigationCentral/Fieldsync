@@ -17,9 +17,11 @@ export const useModal = (initialState = false) => {
   }, []);
 
   const toggle = useCallback(() => {
-    setIsOpen(prev => !prev);
-    if (isOpen) setData(null);
-  }, [isOpen]);
+    setIsOpen(prev => {
+      if (prev) setData(null); // closing, clear data
+      return !prev;
+    });
+  }, []); // no dependencies needed
 
   return { isOpen, data, open, close, toggle };
 };

@@ -1,20 +1,22 @@
 // ============================================
 // FIREBASE FIRESTORE DATABASE SERVICE
 // ============================================
-import { 
-  collection, 
-  doc, 
-  addDoc, 
+import {
+  collection,
+  doc,
+  addDoc,
   getDoc,
-  getDocs, 
-  updateDoc, 
-  deleteDoc, 
+  getDocs,
+  updateDoc,
+  deleteDoc,
   setDoc,
-  query, 
-  where, 
-  orderBy, 
+  query,
+  where,
+  orderBy,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from './config';
 
@@ -282,21 +284,10 @@ export const assignJob = async (jobId, techIds) => {
 
 export const addAssigneeToJob = async (jobId, userId) => {
   try {
-    const jobDoc = await getDoc(doc(db, 'jobs', jobId));
-    if (!jobDoc.exists()) {
-      return { success: false, error: 'Job not found' };
-    }
-    const currentAssignees = jobDoc.data().assignedTo || [];
-    const assigneeArray = Array.isArray(currentAssignees) ? currentAssignees : [currentAssignees].filter(Boolean);
-    
-    if (!assigneeArray.includes(userId)) {
-      assigneeArray.push(userId);
-    }
-    
-    await updateDoc(doc(db, 'jobs', jobId), { 
-      assignedTo: assigneeArray,
+    await updateDoc(doc(db, 'jobs', jobId), {
+      assignedTo: arrayUnion(userId),
       status: 'assigned',
-      updatedAt: serverTimestamp() 
+      updatedAt: serverTimestamp()
     });
     return { success: true };
   } catch (error) {
@@ -307,19 +298,20 @@ export const addAssigneeToJob = async (jobId, userId) => {
 
 export const removeAssigneeFromJob = async (jobId, userId) => {
   try {
-    const jobDoc = await getDoc(doc(db, 'jobs', jobId));
-    if (!jobDoc.exists()) {
-      return { success: false, error: 'Job not found' };
-    }
-    const currentAssignees = jobDoc.data().assignedTo || [];
-    const assigneeArray = Array.isArray(currentAssignees) ? currentAssignees : [currentAssignees].filter(Boolean);
-    
-    const newAssignees = assigneeArray.filter(id => id !== userId);
-    
-    await updateDoc(doc(db, 'jobs', jobId), { 
-      assignedTo: newAssignees,
-      status: newAssignees.length === 0 ? 'pending' : 'assigned',
-      updatedAt: serverTimestamp() 
+    await runTransaction(db, async (transaction) => {
+      const jobRef = doc(db, 'jobs', jobId);
+      const jobSnap = await transaction.get(jobRef);
+      if (!jobSnap.exists()) throw new Error('Job not found');
+
+      const currentAssignees = jobSnap.data().assignedTo || [];
+      const assigneeArray = Array.isArray(currentAssignees) ? currentAssignees : [currentAssignees].filter(Boolean);
+      const newAssignees = assigneeArray.filter(id => id !== userId);
+
+      transaction.update(jobRef, {
+        assignedTo: newAssignees,
+        status: newAssignees.length === 0 ? 'pending' : 'assigned',
+        updatedAt: serverTimestamp()
+      });
     });
     return { success: true };
   } catch (error) {

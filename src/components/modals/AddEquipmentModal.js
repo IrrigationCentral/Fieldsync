@@ -101,8 +101,16 @@ const AddEquipmentModal = ({
   // Cleanup map on modal close
   useEffect(() => {
     if (!isOpen) {
-      mapInstanceRef.current = null;
-      markerRef.current = null;
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      if (mapInstanceRef.current) {
+        if (window.google) {
+          window.google.maps.event.clearInstanceListeners(mapInstanceRef.current);
+        }
+        mapInstanceRef.current = null;
+      }
       setShowMap(false);
     }
   }, [isOpen]);

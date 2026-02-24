@@ -32,8 +32,9 @@ const AnalyticsPage = () => {
         return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
       });
       const completed = techJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
-      const avgRating = completed.length > 0
-        ? completed.reduce((sum, j) => sum + (j.rating || 0), 0) / completed.filter(j => j.rating).length
+      const ratedJobs = completed.filter(j => j.rating);
+      const avgRating = ratedJobs.length > 0
+        ? ratedJobs.reduce((sum, j) => sum + (j.rating || 0), 0) / ratedJobs.length
         : 0;
       const totalHours = techJobs.reduce((sum, job) => {
         if (job.timeEntries && Array.isArray(job.timeEntries)) {

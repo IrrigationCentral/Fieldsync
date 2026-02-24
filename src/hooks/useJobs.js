@@ -171,17 +171,22 @@ export const useJobs = () => {
   }, [addNotification]);
 
   const rateJob = useCallback(async (jobId, rating, feedback) => {
-    const result = await fbUpdateJob(jobId, {
-      rating,
-      feedback,
-      ratedAt: new Date().toISOString()
-    });
-    if (result.success) {
-      addNotification('success', 'Thank you for your feedback!');
-    } else {
-      addNotification('error', 'Failed to submit rating');
+    setIsLoading(true);
+    try {
+      const result = await fbUpdateJob(jobId, {
+        rating,
+        feedback,
+        ratedAt: new Date().toISOString()
+      });
+      if (result.success) {
+        addNotification('success', 'Thank you for your feedback!');
+      } else {
+        addNotification('error', 'Failed to submit rating');
+      }
+      return result;
+    } finally {
+      setIsLoading(false);
     }
-    return result;
   }, [addNotification]);
 
   const deleteJob = useCallback(async (jobId, jobTitle) => {

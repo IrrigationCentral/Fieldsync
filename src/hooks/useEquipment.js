@@ -32,13 +32,18 @@ export const useEquipment = () => {
   }, [userProfile, addNotification]);
 
   const updateLocation = useCallback(async (equipmentId, lat, lng, address) => {
-    const result = await fbUpdatePivot(equipmentId, { lat, lng, address });
-    if (result.success) {
-      addNotification('success', 'Equipment location updated');
-    } else {
-      addNotification('error', 'Failed to update location');
+    setIsLoading(true);
+    try {
+      const result = await fbUpdatePivot(equipmentId, { lat, lng, address });
+      if (result.success) {
+        addNotification('success', 'Equipment location updated');
+      } else {
+        addNotification('error', 'Failed to update location');
+      }
+      return result;
+    } finally {
+      setIsLoading(false);
     }
-    return result;
   }, [addNotification]);
 
   const updateDetails = useCallback(async (equipmentId, equipmentData) => {

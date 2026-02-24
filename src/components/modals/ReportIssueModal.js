@@ -1,7 +1,7 @@
 // ============================================
 // REPORT ISSUE / CALL-IN MODAL
 // ============================================
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   User, UserPlus, Plus, AlertCircle, Camera, X,
   RefreshCw, Power, Check
@@ -65,16 +65,29 @@ const ReportIssueModal = ({
     [selectedEquipmentForIssue, equipment, selectedPivotId]
   );
 
+  // Reset form state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setDescription('');
+      setPriority('medium');
+      setLeavePivotRunning(false);
+      setPivotDirection('forward');
+      setPivotPercentage('50');
+      setAcknowledged(false);
+      setPhotos([]);
+      setSelectedFarmerId('');
+      setSelectedPivotId('');
+      setShowInlineAddCustomer(false);
+      setNewCustomerData({ name: '', email: '', phone: '', company: '', address: '' });
+      setShowInlineAddEquipment(false);
+      setNewEquipmentData({ name: '', type: 'center_pivot', acres: '', address: '', lat: '', lng: '' });
+    }
+  }, [isOpen]);
+
   // Memoized handlers
   const handleClose = useCallback(() => {
     onClose();
     setSelectedEquipmentForIssue(null);
-    setSelectedFarmerId('');
-    setSelectedPivotId('');
-    setShowInlineAddEquipment(false);
-    setNewEquipmentData({ name: '', type: 'center_pivot', acres: '', address: '', lat: '', lng: '' });
-    setShowInlineAddCustomer(false);
-    setNewCustomerData({ name: '', email: '', phone: '', company: '', address: '' });
   }, [onClose, setSelectedEquipmentForIssue]);
 
   // Handle inline customer creation
