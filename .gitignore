@@ -24,3 +24,19 @@ yarn-error.log*
 
 .vercel
 .env*.local
+.env.vercel.prod
+
+# Reference/backup files
+*.deployed.js
+*.backup
+src/App.js.backup
+
+# Data exports
+*.xlsx
+
+# Utility scripts
+scripts/
+
+# Misc
+nul
+CLAUDE.md
