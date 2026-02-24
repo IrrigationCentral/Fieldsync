@@ -4,7 +4,6 @@
 // ============================================
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { BUSINESS, PRICING_DEFAULTS } from '../config/businessConfig';
 
 // Generate Service Call Job Sheet PDF
 export const generateJobSheetPDF = (job, pivot, farmer, tech, settings) => {
@@ -22,7 +21,7 @@ export const generateJobSheetPDF = (job, pivot, farmer, tech, settings) => {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text(BUSINESS.name, 14, 15);
+  doc.text('HARDLUCK IRRIGATION', 14, 15);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
@@ -176,15 +175,15 @@ export const generateJobSheetPDF = (job, pivot, farmer, tech, settings) => {
   doc.text('COST SUMMARY', 16, yPos + 6);
   yPos += 12;
   
-  const laborCost = (job.hoursWorked || 0) * (settings?.hourlyRate || PRICING_DEFAULTS.hourlyRate);
-  const mileageCost = (job.milesDriven || 0) * (settings?.mileageRate || PRICING_DEFAULTS.mileageRate);
+  const laborCost = (job.hoursWorked || 0) * (settings?.hourlyRate || 75);
+  const mileageCost = (job.milesDriven || 0) * (settings?.mileageRate || 0.65);
   const partsCost = job.partsCost || 0;
   const partsWithMarkup = partsCost * (1 + (settings?.partsMarkup || 0) / 100);
   const totalCost = job.totalCost || (laborCost + mileageCost + partsWithMarkup);
   
   const costData = [
-    ['Labor', `${(job.hoursWorked || 0).toFixed(2)} hrs × $${settings?.hourlyRate || PRICING_DEFAULTS.hourlyRate}/hr`, `$${laborCost.toFixed(2)}`],
-    ['Mileage', `${job.milesDriven || 0} mi × $${settings?.mileageRate || PRICING_DEFAULTS.mileageRate}/mi`, `$${mileageCost.toFixed(2)}`],
+    ['Labor', `${(job.hoursWorked || 0).toFixed(2)} hrs × $${settings?.hourlyRate || 75}/hr`, `$${laborCost.toFixed(2)}`],
+    ['Mileage', `${job.milesDriven || 0} mi × $${settings?.mileageRate || 0.65}/mi`, `$${mileageCost.toFixed(2)}`],
     ['Parts', settings?.partsMarkup ? `+ ${settings.partsMarkup}% markup` : '', `$${partsWithMarkup.toFixed(2)}`],
     ['', '', ''],
     ['', 'TOTAL', `$${totalCost.toFixed(2)}`]
@@ -231,7 +230,7 @@ export const generateJobSheetPDF = (job, pivot, farmer, tech, settings) => {
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8);
-  doc.text(`${BUSINESS.displayName} • ${BUSINESS.tagline}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
+  doc.text('Hardluck Irrigation • Service Excellence Since Day One', pageWidth / 2, pageHeight - 7, { align: 'center' });
   doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, pageHeight - 7, { align: 'right' });
   
   return doc;

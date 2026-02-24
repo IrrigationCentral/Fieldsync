@@ -44,9 +44,9 @@ const SettingsModal = ({
         <div className="p-4 rounded-lg" style={{ backgroundColor: colors.background }}>
           <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>Configure your service pricing rates</p>
         </div>
-        <Input label="Hourly Rate ($)" type="number" step="0.01" value={formData.hourlyRate} onChange={e => setFormData({...formData, hourlyRate: e.target.value})} icon={DollarSign} />
-        <Input label="Mileage Rate ($/mile)" type="number" step="0.01" value={formData.mileageRate} onChange={e => setFormData({...formData, mileageRate: e.target.value})} icon={Navigation} />
-        <Input label="Parts Markup (%)" type="number" step="1" value={formData.partsMarkup} onChange={e => setFormData({...formData, partsMarkup: e.target.value})} placeholder="0" />
+        <Input label="Hourly Rate ($)" type="number" step="0.01" value={formData.hourlyRate} onChange={e => setFormData(prev => ({...prev, hourlyRate: e.target.value}))} icon={DollarSign} />
+        <Input label="Mileage Rate ($/mile)" type="number" step="0.01" value={formData.mileageRate} onChange={e => setFormData(prev => ({...prev, mileageRate: e.target.value}))} icon={Navigation} />
+        <Input label="Parts Markup (%)" type="number" step="1" value={formData.partsMarkup} onChange={e => setFormData(prev => ({...prev, partsMarkup: e.target.value}))} placeholder="0" />
         <div className="p-3 rounded-lg" style={{ backgroundColor: colors.success + '10' }}>
           <p className="text-sm" style={{ color: colors.textSecondary }}>Example Job Cost:</p>
           <p className="text-sm">4 hours × ${formData.hourlyRate}/hr = ${(4 * formData.hourlyRate).toFixed(2)}</p>

@@ -33,7 +33,8 @@ const formatPhone = (phone) => {
   if (digits.length === 11 && digits.startsWith('1')) {
     digits = digits.substring(1);
   }
-
+  
+  console.log('Phone formatting:', { original: phone, cleaned: digits, length: digits.length });
   return digits;
 };
 
@@ -51,8 +52,9 @@ export const getSmsEmail = (phone, carrier) => {
     console.error('Invalid phone number length:', cleanPhone.length, '(expected 10)');
     return null;
   }
-
+  
   const email = `${cleanPhone}@${carrierInfo.gateway}`;
+  console.log('Generated SMS email:', email);
   return email;
 };
 
@@ -66,28 +68,33 @@ export const getSmsEmail = (phone, carrier) => {
 //    - {{to_email}} - recipient email address
 //    - {{subject}} - email subject
 //    - {{message}} - message body
-// 4. Copy your Service ID, Template ID, and Public Key to .env.local
+// 4. Copy your Service ID, Template ID, and Public Key below
 // ============================================
 const EMAILJS_CONFIG = {
-  serviceId: process.env.REACT_APP_EMAILJS_SERVICE_ID,
-  templateId: process.env.REACT_APP_EMAILJS_TEMPLATE_ID,
-  publicKey: process.env.REACT_APP_EMAILJS_PUBLIC_KEY
+  serviceId: process.env.REACT_APP_EMAILJS_SERVICE_ID || 'service_ib03hq8',
+  templateId: process.env.REACT_APP_EMAILJS_TEMPLATE_ID || 'template_gplxon3',
+  publicKey: process.env.REACT_APP_EMAILJS_PUBLIC_KEY || 'B0ZGixiWn4HLw6YRY'
 };
 
 // Check if EmailJS is configured
 export const isEmailJSConfigured = () => {
-  const configured = EMAILJS_CONFIG.serviceId &&
-         EMAILJS_CONFIG.templateId &&
+  const configured = EMAILJS_CONFIG.serviceId && 
+         EMAILJS_CONFIG.templateId && 
          EMAILJS_CONFIG.publicKey &&
          !EMAILJS_CONFIG.templateId.includes('YOUR_') &&
          !EMAILJS_CONFIG.templateId.includes('__ejs-test');
+  console.log('EmailJS configured:', configured, EMAILJS_CONFIG);
   return configured;
 };
 
 // Send SMS notification via EmailJS
 export const sendSmsNotification = async (phone, carrier, subject, message) => {
+  console.log('Attempting to send SMS:', { phone, carrier, subject });
+  
   if (!isEmailJSConfigured()) {
     console.warn('EmailJS not properly configured. Check template ID.');
+    console.log('Would send to:', getSmsEmail(phone, carrier));
+    console.log('Message:', message);
     return { success: false, error: 'EmailJS template not configured - check dashboard' };
   }
 
@@ -98,7 +105,8 @@ export const sendSmsNotification = async (phone, carrier, subject, message) => {
   }
 
   try {
-    await emailjs.send(
+    console.log('Sending via EmailJS to:', toEmail);
+    const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templateId,
       {
@@ -108,6 +116,7 @@ export const sendSmsNotification = async (phone, carrier, subject, message) => {
       },
       EMAILJS_CONFIG.publicKey
     );
+    console.log('EmailJS response:', response);
     return { success: true };
   } catch (error) {
     console.error('SMS send error:', error);
@@ -117,13 +126,15 @@ export const sendSmsNotification = async (phone, carrier, subject, message) => {
 
 // Send direct email notification (for customers with email but no phone)
 export const sendEmailNotification = async (email, subject, message) => {
+  console.log('Attempting to send email:', { email, subject });
+  
   if (!isEmailJSConfigured()) {
     console.warn('EmailJS not properly configured.');
     return { success: false, error: 'EmailJS not configured' };
   }
 
   try {
-    await emailjs.send(
+    const response = await emailjs.send(
       EMAILJS_CONFIG.serviceId,
       EMAILJS_CONFIG.templateId,
       {
@@ -133,6 +144,7 @@ export const sendEmailNotification = async (email, subject, message) => {
       },
       EMAILJS_CONFIG.publicKey
     );
+    console.log('Email sent:', response);
     return { success: true };
   } catch (error) {
     console.error('Email send error:', error);
@@ -213,7 +225,8 @@ export const sendTestNotification = async (user) => {
   
   if (user.phone && user.carrier) {
     const smsEmail = getSmsEmail(user.phone, user.carrier);
-
+    console.log('Test SMS - Phone:', user.phone, 'Carrier:', user.carrier, 'Email:', smsEmail);
+    
     if (!smsEmail) {
       return { 
         success: false, 
@@ -264,7 +277,8 @@ export const notifyManagersNewIssue = async (managers, job, reportedBy) => {
     const result = await notifyUser(manager, 'New Issue', message);
     results.push({ userId: manager.id, ...result });
   }
-
+  
+  console.log('Manager notifications sent:', results);
   return results;
 };
 
@@ -277,7 +291,8 @@ export const notifyOfficeNewIssue = async (officeStaff, job, reportedBy) => {
     const result = await notifyUser(staff, 'New Issue', message);
     results.push({ userId: staff.id, ...result });
   }
-
+  
+  console.log('Office notifications sent:', results);
   return results;
 };
 
@@ -290,7 +305,8 @@ export const notifyManagersJobCompleted = async (managers, job, completedBy) => 
     const result = await notifyUser(manager, 'Job Completed', message);
     results.push({ userId: manager.id, ...result });
   }
-
+  
+  console.log('Manager completion notifications sent:', results);
   return results;
 };
 
@@ -303,6 +319,7 @@ export const notifyOfficeJobCompleted = async (officeStaff, job, completedBy) =>
     const result = await notifyUser(staff, 'Job Completed', message);
     results.push({ userId: staff.id, ...result });
   }
-
+  
+  console.log('Office completion notifications sent:', results);
   return results;
 };

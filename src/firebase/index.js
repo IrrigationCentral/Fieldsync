@@ -3,11 +3,11 @@
 // ============================================
 
 // Auth exports
-export {
-  signUp,
-  signIn,
-  logOut,
-  getUserProfile,
+export { 
+  signUp, 
+  signIn, 
+  logOut, 
+  getUserProfile, 
   onAuthChange,
   resetPassword,
   reauthenticate,

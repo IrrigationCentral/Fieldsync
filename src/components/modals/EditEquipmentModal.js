@@ -144,13 +144,13 @@ const EditEquipmentModal = ({
             <Input 
               label="Equipment Name" 
               value={formData.name} 
-              onChange={e => setFormData({...formData, name: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} 
               required 
             />
             <Select 
               label="Equipment Type" 
               value={formData.type} 
-              onChange={e => setFormData({...formData, type: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, type: e.target.value}))} 
               options={equipmentTypeOptions} 
             />
           </div>
@@ -165,38 +165,38 @@ const EditEquipmentModal = ({
             <Select 
               label="Brand" 
               value={formData.brand} 
-              onChange={e => setFormData({...formData, brand: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, brand: e.target.value}))} 
               options={brandOptions} 
             />
             <Input 
               label="Model" 
               placeholder="e.g. 8000 Series" 
               value={formData.model} 
-              onChange={e => setFormData({...formData, model: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, model: e.target.value}))} 
             />
             <Input 
               label="Serial Number" 
               placeholder="S/N" 
               value={formData.serialNumber} 
-              onChange={e => setFormData({...formData, serialNumber: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, serialNumber: e.target.value}))} 
             />
             <Select 
               label="Power Type" 
               value={formData.powerType} 
-              onChange={e => setFormData({...formData, powerType: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, powerType: e.target.value}))} 
               options={powerTypeOptions} 
             />
             <Select 
               label="Panel Type" 
               value={formData.panelType} 
-              onChange={e => setFormData({...formData, panelType: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, panelType: e.target.value}))} 
               options={panelTypeOptions} 
             />
             <Input 
               label="Date Installed" 
               type="date" 
               value={formData.dateInstalled} 
-              onChange={e => setFormData({...formData, dateInstalled: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, dateInstalled: e.target.value}))} 
             />
           </div>
         </div>
@@ -212,71 +212,71 @@ const EditEquipmentModal = ({
               type="number" 
               placeholder="125" 
               value={formData.acres} 
-              onChange={e => setFormData({...formData, acres: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, acres: e.target.value}))} 
             />
             <Input 
               label="Length (ft)" 
               type="number" 
               placeholder="1320" 
               value={formData.length} 
-              onChange={e => setFormData({...formData, length: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, length: e.target.value}))} 
             />
             <Input 
               label="Number of Spans" 
               type="number" 
               placeholder="7" 
               value={formData.spans} 
-              onChange={e => setFormData({...formData, spans: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, spans: e.target.value}))} 
             />
             <Input 
               label="GPM" 
               type="number" 
               placeholder="800" 
               value={formData.gpm} 
-              onChange={e => setFormData({...formData, gpm: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, gpm: e.target.value}))} 
             />
             <Input 
               label="Nozzles" 
               type="number" 
               placeholder="250" 
               value={formData.nozzles} 
-              onChange={e => setFormData({...formData, nozzles: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, nozzles: e.target.value}))} 
             />
             <Input 
               label="Pressure (PSI)" 
               type="number" 
               placeholder="35" 
               value={formData.pressure} 
-              onChange={e => setFormData({...formData, pressure: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, pressure: e.target.value}))} 
             />
             <Input 
               label="End Gun" 
               placeholder="e.g. Nelson" 
               value={formData.endGun} 
-              onChange={e => setFormData({...formData, endGun: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, endGun: e.target.value}))} 
             />
             <Input 
               label="Tire Size" 
               placeholder="e.g. 14.9x24" 
               value={formData.tireSize} 
-              onChange={e => setFormData({...formData, tireSize: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, tireSize: e.target.value}))} 
             />
             <Input 
               label="Nozzle Package" 
               placeholder="e.g. Nelson 3000" 
               value={formData.nozzlePackage} 
-              onChange={e => setFormData({...formData, nozzlePackage: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, nozzlePackage: e.target.value}))} 
             />
             <Input 
               label="Gearbox Ratio" 
               placeholder="e.g. 50:1" 
               value={formData.gearboxRatio} 
-              onChange={e => setFormData({...formData, gearboxRatio: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, gearboxRatio: e.target.value}))} 
             />
             <Select 
               label="Drive Type" 
               value={formData.driveType} 
-              onChange={e => setFormData({...formData, driveType: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, driveType: e.target.value}))} 
               options={driveTypeOptions} 
             />
           </div>
@@ -292,7 +292,7 @@ const EditEquipmentModal = ({
               label="Address" 
               placeholder="123 Farm Road" 
               value={formData.address} 
-              onChange={e => setFormData({...formData, address: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, address: e.target.value}))} 
             />
             <div className="grid grid-cols-2 gap-4">
               <Input 
@@ -300,14 +300,14 @@ const EditEquipmentModal = ({
                 type="number" 
                 step="any" 
                 value={formData.lat} 
-                onChange={e => setFormData({...formData, lat: e.target.value})} 
+                onChange={e => setFormData(prev => ({...prev, lat: e.target.value}))} 
               />
               <Input 
                 label="Longitude" 
                 type="number" 
                 step="any" 
                 value={formData.lng} 
-                onChange={e => setFormData({...formData, lng: e.target.value})} 
+                onChange={e => setFormData(prev => ({...prev, lng: e.target.value}))} 
               />
             </div>
           </div>
@@ -323,7 +323,7 @@ const EditEquipmentModal = ({
             rows={3}
             placeholder="Any additional notes about this equipment..."
             value={formData.notes}
-            onChange={e => setFormData({...formData, notes: e.target.value})}
+            onChange={e => setFormData(prev => ({...prev, notes: e.target.value}))}
           />
         </div>
 

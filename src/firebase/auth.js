@@ -13,38 +13,34 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db, secondaryAuth } from './config';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from './config';
 
-// Sign up new user using a secondary auth instance so the current
-// manager/office user stays logged in on the primary auth.
-export const signUp = async (email, password, name, role = 'farmer', phone = '', extraData = {}) => {
+// Sign up new user
+export const signUp = async (email, password, name, role = 'farmer', phone = '') => {
   try {
-    // Create user on the secondary auth (doesn't affect primary session)
-    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    // Create auth user
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-
-    // Update display name on the secondary auth user
+    
+    // Update display name
     await updateProfile(user, { displayName: name });
-
+    
     // Create user document in Firestore
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
-      email,
-      name,
-      role,
-      phone,
+      email: email,
+      name: name,
+      role: role,
+      phone: phone,
       avatar: role === 'tech' ? '👨‍🔧' : role === 'farmer' ? '👩‍🌾' : role === 'manager' ? '👨‍💼' : '👤',
-      createdAt: serverTimestamp(),
-      isActive: true,
-      ...extraData
+      createdAt: new Date().toISOString(),
+      isActive: true
     });
-
-    // Sign out from secondary auth (cleanup, doesn't affect primary)
-    await signOut(secondaryAuth);
-
+    
     return { success: true, user };
   } catch (error) {
+    console.error('Sign up error:', error);
     return { success: false, error: getErrorMessage(error.code) };
   }
 };
@@ -140,9 +136,9 @@ export const updateUserEmail = async (newEmail, currentPassword) => {
     
     // Update email in Firestore
     const userRef = doc(db, 'users', user.uid);
-    await updateDoc(userRef, {
+    await updateDoc(userRef, { 
       email: newEmail,
-      updatedAt: serverTimestamp()
+      updatedAt: new Date().toISOString()
     });
 
     return { success: true };
@@ -190,7 +186,7 @@ export const updateUserProfile = async (uid, profileData) => {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, {
       ...profileData,
-      updatedAt: serverTimestamp()
+      updatedAt: new Date().toISOString()
     });
 
     return { success: true };

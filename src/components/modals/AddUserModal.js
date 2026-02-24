@@ -21,20 +21,18 @@ const AddUserModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate password length (Firebase minimum)
-    if (formData.password.length < 6) {
-      addNotification('error', 'Password must be at least 6 characters');
-      return;
-    }
-
     setIsLoading(true);
-    const extraData = {};
+    const userData = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      role: formData.role
+    };
     if (formData.role === 'farmer') {
-      extraData.company = formData.company;
-      extraData.billingAddress = formData.billingAddress;
+      userData.company = formData.company;
+      userData.billingAddress = formData.billingAddress;
     }
-    const result = await signUp(formData.email, formData.password, formData.name, formData.role, formData.phone, extraData);
+    const result = await signUp(formData.email, formData.password, formData.name, formData.role, formData.phone, userData);
     if (result.success) {
       addNotification('success', `${formData.role.charAt(0).toUpperCase() + formData.role.slice(1)} account created successfully`);
       onClose();
@@ -53,11 +51,11 @@ const AddUserModal = ({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Add New User" size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input label="Full Name *" placeholder="John Smith" icon={User} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-        <Input label="Email Address *" type="email" placeholder="john@example.com" icon={Mail} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
-        <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-        <Input label="Password *" type="password" placeholder="••••••••" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
-        <Select label="Role" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} options={[
+        <Input label="Full Name *" placeholder="John Smith" icon={User} value={formData.name} onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} required />
+        <Input label="Email Address *" type="email" placeholder="john@example.com" icon={Mail} value={formData.email} onChange={e => setFormData(prev => ({...prev, email: e.target.value}))} required />
+        <Input label="Phone Number" placeholder="(555) 123-4567" icon={Phone} value={formData.phone} onChange={e => setFormData(prev => ({...prev, phone: e.target.value}))} />
+        <Input label="Password *" type="password" placeholder="••••••••" value={formData.password} onChange={e => setFormData(prev => ({...prev, password: e.target.value}))} required />
+        <Select label="Role" value={formData.role} onChange={e => setFormData(prev => ({...prev, role: e.target.value}))} options={[
           { value: 'farmer', label: '👨‍🌾 Farmer / Customer' },
           { value: 'tech', label: '👷 Technician' },
           { value: 'office', label: '🏢 Office Staff' },
@@ -67,7 +65,7 @@ const AddUserModal = ({
         {formData.role === 'farmer' && (
           <div className="border-t pt-4 space-y-4" style={{ borderColor: colors.border }}>
             <h4 className="font-medium text-sm" style={{ color: colors.textSecondary }}>Customer Details (Optional)</h4>
-            <Input label="Company/Farm Name" placeholder="Smith Family Farms" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} />
+            <Input label="Company/Farm Name" placeholder="Smith Family Farms" value={formData.company} onChange={e => setFormData(prev => ({...prev, company: e.target.value}))} />
             <div>
               <label className="block text-sm font-medium mb-2" style={{ color: colors.textPrimary }}>Billing Address</label>
               <textarea 
@@ -75,7 +73,7 @@ const AddUserModal = ({
                 rows={2} 
                 placeholder="123 Farm Road&#10;County, State 12345"
                 value={formData.billingAddress}
-                onChange={e => setFormData({...formData, billingAddress: e.target.value})}
+                onChange={e => setFormData(prev => ({...prev, billingAddress: e.target.value}))}
               />
             </div>
           </div>

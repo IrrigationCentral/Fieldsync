@@ -233,7 +233,7 @@ const AddEquipmentModal = ({
             <SearchableSelect 
               label="Customer Account" 
               value={formData.farmerId} 
-              onChange={e => setFormData({...formData, farmerId: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, farmerId: e.target.value}))} 
               options={[
                 { value: '', label: 'Select a customer...' },
                 ...farmers.map(f => ({ value: f.id, label: `${f.name}${f.company ? ` (${f.company})` : ''}` }))
@@ -259,14 +259,14 @@ const AddEquipmentModal = ({
             label="Equipment Name *" 
             placeholder="North Field Pivot" 
             value={formData.name} 
-            onChange={e => setFormData({...formData, name: e.target.value})} 
+            onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} 
             required 
           />
           <div className="grid grid-cols-2 gap-4 mt-3">
             <Select 
               label="Equipment Type" 
               value={formData.type} 
-              onChange={e => setFormData({...formData, type: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, type: e.target.value}))} 
               options={equipmentTypeOptions} 
             />
             <Input 
@@ -274,7 +274,7 @@ const AddEquipmentModal = ({
               type="number" 
               placeholder="125" 
               value={formData.acres} 
-              onChange={e => setFormData({...formData, acres: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, acres: e.target.value}))} 
             />
           </div>
         </div>
@@ -306,19 +306,19 @@ const AddEquipmentModal = ({
                   label="Brand" 
                   placeholder="Valley, Reinke, Zimmatic..." 
                   value={formData.brand} 
-                  onChange={e => setFormData({...formData, brand: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, brand: e.target.value}))} 
                 />
                 <Input 
                   label="Model" 
                   placeholder="8000 Series" 
                   value={formData.model} 
-                  onChange={e => setFormData({...formData, model: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, model: e.target.value}))} 
                 />
                 <Input 
                   label="Serial Number" 
                   placeholder="VLY-12345" 
                   value={formData.serialNumber} 
-                  onChange={e => setFormData({...formData, serialNumber: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, serialNumber: e.target.value}))} 
                 />
               </div>
 
@@ -327,20 +327,20 @@ const AddEquipmentModal = ({
                 <Select 
                   label="Power Type" 
                   value={formData.powerType} 
-                  onChange={e => setFormData({...formData, powerType: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, powerType: e.target.value}))} 
                   options={powerTypeOptions} 
                 />
                 <Input 
                   label="Control Panel" 
                   placeholder="Pro2, GPS, Touch Screen" 
                   value={formData.panelType} 
-                  onChange={e => setFormData({...formData, panelType: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, panelType: e.target.value}))} 
                 />
                 <Input 
                   label="Date Installed" 
                   type="date" 
                   value={formData.dateInstalled} 
-                  onChange={e => setFormData({...formData, dateInstalled: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, dateInstalled: e.target.value}))} 
                 />
               </div>
 
@@ -351,28 +351,28 @@ const AddEquipmentModal = ({
                   type="number" 
                   placeholder="1320" 
                   value={formData.length} 
-                  onChange={e => setFormData({...formData, length: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, length: e.target.value}))} 
                 />
                 <Input 
                   label="# of Spans" 
                   type="number" 
                   placeholder="7" 
                   value={formData.spans} 
-                  onChange={e => setFormData({...formData, spans: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, spans: e.target.value}))} 
                 />
                 <Input 
                   label="# of Nozzles" 
                   type="number" 
                   placeholder="250" 
                   value={formData.nozzles} 
-                  onChange={e => setFormData({...formData, nozzles: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, nozzles: e.target.value}))} 
                 />
                 <Input 
                   label="GPM" 
                   type="number" 
                   placeholder="800" 
                   value={formData.gpm} 
-                  onChange={e => setFormData({...formData, gpm: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, gpm: e.target.value}))} 
                 />
               </div>
 
@@ -383,24 +383,24 @@ const AddEquipmentModal = ({
                   type="number" 
                   placeholder="35" 
                   value={formData.pressure} 
-                  onChange={e => setFormData({...formData, pressure: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, pressure: e.target.value}))} 
                 />
                 <Input 
                   label="End Gun" 
                   placeholder="Nelson 150, None" 
                   value={formData.endGun} 
-                  onChange={e => setFormData({...formData, endGun: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, endGun: e.target.value}))} 
                 />
                 <Input 
                   label="Tire Size" 
                   placeholder="14.9-24" 
                   value={formData.tireSize} 
-                  onChange={e => setFormData({...formData, tireSize: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, tireSize: e.target.value}))} 
                 />
                 <Select 
                   label="Drive Type" 
                   value={formData.driveType} 
-                  onChange={e => setFormData({...formData, driveType: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, driveType: e.target.value}))} 
                   options={driveTypeOptions} 
                 />
               </div>
@@ -411,13 +411,13 @@ const AddEquipmentModal = ({
                   label="Nozzle Package" 
                   placeholder="Senninger LDN" 
                   value={formData.nozzlePackage} 
-                  onChange={e => setFormData({...formData, nozzlePackage: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, nozzlePackage: e.target.value}))} 
                 />
                 <Input 
                   label="Gearbox Ratio" 
                   placeholder="50:1" 
                   value={formData.gearboxRatio} 
-                  onChange={e => setFormData({...formData, gearboxRatio: e.target.value})} 
+                  onChange={e => setFormData(prev => ({...prev, gearboxRatio: e.target.value}))} 
                 />
               </div>
 
@@ -429,7 +429,7 @@ const AddEquipmentModal = ({
                   rows={3} 
                   placeholder="Any additional notes about this pivot..."
                   value={formData.notes}
-                  onChange={e => setFormData({...formData, notes: e.target.value})}
+                  onChange={e => setFormData(prev => ({...prev, notes: e.target.value}))}
                 />
               </div>
             </div>
@@ -472,7 +472,7 @@ const AddEquipmentModal = ({
             label="Address" 
             placeholder="123 Farm Road, County, State" 
             value={formData.address} 
-            onChange={e => setFormData({...formData, address: e.target.value})} 
+            onChange={e => setFormData(prev => ({...prev, address: e.target.value}))} 
           />
           <div className="grid grid-cols-2 gap-4 mt-3">
             <Input 
@@ -481,7 +481,7 @@ const AddEquipmentModal = ({
               step="any" 
               placeholder="36.8800" 
               value={formData.lat} 
-              onChange={e => setFormData({...formData, lat: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, lat: e.target.value}))} 
             />
             <Input 
               label="Longitude" 
@@ -489,7 +489,7 @@ const AddEquipmentModal = ({
               step="any" 
               placeholder="-89.5900" 
               value={formData.lng} 
-              onChange={e => setFormData({...formData, lng: e.target.value})} 
+              onChange={e => setFormData(prev => ({...prev, lng: e.target.value}))} 
             />
           </div>
         </div>

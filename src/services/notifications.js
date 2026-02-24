@@ -2,6 +2,8 @@
 // UNIFIED NOTIFICATION SERVICE
 // Sends push notifications via FCM, falls back to SMS/Email
 // ============================================
+import { db } from '../firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 import { sendSmsNotification, sendEmailNotification } from './sms';
 
 // Send push notification via FCM HTTP API
@@ -33,6 +35,19 @@ const sendBrowserNotification = (title, body, data = {}) => {
   return false;
 };
 
+// Get user's FCM tokens from Firestore
+const getUserTokens = async (userId) => { // eslint-disable-line no-unused-vars
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      return userDoc.data().fcmTokens || [];
+    }
+  } catch (error) {
+    console.error('Error getting user tokens:', error);
+  }
+  return [];
+};
+
 // Main notification function - tries push, falls back to SMS/Email
 export const sendNotification = async (user, title, message, options = {}) => {
   if (!user) return { success: false, error: 'No user provided' };
@@ -59,7 +74,8 @@ export const sendNotification = async (user, title, message, options = {}) => {
   }
 
   const success = results.push || results.sms || results.email;
-
+  console.log('Notification results:', { user: user.name, title, results });
+  
   return { success, results };
 };
 

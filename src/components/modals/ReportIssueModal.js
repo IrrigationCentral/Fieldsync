@@ -172,49 +172,44 @@ const ReportIssueModal = ({
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-
-    // Validate required fields first
-    if (!pivotToReport || !description) {
-      return;
-    }
-
-    if (leavePivotRunning && !acknowledged) {
-      return;
-    }
-
-    // Upload photos only after validation passes
-    let photoUrls = [];
-    if (photos.length > 0) {
-      setUploadingPhotos(true);
-      for (const photo of photos) {
-        const result = await uploadJobPhoto(photo.file, `temp_${Date.now()}`, 'issue');
-        if (result.success) {
-          photoUrls.push(result.url);
-        }
+    if (pivotToReport && description) {
+      if (leavePivotRunning && !acknowledged) {
+        return;
       }
-      setUploadingPhotos(false);
+      
+      let photoUrls = [];
+      if (photos.length > 0) {
+        setUploadingPhotos(true);
+        for (const photo of photos) {
+          const result = await uploadJobPhoto(photo.file, `temp_${Date.now()}`, 'issue');
+          if (result.success) {
+            photoUrls.push(result.url);
+          }
+        }
+        setUploadingPhotos(false);
+      }
+      
+      createJob(pivotToReport.id, description, priority, {
+        leavePivotRunning,
+        pivotDirection: leavePivotRunning ? pivotDirection : '',
+        pivotPercentage: leavePivotRunning ? parseInt(pivotPercentage) : 0,
+        acknowledged: leavePivotRunning ? acknowledged : false,
+        photos: photoUrls,
+        reportedBy: isStaff ? userProfile?.name : null,
+        reportedByRole: isStaff ? userProfile?.role : null
+      });
+      
+      // Reset form
+      setDescription('');
+      setPriority('medium');
+      setLeavePivotRunning(false);
+      setPivotDirection('forward');
+      setPivotPercentage('50');
+      setAcknowledged(false);
+      setPhotos([]);
+      setSelectedFarmerId('');
+      setSelectedPivotId('');
     }
-
-    createJob(pivotToReport.id, description, priority, {
-      leavePivotRunning,
-      pivotDirection: leavePivotRunning ? pivotDirection : '',
-      pivotPercentage: leavePivotRunning ? parseInt(pivotPercentage) : 0,
-      acknowledged: leavePivotRunning ? acknowledged : false,
-      photos: photoUrls,
-      reportedBy: isStaff ? userProfile?.name : null,
-      reportedByRole: isStaff ? userProfile?.role : null
-    });
-
-    // Reset form
-    setDescription('');
-    setPriority('medium');
-    setLeavePivotRunning(false);
-    setPivotDirection('forward');
-    setPivotPercentage('50');
-    setAcknowledged(false);
-    setPhotos([]);
-    setSelectedFarmerId('');
-    setSelectedPivotId('');
   }, [pivotToReport, description, leavePivotRunning, acknowledged, photos, priority, pivotDirection, pivotPercentage, createJob, isStaff, userProfile]);
 
   // Don't render anything if modal is closed
@@ -279,13 +274,13 @@ const ReportIssueModal = ({
                   label="Equipment Name" 
                   placeholder="e.g., North Field Pivot" 
                   value={newEquipmentData.name} 
-                  onChange={e => setNewEquipmentData({...newEquipmentData, name: e.target.value})} 
+                  onChange={e => setNewEquipmentData(prev => ({...prev, name: e.target.value}))} 
                   required
                 />
                 <Select 
                   label="Equipment Type" 
                   value={newEquipmentData.type} 
-                  onChange={e => setNewEquipmentData({...newEquipmentData, type: e.target.value})}
+                  onChange={e => setNewEquipmentData(prev => ({...prev, type: e.target.value}))}
                   options={[
                     { value: 'center_pivot', label: 'Center Pivot' },
                     { value: 'linear_pivot', label: 'Linear Pivot' },
@@ -305,13 +300,13 @@ const ReportIssueModal = ({
                     type="number" 
                     placeholder="120" 
                     value={newEquipmentData.acres} 
-                    onChange={e => setNewEquipmentData({...newEquipmentData, acres: e.target.value})} 
+                    onChange={e => setNewEquipmentData(prev => ({...prev, acres: e.target.value}))} 
                   />
                   <Input 
                     label="Address (optional)" 
                     placeholder="123 Farm Rd" 
                     value={newEquipmentData.address} 
-                    onChange={e => setNewEquipmentData({...newEquipmentData, address: e.target.value})} 
+                    onChange={e => setNewEquipmentData(prev => ({...prev, address: e.target.value}))} 
                   />
                 </div>
                 <div className="flex space-x-2">

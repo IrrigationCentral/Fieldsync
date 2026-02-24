@@ -236,6 +236,7 @@ export const getJobsByFarmer = async (farmerId) => {
 
 export const getJobsByTech = async (techId) => {
   try {
+    // Query using array-contains for array assignedTo format
     const q = query(collection(db, 'jobs'), where('assignedTo', 'array-contains', techId), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     const jobs = querySnapshot.docs.map(doc => ({
@@ -329,15 +330,9 @@ export const removeAssigneeFromJob = async (jobId, userId) => {
 
 export const completeJob = async (jobId, completionData) => {
   try {
-    // Check if job is already completed to prevent race conditions
-    const jobDoc = await getDoc(doc(db, 'jobs', jobId));
-    if (jobDoc.exists() && jobDoc.data().status === 'completed') {
-      return { success: false, error: 'Job is already completed' };
-    }
-
     await updateDoc(doc(db, 'jobs', jobId), {
       ...completionData,
-      status: 'completed',
+      status: completionData.needsFollowUp ? 'needs-followup' : 'completed',
       completedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -372,7 +367,7 @@ export const startTimeEntry = async (jobId, techId, techName) => {
     }
     
     const newEntry = {
-      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: Date.now().toString(),
       techId,
       techName,
       startTime: new Date().toISOString(),
@@ -383,7 +378,7 @@ export const startTimeEntry = async (jobId, techId, techName) => {
     await updateDoc(jobRef, {
       timeEntries: [...timeEntries, newEntry],
       status: job.status === 'pending' ? 'assigned' : job.status,
-      assignedTo: job.assignedTo || techId, // Set assignedTo if not already set
+      assignedTo: job.assignedTo || [techId], // Set assignedTo as array if not already set
       updatedAt: serverTimestamp()
     });
     
@@ -458,21 +453,16 @@ export const addManualTimeEntry = async (jobId, techId, techName, startTime, end
   try {
     const jobRef = doc(db, 'jobs', jobId);
     const jobSnap = await getDoc(jobRef);
-
+    
     if (!jobSnap.exists()) {
       return { success: false, error: 'Job not found' };
     }
-
-    // Validate that startTime is before endTime
-    if (new Date(startTime) >= new Date(endTime)) {
-      return { success: false, error: 'Start time must be before end time' };
-    }
-
+    
     const job = jobSnap.data();
     const timeEntries = job.timeEntries || [];
-
+    
     const newEntry = {
-      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: Date.now().toString(),
       techId,
       techName,
       startTime: new Date(startTime).toISOString(),
@@ -481,12 +471,12 @@ export const addManualTimeEntry = async (jobId, techId, techName, startTime, end
       notes,
       manualEntry: true // Flag to indicate this was manually added
     };
-
+    
     await updateDoc(jobRef, {
       timeEntries: [...timeEntries, newEntry],
       updatedAt: serverTimestamp()
     });
-
+    
     return { success: true, entryId: newEntry.id };
   } catch (error) {
     console.error('Add manual time entry error:', error);
@@ -605,22 +595,26 @@ export const getAnalytics = async () => {
     const thisMonth = now.getMonth();
     const thisYear = now.getFullYear();
     
-    const completedJobs = jobs.filter(j => j.status === 'completed');
+    const completedJobs = jobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
     const completedThisMonth = completedJobs.filter(j => {
       const date = new Date(j.completedAt);
       return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
     });
-    
+
     const totalRevenue = completedJobs.reduce((sum, job) => sum + (job.totalCost || 0), 0);
     const monthlyRevenue = completedThisMonth.reduce((sum, job) => sum + (job.totalCost || 0), 0);
-    
+
     return {
       success: true,
       analytics: {
         totalJobs: jobs.length,
         pendingJobs: jobs.filter(j => j.status === 'pending').length,
         assignedJobs: jobs.filter(j => j.status === 'assigned').length,
+        inProgressJobs: jobs.filter(j => j.status === 'in-progress').length,
         completedJobs: completedJobs.length,
+        readyToBillJobs: jobs.filter(j => j.status === 'ready-to-bill').length,
+        billedJobs: jobs.filter(j => j.status === 'billed').length,
+        needsFollowupJobs: jobs.filter(j => j.status === 'needs-followup').length,
         completedThisMonth: completedThisMonth.length,
         totalRevenue,
         monthlyRevenue,
@@ -658,8 +652,8 @@ export const addPart = async (partData) => {
 export const importParts = async (partsArray) => {
   try {
     let imported = 0;
-    const failures = [];
-
+    let errors = 0;
+    
     for (const part of partsArray) {
       try {
         await addDoc(collection(db, 'parts'), {
@@ -675,11 +669,11 @@ export const importParts = async (partsArray) => {
         imported++;
       } catch (e) {
         console.error('Error importing part:', part, e);
-        failures.push({ partNumber: part.partNumber, error: e.message });
+        errors++;
       }
     }
-
-    return { success: true, imported, failed: failures.length, failures };
+    
+    return { success: true, imported, errors };
   } catch (error) {
     console.error('Import parts error:', error);
     return { success: false, error: error.message };
@@ -724,11 +718,7 @@ export const deletePart = async (partId) => {
 };
 
 // Delete all parts (for reimport)
-export const deleteAllParts = async (confirmDelete = false) => {
-  if (!confirmDelete) {
-    return { success: false, error: 'Must pass confirmDelete=true to delete all parts' };
-  }
-
+export const deleteAllParts = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, 'parts'));
     let deleted = 0;

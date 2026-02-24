@@ -7,18 +7,6 @@ import { storage } from './config';
 // Upload a photo and return the download URL
 export const uploadPhoto = async (file, path) => {
   try {
-    // Validate file size (max 10MB)
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_FILE_SIZE) {
-      throw new Error('File too large. Maximum size is 10MB.');
-    }
-
-    // Validate file type (only images)
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.');
-    }
-
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(snapshot.ref);

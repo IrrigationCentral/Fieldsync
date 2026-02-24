@@ -32,8 +32,7 @@ const AssignJobModal = ({
     if (isOpen && selectedJobForAction) {
       setSelectedTechs(currentAssignees);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, selectedJobForAction?.id]);
+  }, [isOpen, selectedJobForAction?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleTech = (techId) => {
     setSelectedTechs(prev => 
