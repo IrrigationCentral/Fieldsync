@@ -37,6 +37,17 @@ src/App.js.backup
 # Utility scripts
 scripts/
 
+# Capacitor native build artifacts
+android/app/build/
+android/.gradle/
+android/build/
+ios/App/build/
+ios/App/Pods/
+ios/DerivedData/
+
+# Reference screenshots
+fieldnet-ref-*.png
+
 # Misc
 nul
 CLAUDE.md
