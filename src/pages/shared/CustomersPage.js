@@ -18,7 +18,9 @@ import { useAuth } from '../../context/AuthContextV2';
 import { useData } from '../../context/DataContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useUsers } from '../../hooks/useUsers';
+import { useJobs } from '../../hooks/useJobs';
 import { Modal, Button, Select, Badge, EmptyState } from '../../components/ui';
+import StatusDropdown from '../../components/StatusDropdown';
 
 /**
  * CustomersPage Component
@@ -38,6 +40,7 @@ const CustomersPage = ({
   const { users, equipment, jobs } = useData();
   const { addNotification } = useNotifications();
   const { deleteUser, updateUser, isLoading } = useUsers();
+  const { updateJobStatus } = useJobs();
 
   const [customerSearch, setCustomerSearch] = useState('');
   const [editingUserRole, setEditingUserRole] = useState(null);
@@ -109,6 +112,8 @@ const CustomersPage = ({
     return typeLabels[type] || type;
   };
 
+  // Local getStatusVariant handles both job AND equipment statuses
+  // Equipment statuses (needs-service, operational) aren't in the shared constants
   const getStatusVariant = (status) => {
     switch (status) {
       case 'pending':
@@ -474,7 +479,7 @@ const CustomersPage = ({
                             SO# {job.soNumber}
                           </span>
                         )}
-                        <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
+                        <StatusDropdown jobId={job.id} currentStatus={job.status} onStatusChange={updateJobStatus} />
                         {['manager', 'office'].includes(userProfile?.role) && (
                           <button
                             onClick={() => onDeleteJob(job.id, job.title)}

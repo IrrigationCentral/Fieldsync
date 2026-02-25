@@ -7,14 +7,14 @@ import { useAuth } from '../../context/AuthContextV2';
 import { useData } from '../../context/DataContext';
 import { useJobs } from '../../hooks/useJobs';
 import { Badge, Button, EmptyState, StarRating } from '../../components/ui';
-import { getStatusVariant } from '../../constants/statusMaps';
+import StatusDropdown from '../../components/StatusDropdown';
 import { formatCurrency } from '../../utils/formatters';
 
 const ManagerJobsPage = ({ onOpenAssignModal, onOpenJobDetails, onOpenSOModal, onOpenReportIssue, onOpenAddEquipment }) => {
   const { colors } = useTheme();
   const { userProfile } = useAuth();
   const { users, jobs } = useData();
-  const { deleteJob, exportToExcel } = useJobs();
+  const { deleteJob, exportToExcel, updateJobStatus } = useJobs();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -91,7 +91,7 @@ const ManagerJobsPage = ({ onOpenAssignModal, onOpenJobDetails, onOpenSOModal, o
                         <button className="text-sm underline" style={{ color: colors.water }} onClick={() => onOpenSOModal(job)}>Add SO#</button>
                       )}
                     </td>
-                    <td className="p-4"><Badge variant={getStatusVariant(job.status)}>{job.status}</Badge></td>
+                    <td className="p-4"><StatusDropdown jobId={job.id} currentStatus={job.status} onStatusChange={updateJobStatus} /></td>
                     <td className="p-4"><Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>{job.priority}</Badge></td>
                     <td className="p-4 text-sm" style={{ color: colors.textSecondary }}>
                       {(() => {

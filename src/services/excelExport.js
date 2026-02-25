@@ -191,9 +191,9 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
   // If no time entries but we have hoursWorked, add a single row
   if (timeEntries.length === 0 && job.hoursWorked) {
     // Handle both array and single assignee formats
-    const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
-    const primaryAssignee = assignees[0];
-    const techName = techs?.find(t => t.id === primaryAssignee)?.name || 'Unknown';
+    const assignees = Array.isArray(job.assignedTo) ? job.assignedTo.filter(Boolean) : [job.assignedTo].filter(Boolean);
+    const primaryAssignee = assignees[0] || null;
+    const techName = primaryAssignee ? (techs?.find(t => t.id === primaryAssignee)?.name || 'Unknown') : 'Unknown';
     sheet.getCell(`A${currentRow}`).value = techName;
     sheet.getCell(`B${currentRow}`).value = formatDate(job.completedAt || job.createdAt);
     sheet.getCell(`C${currentRow}`).value = '';
@@ -201,7 +201,7 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
     sheet.getCell(`E${currentRow}`).value = '';
     sheet.getCell(`F${currentRow}`).value = job.hoursWorked;
     grandTotalHours = job.hoursWorked;
-    techTotals['unknown'] = { name: techName, hours: job.hoursWorked, entries: 1 };
+    techTotals[primaryAssignee || 'unknown'] = { name: techName, hours: job.hoursWorked, entries: 1 };
     currentRow++;
   }
 

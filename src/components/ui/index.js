@@ -10,6 +10,7 @@ import {
 // ============================================
 // MODAL COMPONENT
 // ============================================
+// TODO: Add full focus trap (capture Tab/Shift+Tab to keep focus within modal)
 export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const modalRef = React.useRef(null);
 
@@ -518,7 +519,7 @@ export const EmptyState = ({ icon: Icon, title, description, action }) => (
 export const Spinner = ({ size = 'md' }) => {
   const sizes = { sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-8 h-8' };
   return (
-    <RefreshCw className={`${sizes[size]} animate-spin`} style={{ color: '#2D5016' }} />
+    <RefreshCw className={`${sizes[size] || sizes.md} animate-spin`} style={{ color: '#2D5016' }} />
   );
 };
 

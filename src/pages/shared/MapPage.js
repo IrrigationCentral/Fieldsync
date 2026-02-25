@@ -61,8 +61,8 @@ const MapPage = () => {
     let center = defaultCenter;
     const equipmentWithLocation = visibleEquipment.filter(p => p.lat && p.lng);
     if (equipmentWithLocation.length > 0) {
-      const avgLat = equipmentWithLocation.reduce((sum, p) => sum + p.lat, 0) / equipmentWithLocation.length;
-      const avgLng = equipmentWithLocation.reduce((sum, p) => sum + p.lng, 0) / equipmentWithLocation.length;
+      const avgLat = equipmentWithLocation.reduce((sum, p) => sum + Number(p.lat), 0) / equipmentWithLocation.length;
+      const avgLng = equipmentWithLocation.reduce((sum, p) => sum + Number(p.lng), 0) / equipmentWithLocation.length;
       center = { lat: avgLat, lng: avgLng };
     }
 
@@ -107,7 +107,7 @@ const MapPage = () => {
       const hasActiveJob = jobs.some(j => j.pivotId === pivot.id && ['pending', 'assigned', 'in-progress', 'needs-followup'].includes(j.status));
 
       const marker = new window.google.maps.Marker({
-        position: { lat: pivot.lat, lng: pivot.lng },
+        position: { lat: Number(pivot.lat), lng: Number(pivot.lng) },
         map: googleMapRef.current,
         title: pivot.name,
         icon: {
@@ -120,7 +120,7 @@ const MapPage = () => {
         }
       });
 
-      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${pivot.lat},${pivot.lng}`;
+      const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${Number(pivot.lat)},${Number(pivot.lng)}`;
       const infoContent = `
         <div style="padding: 8px; max-width: 250px;">
           <h3 style="margin: 0 0 8px 0; color: #2D5016; font-weight: bold;">${pivot.name}</h3>
@@ -150,7 +150,7 @@ const MapPage = () => {
     if (visibleEquipment.filter(p => p.lat && p.lng).length > 1) {
       const bounds = new window.google.maps.LatLngBounds();
       visibleEquipment.forEach(p => {
-        if (p.lat && p.lng) bounds.extend({ lat: p.lat, lng: p.lng });
+        if (p.lat && p.lng) bounds.extend({ lat: Number(p.lat), lng: Number(p.lng) });
       });
       googleMapRef.current.fitBounds(bounds, 50);
     }
@@ -208,7 +208,7 @@ const MapPage = () => {
           {userProfile?.role === 'farmer' ? 'My Equipment Map' : 'Field Map'}
         </h2>
         <div className="flex items-center space-x-2">
-          <Badge variant="success">{visibleEquipment.filter(p => p.status === 'active').length} Active</Badge>
+          <Badge variant="success">{visibleEquipment.filter(p => p.status === 'operational').length} Active</Badge>
           <Badge variant="warning">{jobs.filter(j => ['pending', 'assigned', 'in-progress', 'needs-followup'].includes(j.status)).length} Jobs</Badge>
           <Badge variant="danger">{visibleEquipment.filter(p => p.status === 'needs-service').length} Need Service</Badge>
         </div>
@@ -296,7 +296,7 @@ const MapPage = () => {
             {visibleEquipment.map(pivot => (
               <div key={pivot.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
                 <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${pivot.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div className={`w-3 h-3 rounded-full ${pivot.status === 'operational' ? 'bg-green-500' : 'bg-red-500'}`} />
                   <div>
                     <p className="font-medium" style={{ color: colors.textPrimary }}>{pivot.name}</p>
                     <p className="text-sm" style={{ color: colors.textSecondary }}>{pivot.address || 'No address set'}</p>
@@ -306,7 +306,7 @@ const MapPage = () => {
                   <div className="text-right">
                     <p className="text-sm" style={{ color: colors.textSecondary }}>{pivot.acres} acres</p>
                     {pivot.lat && pivot.lng && (
-                      <p className="text-xs" style={{ color: colors.muted }}>{pivot.lat.toFixed(4)}, {pivot.lng.toFixed(4)}</p>
+                      <p className="text-xs" style={{ color: colors.muted }}>{Number(pivot.lat).toFixed(4)}, {Number(pivot.lng).toFixed(4)}</p>
                     )}
                   </div>
                   {(userProfile?.role === 'farmer' && pivot.farmerId === userProfile?.id) || ['manager', 'tech', 'office'].includes(userProfile?.role) ? (

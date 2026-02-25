@@ -96,7 +96,7 @@ const WeatherPage = () => {
                 </p>
               </div>
               <div className="text-center">
-                <Cloud className="w-5 h-5 mx-auto mb-1" style={{ color: colors.sky }} />
+                <Cloud className="w-5 h-5 mx-auto mb-1" style={{ color: colors.water }} />
                 <p className="text-sm font-medium" style={{ color: colors.textPrimary }}>
                   {weatherData.precipitation}%
                 </p>

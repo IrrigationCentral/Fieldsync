@@ -57,13 +57,16 @@ export const updateSettings = async (settings) => {
   }
 };
 
-export const subscribeToSettings = (callback) => {
+export const subscribeToSettings = (callback, errorCallback) => {
   return onSnapshot(doc(db, 'settings', 'pricing'), (docSnap) => {
     if (docSnap.exists()) {
       callback(docSnap.data());
     } else {
       callback({ hourlyRate: 75, mileageRate: 0.65, partsMarkup: 0 });
     }
+  }, (error) => {
+    console.error('Subscription error:', error);
+    if (errorCallback) errorCallback(error);
   });
 };
 
@@ -174,10 +177,13 @@ export const deletePivot = async (pivotId) => {
 };
 
 // Real-time pivots listener
-export const subscribeToPivots = (callback) => {
+export const subscribeToPivots = (callback, errorCallback) => {
   return onSnapshot(collection(db, 'pivots'), (snapshot) => {
     const pivots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     callback(pivots);
+  }, (error) => {
+    console.error('Subscription error:', error);
+    if (errorCallback) errorCallback(error);
   });
 };
 
@@ -238,7 +244,8 @@ export const getJobsByFarmer = async (farmerId) => {
 
 export const getJobsByTech = async (techId) => {
   try {
-    // Query using array-contains for array assignedTo format
+    // Note: Only matches jobs where assignedTo is an array (v2 format).
+    // Legacy jobs with string assignedTo won't appear. Consider data migration.
     const q = query(collection(db, 'jobs'), where('assignedTo', 'array-contains', techId), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     const jobs = querySnapshot.docs.map(doc => ({
@@ -562,25 +569,31 @@ export const deleteJob = async (jobId) => {
 };
 
 // Real-time jobs listener
-export const subscribeToJobs = (callback) => {
+export const subscribeToJobs = (callback, errorCallback) => {
   const q = query(collection(db, 'jobs'), orderBy('createdAt', 'desc'));
   return onSnapshot(q, (snapshot) => {
-    const jobs = snapshot.docs.map(doc => ({ 
-      id: doc.id, 
+    const jobs = snapshot.docs.map(doc => ({
+      id: doc.id,
       ...doc.data(),
       createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
       updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().updatedAt,
       completedAt: doc.data().completedAt?.toDate?.()?.toISOString() || doc.data().completedAt
     }));
     callback(jobs);
+  }, (error) => {
+    console.error('Subscription error:', error);
+    if (errorCallback) errorCallback(error);
   });
 };
 
 // Real-time users listener
-export const subscribeToUsers = (callback) => {
+export const subscribeToUsers = (callback, errorCallback) => {
   return onSnapshot(collection(db, 'users'), (snapshot) => {
     const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     callback(users);
+  }, (error) => {
+    console.error('Subscription error:', error);
+    if (errorCallback) errorCallback(error);
   });
 };
 
@@ -739,10 +752,13 @@ export const deleteAllParts = async () => {
 };
 
 // Real-time parts listener
-export const subscribeToParts = (callback) => {
+export const subscribeToParts = (callback, errorCallback) => {
   const q = query(collection(db, 'parts'), orderBy('partNumber', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const parts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     callback(parts);
+  }, (error) => {
+    console.error('Subscription error:', error);
+    if (errorCallback) errorCallback(error);
   });
 };

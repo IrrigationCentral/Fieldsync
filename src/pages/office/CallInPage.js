@@ -30,7 +30,7 @@ const CallInPage = () => {
       pivotId: formData.pivotId,
       pivotName: pivot?.name || 'Unknown',
       customerPhone: formData.customerPhone,
-      location: { lat: pivot?.lat || 40.7614, lng: pivot?.lng || -96.6856 }
+      location: { lat: pivot?.lat || 40.7614, lng: pivot?.lng || -96.6856 } // Default: Lincoln, NE (central Nebraska)
     });
     if (result?.success) {
       setFormData({ customerName: '', customerPhone: '', pivotId: '', description: '', priority: 'medium', farmerId: '' });

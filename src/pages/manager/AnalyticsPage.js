@@ -50,7 +50,7 @@ const AnalyticsPage = () => {
         }
         return sum + (job.hoursWorked || 0);
       }, 0);
-      return { name: tech.name.split(' ')[0], fullName: tech.name, jobs: completed.length, hours: totalHours, rating: avgRating || 0 };
+      return { name: (tech.name || 'Unknown').split(' ')[0], fullName: tech.name || 'Unknown', jobs: completed.length, hours: totalHours, rating: avgRating || 0 };
     });
   };
 
@@ -80,7 +80,7 @@ const AnalyticsPage = () => {
         <StatCard title="Total Jobs" value={analytics?.totalJobs || 0} icon={Briefcase} color={colors.primary} />
         <StatCard title="This Month" value={analytics?.completedThisMonth || 0} icon={Calendar} color={colors.water} />
         <StatCard title="Total Hours" value={techData.reduce((sum, t) => sum + t.hours, 0).toFixed(1)} icon={Clock} color={colors.success} />
-        <StatCard title="Avg Rating" value={(techData.reduce((sum, t) => sum + t.rating, 0) / (techData.length || 1)).toFixed(1)} icon={Star} color={colors.accent} />
+        <StatCard title="Avg Rating" value={(() => { const ratedCount = techData.filter(t => t.rating > 0).length; return ratedCount > 0 ? (techData.reduce((sum, t) => sum + t.rating, 0) / ratedCount).toFixed(1) : '0.0'; })()} icon={Star} color={colors.accent} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -192,9 +192,10 @@ const AnalyticsPage = () => {
                   <td className="p-3 text-center font-bold" style={{ color: colors.primary }}>{techData.reduce((sum, t) => sum + t.jobs, 0)}</td>
                   <td className="p-3 text-center font-bold" style={{ color: colors.primary }}>{techData.reduce((sum, t) => sum + t.hours, 0).toFixed(1)} hrs</td>
                   <td className="p-3 text-center font-bold" style={{ color: colors.primary }}>
-                    {techData.filter(t => t.rating > 0).length > 0
-                      ? (techData.reduce((sum, t) => sum + t.rating, 0) / techData.filter(t => t.rating > 0).length).toFixed(1)
-                      : '-'}
+                    {(() => {
+                      const ratedCount = techData.filter(t => t.rating > 0).length;
+                      return ratedCount > 0 ? (techData.reduce((sum, t) => sum + t.rating, 0) / ratedCount).toFixed(1) : '-';
+                    })()}
                   </td>
                 </tr>
               </tbody>

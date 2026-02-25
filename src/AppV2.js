@@ -233,7 +233,6 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
           return (
             <CustomersPage
               onViewEquipment={setSelectedEquipmentProfile}
-              onReportIssue={handleOpenReportIssue}
               onAddUserClick={() => setShowAddUserModal(true)}
               onAddEquipmentClick={handleOpenAddEquipment}
               onReportIssueClick={() => setShowReportIssueModal(true)}
@@ -274,7 +273,6 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
           return (
             <CustomersPage
               onViewEquipment={setSelectedEquipmentProfile}
-              onReportIssue={handleOpenReportIssue}
               onAddUserClick={() => setShowAddUserModal(true)}
               onAddEquipmentClick={handleOpenAddEquipment}
               onReportIssueClick={() => setShowReportIssueModal(true)}
@@ -334,7 +332,6 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         return (
           <CustomersPage
             onViewEquipment={setSelectedEquipmentProfile}
-            onReportIssue={handleOpenReportIssue}
             onAddUserClick={() => setShowAddUserModal(true)}
             onAddEquipmentClick={handleOpenAddEquipment}
             onReportIssueClick={() => setShowReportIssueModal(true)}
@@ -367,7 +364,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
       <AddEquipmentModal
         isOpen={showAddEquipmentModal}
         onClose={() => setShowAddEquipmentModal(false)}
-        onAdd={(data) => { equipActions.addEquipment(data).then(() => setShowAddEquipmentModal(false)); }}
+        onAdd={async (data) => { const result = await equipActions.addEquipment(data); if (result?.success) setShowAddEquipmentModal(false); }}
         users={users}
         userProfile={userProfile}
         isLoading={equipmentLoading}
@@ -379,7 +376,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         isOpen={showEditEquipmentModal}
         onClose={() => setShowEditEquipmentModal(false)}
         equipment={selectedEquipmentProfile}
-        onUpdate={(id, data) => { equipActions.updateDetails(id, data).then(() => setShowEditEquipmentModal(false)); }}
+        onUpdate={async (id, data) => { const result = await equipActions.updateDetails(id, data); if (result?.success) setShowEditEquipmentModal(false); }}
         isLoading={equipmentLoading}
         setIsLoading={setEquipmentLoading}
         colors={colors}
@@ -406,7 +403,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         selectedJobForAction={selectedJobForAction}
         parts={parts}
         pricingSettings={pricingSettings}
-        handleCompleteJob={(id, data) => jobActions.completeJob(id, data).then(() => { setShowCompleteJobModal(false); setSelectedJobForAction(null); })}
+        handleCompleteJob={async (id, data) => { const result = await jobActions.completeJob(id, data); if (result?.success) { setShowCompleteJobModal(false); setSelectedJobForAction(null); } }}
         isLoading={false}
         canSeePricing={canSeePricing}
         formatCurrency={formatCurrency}
@@ -414,7 +411,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         users={users}
         userProfile={userProfile}
         addNotification={addNotification}
-        onDownloadJobSheet={jobActions.exportToExcel}
+        onDownloadJobSheet={() => addNotification('info', 'PDF export coming soon. Use Excel export for now.')}
         onExportToExcel={jobActions.exportToExcel}
       />
       <AssignJobModal
@@ -425,7 +422,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         jobs={jobs}
         userProfile={userProfile}
         selectedJobForAction={selectedJobForAction}
-        handleAssignJob={(id, techId) => jobActions.assignJob(id, techId).then(() => { setShowAssignJobModal(false); setSelectedJobForAction(null); })}
+        handleAssignJob={async (id, techId) => { const result = await jobActions.assignJob(id, techId); if (result?.success) { setShowAssignJobModal(false); setSelectedJobForAction(null); } }}
         handleRemoveAssignee={jobActions.removeAssignee}
         setShowAddUserModal={setShowAddUserModal}
         isLoading={false}
@@ -456,10 +453,11 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         colors={colors}
         onAddManualTimeEntry={timeActions.addManualEntry}
         onDeleteTimeEntry={timeActions.deleteEntry}
-        onDownloadJobSheet={jobActions.exportToExcel}
+        onDownloadJobSheet={() => addNotification('info', 'PDF export coming soon. Use Excel export for now.')}
         onExportToExcel={jobActions.exportToExcel}
         onOpenSOModal={() => setShowSOModal(true)}
         onOpenAssignModal={() => setShowAssignJobModal(true)}
+        onStatusChange={jobActions.updateJobStatus}
         formatDate={formatDate}
         formatCurrency={formatCurrency}
         getStatusVariant={getStatusVariant}
@@ -470,7 +468,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         userProfile={userProfile}
         isLoading={false}
         colors={colors}
-        onUpdateProfile={(data) => updateUser(userProfile.id, data).then(() => addNotification('success', 'Profile updated'))}
+        onUpdateProfile={async (data) => { try { await updateUser(userProfile.id, data); addNotification('success', 'Profile updated'); } catch (err) { addNotification('error', 'Failed to update profile'); } }}
         onUpdateEmail={updateUserEmail}
         onUpdatePassword={updateUserPassword}
         CARRIERS={CARRIERS}
@@ -484,7 +482,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         onClose={() => setShowSettingsModal(false)}
         colors={colors}
         pricingSettings={pricingSettings}
-        handleUpdateSettings={(s) => settingsActions.updateSettings(s).then(() => setShowSettingsModal(false))}
+        handleUpdateSettings={async (s) => { const result = await settingsActions.updateSettings(s); if (result?.success) setShowSettingsModal(false); }}
         isLoading={false}
       />
       <SONumberModal
@@ -492,7 +490,7 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         onClose={() => { setShowSOModal(false); setSelectedJobForAction(null); }}
         colors={colors}
         selectedJobForAction={selectedJobForAction}
-        handleUpdateSONumber={(id, so) => jobActions.updateSONumber(id, so).then(() => { setShowSOModal(false); setSelectedJobForAction(null); })}
+        handleUpdateSONumber={async (id, so) => { const result = await jobActions.updateSONumber(id, so); if (result?.success) { setShowSOModal(false); setSelectedJobForAction(null); } }}
         isLoading={false}
       />
     </>

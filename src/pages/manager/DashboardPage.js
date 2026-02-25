@@ -47,7 +47,7 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
                   <div className="flex-1 cursor-pointer" onClick={() => onOpenJobDetails && onOpenJobDetails(job)}>
                     <div className="flex items-center space-x-2">
                       <p className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</p>
-                      <Badge variant={job.priority === 'high' ? 'danger' : 'warning'}>{job.priority}</Badge>
+                      <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>{job.priority}</Badge>
                     </div>
                     <p className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName || 'Location TBD'}</p>
                   </div>

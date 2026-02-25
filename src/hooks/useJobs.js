@@ -252,6 +252,11 @@ export const useJobs = () => {
   }, [equipment, users, pricingSettings, addNotification]);
 
   const updateJobStatus = useCallback(async (jobId, status) => {
+    const validStatuses = ['pending', 'assigned', 'in-progress', 'completed', 'ready-to-bill', 'billed', 'needs-followup'];
+    if (!validStatuses.includes(status)) {
+      addNotification('error', `Invalid status: ${status}`);
+      return { success: false, error: 'Invalid status' };
+    }
     setIsLoading(true);
     const result = await fbUpdateJob(jobId, { status });
     if (result.success) {

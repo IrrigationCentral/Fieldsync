@@ -193,13 +193,24 @@ const ReportIssueModal = ({
       let photoUrls = [];
       if (photos.length > 0) {
         setUploadingPhotos(true);
+        let failedCount = 0;
         for (const photo of photos) {
-          const result = await uploadJobPhoto(photo.file, `temp_${Date.now()}`, 'issue');
-          if (result.success) {
-            photoUrls.push(result.url);
+          try {
+            const result = await uploadJobPhoto(photo.file, `temp_${Date.now()}`, 'issue');
+            if (result.success) {
+              photoUrls.push(result.url);
+            } else {
+              failedCount++;
+            }
+          } catch (uploadError) {
+            console.error('Photo upload failed:', uploadError);
+            failedCount++;
           }
         }
         setUploadingPhotos(false);
+        if (failedCount > 0) {
+          addNotification('warning', `Failed to upload ${failedCount} photo(s). Job submitted without them.`);
+        }
       }
       
       createJob(pivotToReport.id, description, priority, {
@@ -223,7 +234,7 @@ const ReportIssueModal = ({
       setSelectedFarmerId('');
       setSelectedPivotId('');
     }
-  }, [pivotToReport, description, leavePivotRunning, acknowledged, photos, priority, pivotDirection, pivotPercentage, createJob, isStaff, userProfile]);
+  }, [pivotToReport, description, leavePivotRunning, acknowledged, photos, priority, pivotDirection, pivotPercentage, createJob, isStaff, userProfile, addNotification]);
 
   // Don't render anything if modal is closed
   if (!isOpen) return null;

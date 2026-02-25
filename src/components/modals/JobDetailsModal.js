@@ -6,6 +6,7 @@ import {
   Clock, Plus, Trash2, Download, FileText, Hash, UserPlus, Image
 } from 'lucide-react';
 import { Modal, Button, Input, Select, Badge, StarRating } from '../ui';
+import StatusDropdown from '../StatusDropdown';
 
 const JobDetailsModal = ({
   isOpen,
@@ -23,6 +24,7 @@ const JobDetailsModal = ({
   onExportToExcel,
   onOpenSOModal,
   onOpenAssignModal,
+  onStatusChange,
   // Formatters
   formatDate,
   formatCurrency,
@@ -141,7 +143,7 @@ const JobDetailsModal = ({
             {job.soNumber && <p className="text-sm font-mono" style={{ color: colors.primary }}>SO# {job.soNumber}</p>}
           </div>
           <div className="flex space-x-2">
-            <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
+            <StatusDropdown jobId={job.id} currentStatus={job.status} onStatusChange={onStatusChange} />
             <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>
               {job.priority}
             </Badge>

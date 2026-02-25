@@ -12,9 +12,9 @@ const SettingsPage = () => {
   const { pricingSettings } = useData();
   const { updateSettings, isLoading } = useSettings();
   const [formData, setFormData] = useState({
-    hourlyRate: pricingSettings.hourlyRate,
-    mileageRate: pricingSettings.mileageRate,
-    partsMarkup: pricingSettings.partsMarkup
+    hourlyRate: Number(pricingSettings?.hourlyRate) || 0,
+    mileageRate: Number(pricingSettings?.mileageRate) || 0,
+    partsMarkup: Number(pricingSettings?.partsMarkup) || 0
   });
 
   const handleSave = async () => {
@@ -88,15 +88,15 @@ const SettingsPage = () => {
         <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Current Active Rates</h3>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center p-4 rounded-lg" style={{ backgroundColor: colors.background }}>
-            <p className="text-2xl font-bold" style={{ color: colors.primary }}>${pricingSettings.hourlyRate}</p>
+            <p className="text-2xl font-bold" style={{ color: colors.primary }}>${pricingSettings?.hourlyRate ?? 0}</p>
             <p className="text-sm" style={{ color: colors.textSecondary }}>per hour</p>
           </div>
           <div className="text-center p-4 rounded-lg" style={{ backgroundColor: colors.background }}>
-            <p className="text-2xl font-bold" style={{ color: colors.secondary }}>${pricingSettings.mileageRate}</p>
+            <p className="text-2xl font-bold" style={{ color: colors.secondary }}>${pricingSettings?.mileageRate ?? 0}</p>
             <p className="text-sm" style={{ color: colors.textSecondary }}>per mile</p>
           </div>
           <div className="text-center p-4 rounded-lg" style={{ backgroundColor: colors.background }}>
-            <p className="text-2xl font-bold" style={{ color: colors.accent }}>{pricingSettings.partsMarkup}%</p>
+            <p className="text-2xl font-bold" style={{ color: colors.accent }}>{pricingSettings?.partsMarkup ?? 0}%</p>
             <p className="text-sm" style={{ color: colors.textSecondary }}>parts markup</p>
           </div>
         </div>

@@ -50,7 +50,7 @@ export const requestNotificationPermission = async (userId) => {
     }
 
     // Register service worker
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const registration = await navigator.serviceWorker.register(`${process.env.PUBLIC_URL || ''}/firebase-messaging-sw.js`);
     console.log('Service Worker registered:', registration);
 
     // Get FCM token
