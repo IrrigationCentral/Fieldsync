@@ -192,6 +192,11 @@
     border-color: #8FBC3B;
   }
 
+  /* Sidebar layout */
+  .sidebar-transition {
+    transition: width 200ms ease-out;
+  }
+
   /* Dark mode nav tab */
   .dark .nav-tab {
     color: #8B949E;

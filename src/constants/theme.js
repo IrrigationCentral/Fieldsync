@@ -17,7 +17,12 @@ export const lightTheme = {
   border: '#E8E5D7',
   inputBg: '#FFFFFF',
   headerBg: '#2D5016',
-  navBg: '#FFFFFF'
+  navBg: '#FFFFFF',
+  sidebarBg: '#1B2332',
+  sidebarText: '#8B949E',
+  sidebarActive: '#8FBC3B',
+  sidebarHover: '#262D3A',
+  sidebarBorder: '#30363D'
 };
 
 export const darkTheme = {
@@ -38,7 +43,12 @@ export const darkTheme = {
   border: '#30363D',
   inputBg: '#21262D',
   headerBg: '#161B22',
-  navBg: '#161B22'
+  navBg: '#161B22',
+  sidebarBg: '#0D1117',
+  sidebarText: '#8B949E',
+  sidebarActive: '#8FBC3B',
+  sidebarHover: '#161B22',
+  sidebarBorder: '#21262D'
 };
 
 /** @param {boolean} isDark */
