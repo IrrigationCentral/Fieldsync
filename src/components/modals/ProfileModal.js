@@ -199,11 +199,14 @@ const ProfileModal = ({
             <span className="text-5xl">{formData.avatar || '👤'}</span>
             <div className="flex flex-wrap justify-center gap-2 mt-3">
               {avatarOptions.map(emoji => (
-                <button 
-                  key={emoji} 
-                  type="button" 
-                  onClick={() => setFormData(prev => ({...prev, avatar: emoji}))} 
-                  className={`text-2xl p-2 rounded-lg transition-colors ${formData.avatar === emoji ? 'bg-green-100' : 'hover:bg-gray-100'}`}
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, avatar: emoji}))}
+                  className="text-2xl p-2 rounded-lg transition-colors"
+                  style={{ backgroundColor: formData.avatar === emoji ? colors.success + '20' : 'transparent' }}
+                  onMouseEnter={e => { if (formData.avatar !== emoji) e.currentTarget.style.backgroundColor = colors.inputBg; }}
+                  onMouseLeave={e => { if (formData.avatar !== emoji) e.currentTarget.style.backgroundColor = 'transparent'; }}
                 >
                   {emoji}
                 </button>

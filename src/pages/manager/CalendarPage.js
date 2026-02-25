@@ -59,9 +59,23 @@ const CalendarPage = ({ onOpenJobDetails }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card p-4" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}` }}>
           <div className="flex items-center justify-between mb-4">
-            <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100"><ChevronLeft className="w-5 h-5" style={{ color: colors.textSecondary }} /></button>
+            <button
+              onClick={prevMonth}
+              className="p-2 rounded-lg"
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
+            >
+              <ChevronLeft className="w-5 h-5" style={{ color: colors.textSecondary }} />
+            </button>
             <h3 className="text-lg font-semibold" style={{ color: colors.textPrimary }}>{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</h3>
-            <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100"><ChevronRight className="w-5 h-5" style={{ color: colors.textSecondary }} /></button>
+            <button
+              onClick={nextMonth}
+              className="p-2 rounded-lg"
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
+            >
+              <ChevronRight className="w-5 h-5" style={{ color: colors.textSecondary }} />
+            </button>
           </div>
 
           <div className="grid grid-cols-7 gap-1 mb-2">

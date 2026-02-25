@@ -79,7 +79,13 @@ const ManagerJobsPage = ({ onOpenAssignModal, onOpenJobDetails, onOpenSOModal, o
               </thead>
               <tbody>
                 {filteredJobs.map(job => (
-                  <tr key={job.id} className="border-t hover:bg-gray-50" style={{ borderColor: colors.border }}>
+                  <tr
+                    key={job.id}
+                    className="border-t"
+                    style={{ borderColor: colors.border }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
+                  >
                     <td className="p-4">
                       <p className="font-medium" style={{ color: colors.textPrimary }}>{job.title}</p>
                       <p className="text-sm" style={{ color: colors.textSecondary }}>{job.pivotName}</p>
@@ -124,8 +130,10 @@ const ManagerJobsPage = ({ onOpenAssignModal, onOpenJobDetails, onOpenSOModal, o
                         {['manager', 'office'].includes(userProfile?.role) && (
                           <button
                             onClick={() => deleteJob(job.id, job.title)}
-                            className="p-2 rounded text-red-500 hover:bg-red-50 transition-colors"
+                            className="p-2 rounded text-red-500 transition-colors"
                             title="Delete job"
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

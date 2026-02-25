@@ -56,8 +56,10 @@ const EquipmentPage = ({ onViewEquipment, onReportIssue, onAddEquipment }) => {
                 <button
                   type="button"
                   onClick={() => deleteEquipment(pivot.id, pivot.name)}
-                  className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                  className="p-2 rounded-lg text-red-500 transition-colors"
                   title="delete equipment"
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

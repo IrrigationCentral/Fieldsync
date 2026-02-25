@@ -293,8 +293,10 @@ const JobDetailsModal = ({
                             {(userProfile?.role === 'manager' || userProfile?.role === 'office') && entry.endTime && (
                               <button
                                 onClick={() => onDeleteTimeEntry(job.id, entry.id)}
-                                className="p-1 rounded hover:bg-red-100"
+                                className="p-1 rounded"
                                 title="Delete entry"
+                                onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                                onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                               >
                                 <Trash2 className="w-3 h-3" style={{ color: colors.danger }} />
                               </button>

@@ -90,7 +90,14 @@ const AssignJobModal = ({
                         <span className="font-medium" style={{ color: colors.textPrimary }}>{user.name}</span>
                         <span className="text-xs ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.muted + '30', color: colors.textSecondary }}>{user.role}</span>
                       </div>
-                      <button type="button" onClick={() => handleRemoveCurrentAssignee(userId)} className="p-1 rounded hover:bg-red-100 text-red-500 transition-colors" title="Remove from job">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCurrentAssignee(userId)}
+                        className="p-1 rounded text-red-500 transition-colors"
+                        title="Remove from job"
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
+                      >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
@@ -127,7 +134,13 @@ const AssignJobModal = ({
                         const isCurrentlyAssigned = currentAssignees.includes(tech.id);
                         
                         return (
-                          <label key={tech.id} className={`flex items-center p-3 rounded-lg cursor-pointer border-2 transition-colors ${isSelected ? 'border-green-500' : 'border-transparent hover:bg-gray-50'} ${isCurrentlyAssigned ? 'opacity-50' : ''}`} style={{ backgroundColor: isSelected ? colors.success + '10' : colors.background }}>
+                          <label
+                            key={tech.id}
+                            className={`flex items-center p-3 rounded-lg cursor-pointer border-2 transition-colors ${isSelected ? 'border-green-500' : 'border-transparent'} ${isCurrentlyAssigned ? 'opacity-50' : ''}`}
+                            style={{ backgroundColor: isSelected ? colors.success + '10' : colors.background }}
+                            onMouseEnter={e => { if (!isSelected && !isCurrentlyAssigned) e.currentTarget.style.backgroundColor = colors.inputBg; }}
+                            onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.background; }}
+                          >
                             <input type="checkbox" checked={isSelected} onChange={() => toggleTech(tech.id)} disabled={isCurrentlyAssigned} className="mr-3 w-4 h-4" />
                             <span className="text-2xl mr-3">{tech.avatar || '👷'}</span>
                             <div className="flex-1">
@@ -157,7 +170,13 @@ const AssignJobModal = ({
                         const isCurrentlyAssigned = currentAssignees.includes(manager.id);
                         
                         return (
-                          <label key={manager.id} className={`flex items-center p-3 rounded-lg cursor-pointer border-2 transition-colors ${isSelected ? 'border-green-500' : 'border-transparent hover:bg-gray-50'} ${isCurrentlyAssigned ? 'opacity-50' : ''}`} style={{ backgroundColor: isSelected ? colors.success + '10' : colors.background }}>
+                          <label
+                            key={manager.id}
+                            className={`flex items-center p-3 rounded-lg cursor-pointer border-2 transition-colors ${isSelected ? 'border-green-500' : 'border-transparent'} ${isCurrentlyAssigned ? 'opacity-50' : ''}`}
+                            style={{ backgroundColor: isSelected ? colors.success + '10' : colors.background }}
+                            onMouseEnter={e => { if (!isSelected && !isCurrentlyAssigned) e.currentTarget.style.backgroundColor = colors.inputBg; }}
+                            onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = colors.background; }}
+                          >
                             <input type="checkbox" checked={isSelected} onChange={() => toggleTech(manager.id)} disabled={isCurrentlyAssigned} className="mr-3 w-4 h-4" />
                             <span className="text-2xl mr-3">{manager.avatar || '👔'}</span>
                             <div className="flex-1">

@@ -175,7 +175,9 @@ const CustomersPage = ({
         {customerSearch && (
           <button
             onClick={() => setCustomerSearch('')}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-200"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full"
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
           >
             <X className="w-4 h-4" style={{ color: colors.textSecondary }} />
           </button>
@@ -427,8 +429,10 @@ const CustomersPage = ({
                                 e.stopPropagation();
                                 onDeleteEquipment(pivot.id, pivot.name);
                               }}
-                              className="p-1 rounded text-red-500 hover:bg-red-50 transition-colors"
+                              className="p-1 rounded text-red-500 transition-colors"
                               title="Delete equipment"
+                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                              onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -483,8 +487,10 @@ const CustomersPage = ({
                         {['manager', 'office'].includes(userProfile?.role) && (
                           <button
                             onClick={() => onDeleteJob(job.id, job.title)}
-                            className="p-1 rounded text-red-500 hover:bg-red-50 transition-colors"
+                            className="p-1 rounded text-red-500 transition-colors"
                             title="Delete job"
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

@@ -449,7 +449,9 @@ const ReportIssueModal = ({
                   </div>
                 ))}
                 {photos.length < 3 && (
-                  <label className="w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" style={{ borderColor: colors.border }}>
+                  <label className="w-20 h-20 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors" style={{ borderColor: colors.border }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}>
                     {uploadingPhotos ? (
                       <RefreshCw className="w-6 h-6 animate-spin" style={{ color: colors.muted }} />
                     ) : (

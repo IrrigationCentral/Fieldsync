@@ -55,8 +55,10 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
                     <Button size="sm" onClick={(e) => { e.stopPropagation(); onOpenAssignModal(job); }}>Assign</Button>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteJob(job.id, job.title); }}
-                      className="p-2 rounded text-red-500 hover:bg-red-50 transition-colors"
+                      className="p-2 rounded text-red-500 transition-colors"
                       title="Delete job"
+                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

@@ -425,11 +425,13 @@ const Step4Parts = ({
             style={{ backgroundColor: colors.cardBg, borderColor: colors.border, maxHeight: '200px', overflowY: 'auto' }}
           >
             {filteredParts.map(part => (
-              <div 
-                key={part.id} 
-                className="px-4 py-3 cursor-pointer border-b hover:bg-gray-50" 
-                style={{ borderColor: colors.border }} 
+              <div
+                key={part.id}
+                className="px-4 py-3 cursor-pointer border-b"
+                style={{ borderColor: colors.border }}
                 onClick={() => addPart(part)}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
               >
                 <span className="font-mono" style={{ color: colors.primary }}>{part.partNumber}</span>
                 <p className="text-sm" style={{ color: colors.textSecondary }}>{part.description}</p>

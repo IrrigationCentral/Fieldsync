@@ -69,7 +69,9 @@ const EquipmentProfilePage = ({ equipment: pivot, onBack, onReportIssue, onEditE
         <div className="flex items-center space-x-4">
           <button
             onClick={onBack}
-            className="p-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 rounded-lg transition-colors"
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
           >
             <ChevronLeft className="w-6 h-6" style={{ color: colors.textPrimary }} />
           </button>

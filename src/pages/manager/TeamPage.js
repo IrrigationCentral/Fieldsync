@@ -99,15 +99,19 @@ const TeamPage = ({ onOpenAddUser }) => {
                     <div className="flex space-x-1">
                       <button
                         onClick={() => setEditingMemberRole(member)}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-2 rounded-lg transition-colors"
                         title="Edit role"
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.inputBg; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                       >
                         <Settings className="w-4 h-4" style={{ color: colors.textSecondary }} />
                       </button>
                       <button
                         onClick={() => deleteUser(member.id, member.name, member.role)}
-                        className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-2 rounded-lg text-red-500 transition-colors"
                         title="Delete team member"
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
