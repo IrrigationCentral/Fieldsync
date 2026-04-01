@@ -76,6 +76,11 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!currentUser && !!userProfile;
   const role = userProfile?.role || null;
 
+  const switchRole = useCallback((newRole) => {
+    if (!userProfile) return;
+    setUserProfile(prev => ({ ...prev, role: newRole }));
+  }, [userProfile]);
+
   return (
     <AuthContext.Provider value={{
       currentUser,
@@ -86,7 +91,8 @@ export const AuthProvider = ({ children }) => {
       login,
       signup,
       logout,
-      refreshProfile
+      refreshProfile,
+      switchRole
     }}>
       {children}
     </AuthContext.Provider>

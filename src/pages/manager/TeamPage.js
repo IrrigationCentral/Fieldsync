@@ -1,7 +1,7 @@
 // FieldSync v2 - Team Management Page
 // Extracted from App.js TeamManagement (~line 1996)
 import React, { useState } from 'react';
-import { UserPlus, Users, Settings, Trash2 } from 'lucide-react';
+import { UserPlus, Users, Settings, Trash2, Clock } from 'lucide-react';
 import { updateUser } from '../../firebase';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContextV2';
@@ -9,6 +9,7 @@ import { useData } from '../../context/DataContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useUsers } from '../../hooks/useUsers';
 import { Modal, Select, Badge, Button, EmptyState } from '../../components/ui';
+import { getTechHoursFromEntries } from '../../utils/techHours';
 
 const TeamPage = ({ onOpenAddUser }) => {
   const { colors } = useTheme();
@@ -19,6 +20,8 @@ const TeamPage = ({ onOpenAddUser }) => {
   const [editingMemberRole, setEditingMemberRole] = useState(null);
 
   const teamMembers = users.filter(u => u.role !== 'farmer');
+
+
 
   const handleRoleChange = async (userId, newRole) => {
     const result = await updateUser(userId, { role: newRole });
@@ -65,6 +68,8 @@ const TeamPage = ({ onOpenAddUser }) => {
           </div>
         )}
       </Modal>
+
+      
 
       {teamMembers.length === 0 ? (
         <EmptyState
@@ -122,12 +127,22 @@ const TeamPage = ({ onOpenAddUser }) => {
                   <p style={{ color: colors.textSecondary }}>{member.email}</p>
                   {member.phone && <p style={{ color: colors.textSecondary }}>{member.phone}</p>}
                 </div>
-                {(member.role === 'tech' || member.role === 'manager') && (
-                  <div className="mt-3 pt-3 border-t flex justify-between" style={{ borderColor: colors.border }}>
-                    <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status)).length}</strong></span>
-                    <span className="text-sm" style={{ color: colors.textSecondary }}>Completed: <strong>{memberJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length}</strong></span>
-                  </div>
-                )}
+                {(member.role === 'tech' || member.role === 'manager') && (() => {
+                  const stats = getTechHoursFromEntries(jobs, member.id);
+                  return (
+                    <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: colors.border }}>
+                      <div className="flex justify-between">
+                        <span className="text-sm" style={{ color: colors.textSecondary }}>Active: <strong>{memberJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status)).length}</strong></span>
+                        <span className="text-sm" style={{ color: colors.textSecondary }}>Completed: <strong>{stats.totalJobs}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm" style={{ color: colors.primary }}>
+                        <Clock className="w-3.5 h-3.5" />
+                        <strong>{stats.totalHours.toFixed(1)}</strong> hrs
+                        <span style={{ color: colors.muted }}> · {stats.totalMiles} mi</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}

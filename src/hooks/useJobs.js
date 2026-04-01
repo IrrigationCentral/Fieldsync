@@ -15,6 +15,7 @@ import {
 } from '../firebase';
 import { notifications } from '../services/notifications';
 import { exportJobToExcel } from '../services/excelExport';
+import { downloadJobSheetPDF } from '../services/pdfGenerator';
 import { useAuth } from '../context/AuthContextV2';
 import { useData } from '../context/DataContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -50,7 +51,8 @@ export const useJobs = () => {
       pivotPercentage: pivotOptions?.pivotPercentage || 0,
       farmerAcknowledgedResponsibility: pivotOptions?.acknowledged || false,
       reportedBy: pivotOptions?.reportedBy || null,
-      reportedByRole: pivotOptions?.reportedByRole || null
+      reportedByRole: pivotOptions?.reportedByRole || null,
+      soNumber: pivotOptions?.soNumber || ''
     };
 
     const result = await fbAddJob(jobData);
@@ -127,18 +129,19 @@ export const useJobs = () => {
 
       const result = await fbCompleteJob(jobId, {
         ...completionData,
-        completedBy: userProfile.id,
+        completedBy: { id: userProfile.id, name: userProfile.name || 'Unknown' },
         totalCost,
         hourlyRate: pricingSettings.hourlyRate,
         mileageRate: pricingSettings.mileageRate
       });
 
       if (result.success) {
-        addNotification('success', 'Job completed successfully!');
+        const isFollowUp = completionData.needsFollowUp;
+        addNotification('success', isFollowUp ? 'Service entry saved — job marked for follow-up' : 'Job completed successfully!');
         try {
           const job = jobs.find(j => j.id === jobId);
           const completedByName = userProfile?.name || 'Technician';
-          if (job) {
+          if (job && !isFollowUp) {
             const farmer = users.find(u => u.id === job.farmerId);
             if (farmer) notifications.jobCompletedFarmer(farmer, job);
             const managers = users.filter(u => u.role === 'manager');
@@ -161,9 +164,24 @@ export const useJobs = () => {
     }
   }, [pricingSettings, userProfile, jobs, users, addNotification]);
 
+  // Check if an SO number is already used by another job
+  const isSONumberDuplicate = useCallback((soNumber, excludeJobId = null) => {
+    if (!soNumber || !soNumber.trim()) return false;
+    const trimmed = soNumber.trim().toUpperCase();
+    return jobs.some(j => {
+      if (excludeJobId && j.id === excludeJobId) return false;
+      return j.soNumber && j.soNumber.trim().toUpperCase() === trimmed;
+    });
+  }, [jobs]);
+
   const updateSONumber = useCallback(async (jobId, soNumber) => {
+    // Validate no duplicates
+    if (soNumber && isSONumberDuplicate(soNumber, jobId)) {
+      addNotification('error', `SO# ${soNumber} is already assigned to another job`);
+      return { success: false, error: 'Duplicate SO number' };
+    }
     setIsLoading(true);
-    const result = await fbUpdateJob(jobId, { soNumber });
+    const result = await fbUpdateJob(jobId, { soNumber: soNumber.trim() });
     if (result.success) {
       addNotification('success', 'SO Number updated');
     } else {
@@ -171,7 +189,7 @@ export const useJobs = () => {
     }
     setIsLoading(false);
     return result;
-  }, [addNotification]);
+  }, [addNotification, isSONumberDuplicate]);
 
   const rateJob = useCallback(async (jobId, rating, feedback) => {
     setIsLoading(true);
@@ -251,6 +269,32 @@ export const useJobs = () => {
     }
   }, [equipment, users, pricingSettings, addNotification]);
 
+  const exportToPDF = useCallback((job) => {
+    try {
+      const pivot = equipment.find(p => p.id === job.pivotId);
+      const farmer = users.find(u => u.id === job.farmerId);
+      const assignedIds = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+      const tech = users.find(u => assignedIds.includes(u.id));
+      downloadJobSheetPDF(job, pivot, farmer, tech, pricingSettings);
+      addNotification('success', 'PDF downloaded');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      addNotification('error', 'Failed to generate PDF');
+    }
+  }, [equipment, users, pricingSettings, addNotification]);
+
+  const updateJobFields = useCallback(async (jobId, fields) => {
+    setIsLoading(true);
+    const result = await fbUpdateJob(jobId, fields);
+    if (result.success) {
+      addNotification('success', 'Job updated');
+    } else {
+      addNotification('error', 'Failed to update job');
+    }
+    setIsLoading(false);
+    return result;
+  }, [addNotification]);
+
   const updateJobStatus = useCallback(async (jobId, status) => {
     const validStatuses = ['pending', 'assigned', 'in-progress', 'completed', 'ready-to-bill', 'billed', 'needs-followup'];
     if (!validStatuses.includes(status)) {
@@ -276,11 +320,14 @@ export const useJobs = () => {
     selfAssign,
     completeJob,
     updateSONumber,
+    isSONumberDuplicate,
+    updateJobFields,
     rateJob,
     deleteJob,
     addAssignee,
     removeAssignee,
     exportToExcel,
+    exportToPDF,
     updateJobStatus
   };
 };

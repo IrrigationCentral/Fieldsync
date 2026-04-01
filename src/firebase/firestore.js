@@ -196,7 +196,7 @@ export const addJob = async (jobData) => {
     const docRef = await addDoc(collection(db, 'jobs'), {
       ...jobData,
       status: 'pending',
-      soNumber: '', // SO number from NetSuite - to be filled by manager/office
+      soNumber: jobData.soNumber || '', // Preserve SO# if provided from report issue
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -342,12 +342,63 @@ export const removeAssigneeFromJob = async (jobId, userId) => {
 
 export const completeJob = async (jobId, completionData) => {
   try {
-    await updateDoc(doc(db, 'jobs', jobId), {
-      ...completionData,
+    // Build a service entry from this submission
+    const serviceEntry = {
+      id: `se_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      date: new Date().toISOString(),
+      completedBy: completionData.completedBy || null,
+      workDescription: completionData.workDescription || '',
+      partsUsed: completionData.partsUsed || [],
+      partsCost: completionData.partsCost || 0,
+      hoursWorked: completionData.hoursWorked || 0,
+      milesDriven: completionData.milesDriven || 0,
+      // Multi-vehicle support: store array of vehicles
+      vehicles: completionData.vehicles || [],
+      // Legacy flat fields for backward compat
+      vehicleNumber: completionData.vehicleNumber || '',
+      odometerBegin: completionData.odometerBegin || 0,
+      odometerEnd: completionData.odometerEnd || 0,
+      beforePhotos: completionData.beforePhotos || [],
+      afterPhotos: completionData.afterPhotos || [],
+      timeEntries: completionData.timeEntries || [],
+      needsFollowUp: completionData.needsFollowUp || false,
+      followUpNotes: completionData.followUpNotes || '',
+      hourlyRate: completionData.hourlyRate || 0,
+      mileageRate: completionData.mileageRate || 0,
+      totalCost: completionData.totalCost || 0
+    };
+
+    // Append service entry to array, update status and top-level fields
+    const updateData = {
+      serviceEntries: arrayUnion(serviceEntry),
       status: completionData.needsFollowUp ? 'needs-followup' : 'completed',
-      completedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+      updatedAt: serverTimestamp(),
+      // Keep latest top-level fields for backward compat & quick access
+      workDescription: completionData.workDescription || '',
+      partsUsed: completionData.partsUsed || [],
+      hoursWorked: completionData.hoursWorked || 0,
+      milesDriven: completionData.milesDriven || 0,
+      beforePhotos: arrayUnion(...(completionData.beforePhotos || [])),
+      afterPhotos: arrayUnion(...(completionData.afterPhotos || [])),
+      timeEntries: completionData.timeEntries || [],
+      needsFollowUp: completionData.needsFollowUp || false,
+      followUpNotes: completionData.followUpNotes || ''
+    };
+
+    // Only set completedAt on final completion (not follow-ups)
+    if (!completionData.needsFollowUp) {
+      updateData.completedAt = serverTimestamp();
+    }
+
+    // Handle empty photo arrays (arrayUnion with no args throws)
+    if (!completionData.beforePhotos?.length) {
+      delete updateData.beforePhotos;
+    }
+    if (!completionData.afterPhotos?.length) {
+      delete updateData.afterPhotos;
+    }
+
+    await updateDoc(doc(db, 'jobs', jobId), updateData);
     return { success: true };
   } catch (error) {
     console.error('Complete job error:', error);
@@ -759,6 +810,64 @@ export const subscribeToParts = (callback, errorCallback) => {
     callback(parts);
   }, (error) => {
     console.error('Subscription error:', error);
+    if (errorCallback) errorCallback(error);
+  });
+};
+
+// ============================================
+// TRUCK / PARTS LOCATIONS
+// ============================================
+
+// Add a truck location
+export const addTruckLocation = async (locationData) => {
+  try {
+    const docRef = await addDoc(collection(db, 'truckLocations'), {
+      name: locationData.name || '',
+      type: locationData.type || 'truck', // 'truck' or 'hq'
+      isActive: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('Add truck location error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update a truck location
+export const updateTruckLocation = async (locationId, locationData) => {
+  try {
+    await updateDoc(doc(db, 'truckLocations', locationId), {
+      ...locationData,
+      updatedAt: serverTimestamp()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Update truck location error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete a truck location
+export const deleteTruckLocation = async (locationId) => {
+  try {
+    await deleteDoc(doc(db, 'truckLocations', locationId));
+    return { success: true };
+  } catch (error) {
+    console.error('Delete truck location error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Real-time truck locations listener
+export const subscribeToTruckLocations = (callback, errorCallback) => {
+  const q = query(collection(db, 'truckLocations'), orderBy('name', 'asc'));
+  return onSnapshot(q, (snapshot) => {
+    const locations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    callback(locations);
+  }, (error) => {
+    console.error('Truck locations subscription error:', error);
     if (errorCallback) errorCallback(error);
   });
 };

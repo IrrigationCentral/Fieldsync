@@ -104,7 +104,7 @@ const AuthGate = () => {
 const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfileModal, selectedJobForNotification, showJobDetailsFromNotif, setShowJobDetailsFromNotif, setSelectedJobForNotification }) => {
   const { colors } = useTheme();
   const { userProfile } = useAuth();
-  const { users, equipment, jobs, parts, pricingSettings } = useData();
+  const { users, equipment, jobs, parts, pricingSettings, truckLocations } = useData();
   const { addNotification } = useNotifications();
   const jobActions = useJobs();
   const equipActions = useEquipment();
@@ -130,7 +130,9 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
   const [userLoading, setUserLoading] = useState(false);
   const [issueLoading, setIssueLoading] = useState(false);
 
-  const canSeePricing = ['manager', 'office'].includes(userProfile?.role);
+  // Pricing disabled for now - match v1 behavior. Enable later:
+  // const canSeePricing = ['manager', 'office'].includes(userProfile?.role);
+  const canSeePricing = false;
 
   // Memoized callbacks to prevent re-renders
   const handleOpenReportIssue = useCallback((pivot) => {
@@ -227,6 +229,16 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
               onViewEquipment={setSelectedEquipmentProfile}
               onAddEquipmentClick={handleOpenAddEquipment}
               onReportIssueClick={() => setShowReportIssueModal(true)}
+            />
+          );
+        case 'alljobs':
+          return (
+            <ManagerJobsPage
+              onOpenAssignModal={handleOpenAssignModal}
+              onOpenJobDetails={handleOpenJobDetails}
+              onOpenSOModal={handleOpenSOModal}
+              onOpenReportIssue={() => setShowReportIssueModal(true)}
+              onOpenAddEquipment={handleOpenAddEquipment}
             />
           );
         case 'customers':
@@ -407,11 +419,11 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         isLoading={false}
         canSeePricing={canSeePricing}
         formatCurrency={formatCurrency}
-        truckLocations={[]} // TODO: Add truck locations from DataContext if available
+        truckLocations={truckLocations}
         users={users}
         userProfile={userProfile}
         addNotification={addNotification}
-        onDownloadJobSheet={() => addNotification('info', 'PDF export coming soon. Use Excel export for now.')}
+        onDownloadJobSheet={jobActions.exportToPDF}
         onExportToExcel={jobActions.exportToExcel}
       />
       <AssignJobModal
@@ -451,13 +463,15 @@ const ModalManager = ({ selectedTab, onSelectTab, showProfileModal, setShowProfi
         canSeePricing={canSeePricing}
         isLoading={false}
         colors={colors}
+        equipment={equipment}
         onAddManualTimeEntry={timeActions.addManualEntry}
         onDeleteTimeEntry={timeActions.deleteEntry}
-        onDownloadJobSheet={() => addNotification('info', 'PDF export coming soon. Use Excel export for now.')}
+        onDownloadJobSheet={jobActions.exportToPDF}
         onExportToExcel={jobActions.exportToExcel}
         onOpenSOModal={() => setShowSOModal(true)}
         onOpenAssignModal={() => setShowAssignJobModal(true)}
         onStatusChange={jobActions.updateJobStatus}
+        onUpdateJob={jobActions.updateJobFields}
         formatDate={formatDate}
         formatCurrency={formatCurrency}
         getStatusVariant={getStatusVariant}

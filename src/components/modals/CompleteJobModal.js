@@ -258,35 +258,120 @@ const Step3Time = ({
 
           <div>
             <label className="text-sm" style={{ color: colors.textSecondary }}>Date</label>
-            <input 
-              type="date" 
-              value={newTimeEntry.date}
-              onChange={(e) => setNewTimeEntry(prev => ({...prev, date: e.target.value}))}
-              className="input w-full" 
-              style={{ fontSize: '16px' }}
-            />
+            <div className="flex gap-1">
+              <select
+                value={newTimeEntry.date.split('-')[1] || String(new Date().getMonth() + 1).padStart(2, '0')}
+                onChange={(e) => {
+                  const parts = newTimeEntry.date.split('-');
+                  setNewTimeEntry(prev => ({...prev, date: `${parts[0]}-${e.target.value}-${parts[2]}`}));
+                }}
+                className="input flex-1"
+                style={{ fontSize: '16px' }}
+              >
+                {['01','02','03','04','05','06','07','08','09','10','11','12'].map(m => (
+                  <option key={m} value={m}>{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]}</option>
+                ))}
+              </select>
+              <select
+                value={newTimeEntry.date.split('-')[2] || String(new Date().getDate()).padStart(2, '0')}
+                onChange={(e) => {
+                  const parts = newTimeEntry.date.split('-');
+                  setNewTimeEntry(prev => ({...prev, date: `${parts[0]}-${parts[1]}-${e.target.value}`}));
+                }}
+                className="input w-16"
+                style={{ fontSize: '16px' }}
+              >
+                {Array.from({length: 31}, (_, i) => {
+                  const d = String(i + 1).padStart(2, '0');
+                  return <option key={d} value={d}>{i + 1}</option>;
+                })}
+              </select>
+              <select
+                value={newTimeEntry.date.split('-')[0] || String(new Date().getFullYear())}
+                onChange={(e) => {
+                  const parts = newTimeEntry.date.split('-');
+                  setNewTimeEntry(prev => ({...prev, date: `${e.target.value}-${parts[1]}-${parts[2]}`}));
+                }}
+                className="input w-20"
+                style={{ fontSize: '16px' }}
+              >
+                {[2025, 2026, 2027].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm" style={{ color: colors.textSecondary }}>Start Time</label>
-              <input 
-                type="time" 
-                value={newTimeEntry.startTime}
-                onChange={(e) => setNewTimeEntry(prev => ({...prev, startTime: e.target.value}))}
-                className="input w-full" 
-                style={{ fontSize: '16px' }}
-              />
+              <div className="flex gap-1 items-center">
+                <select
+                  value={newTimeEntry.startTime.split(':')[0] || '08'}
+                  onChange={(e) => {
+                    const mins = newTimeEntry.startTime.split(':')[1] || '00';
+                    setNewTimeEntry(prev => ({...prev, startTime: `${e.target.value}:${mins}`}));
+                  }}
+                  className="input flex-1"
+                  style={{ fontSize: '16px' }}
+                >
+                  {Array.from({length: 24}, (_, i) => {
+                    const h = String(i).padStart(2, '0');
+                    const label = i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`;
+                    return <option key={h} value={h}>{label}</option>;
+                  })}
+                </select>
+                <span style={{ color: colors.textSecondary }}>:</span>
+                <select
+                  value={newTimeEntry.startTime.split(':')[1] || '00'}
+                  onChange={(e) => {
+                    const hrs = newTimeEntry.startTime.split(':')[0] || '08';
+                    setNewTimeEntry(prev => ({...prev, startTime: `${hrs}:${e.target.value}`}));
+                  }}
+                  className="input w-16"
+                  style={{ fontSize: '16px' }}
+                >
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
+              </div>
             </div>
             <div>
               <label className="text-sm" style={{ color: colors.textSecondary }}>End Time</label>
-              <input 
-                type="time" 
-                value={newTimeEntry.endTime}
-                onChange={(e) => setNewTimeEntry(prev => ({...prev, endTime: e.target.value}))}
-                className="input w-full" 
-                style={{ fontSize: '16px' }}
-              />
+              <div className="flex gap-1 items-center">
+                <select
+                  value={newTimeEntry.endTime.split(':')[0] || '17'}
+                  onChange={(e) => {
+                    const mins = newTimeEntry.endTime.split(':')[1] || '00';
+                    setNewTimeEntry(prev => ({...prev, endTime: `${e.target.value}:${mins}`}));
+                  }}
+                  className="input flex-1"
+                  style={{ fontSize: '16px' }}
+                >
+                  {Array.from({length: 24}, (_, i) => {
+                    const h = String(i).padStart(2, '0');
+                    const label = i === 0 ? '12 AM' : i < 12 ? `${i} AM` : i === 12 ? '12 PM' : `${i - 12} PM`;
+                    return <option key={h} value={h}>{label}</option>;
+                  })}
+                </select>
+                <span style={{ color: colors.textSecondary }}>:</span>
+                <select
+                  value={newTimeEntry.endTime.split(':')[1] || '00'}
+                  onChange={(e) => {
+                    const hrs = newTimeEntry.endTime.split(':')[0] || '17';
+                    setNewTimeEntry(prev => ({...prev, endTime: `${hrs}:${e.target.value}`}));
+                  }}
+                  className="input w-16"
+                  style={{ fontSize: '16px' }}
+                >
+                  <option value="00">00</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                  <option value="45">45</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -488,10 +573,10 @@ const Step4Parts = ({
   );
 };
 
-// Step 5: Vehicle & Photos (FIXED - no capture attribute = allows gallery)
+// Step 5: Vehicle & Photos - supports MULTIPLE vehicles per service entry
 const Step5Vehicle = ({
-  vehicleInfo,
-  setVehicleInfo,
+  vehicles,
+  setVehicles,
   beforePhotos,
   setBeforePhotos,
   afterPhotos,
@@ -505,13 +590,32 @@ const Step5Vehicle = ({
   isLoading,
   addNotification
 }) => {
-  useEffect(() => {
-    const begin = parseFloat(vehicleInfo.odometerBegin) || 0;
-    const end = parseFloat(vehicleInfo.odometerEnd) || 0;
-    if (begin > 0 && end > 0 && end > begin) {
-      setVehicleInfo(prev => ({ ...prev, milesDriven: (end - begin).toString() }));
-    }
-  }, [vehicleInfo.odometerBegin, vehicleInfo.odometerEnd, setVehicleInfo]);
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({ vehicleNumber: '', odometerBegin: '', odometerEnd: '' });
+
+  const calcMiles = (begin, end) => {
+    const b = parseFloat(begin) || 0;
+    const e = parseFloat(end) || 0;
+    return (b > 0 && e > 0 && e > b) ? (e - b) : 0;
+  };
+
+  const addVehicle = () => {
+    if (!newVehicle.vehicleNumber) return;
+    const miles = calcMiles(newVehicle.odometerBegin, newVehicle.odometerEnd);
+    setVehicles(prev => [...prev, {
+      id: Date.now().toString(),
+      vehicleNumber: newVehicle.vehicleNumber,
+      odometerBegin: parseFloat(newVehicle.odometerBegin) || 0,
+      odometerEnd: parseFloat(newVehicle.odometerEnd) || 0,
+      milesDriven: miles
+    }]);
+    setNewVehicle({ vehicleNumber: '', odometerBegin: '', odometerEnd: '' });
+    setShowAddVehicle(false);
+  };
+
+  const removeVehicle = (id) => setVehicles(prev => prev.filter(v => v.id !== id));
+
+  const totalMiles = vehicles.reduce((sum, v) => sum + (v.milesDriven || 0), 0);
 
   const handlePhotoSelect = async (e, type) => {
     const files = Array.from(e.target.files);
@@ -530,7 +634,6 @@ const Step5Vehicle = ({
       } catch (err) {
         console.error('Photo compression error:', err);
         addNotification?.('error', `Failed to process photo ${file.name}: ${err.message}`);
-        // Fallback to original file if compression fails
         try {
           const reader = new FileReader();
           const preview = await new Promise(resolve => {
@@ -541,7 +644,6 @@ const Step5Vehicle = ({
         } catch (fallbackErr) {
           console.error('Photo fallback error:', fallbackErr);
           addNotification?.('error', `Cannot load photo ${file.name}`);
-          // Skip this photo only if both compression and fallback fail
         }
       }
     }
@@ -559,47 +661,87 @@ const Step5Vehicle = ({
     <div className="space-y-4">
       <div className="text-center mb-4">
         <Navigation className="w-10 h-10 mx-auto mb-2" style={{ color: colors.water }} />
-        <h3 className="text-lg font-semibold" style={{ color: colors.textPrimary }}>Vehicle & Photos</h3>
+        <h3 className="text-lg font-semibold" style={{ color: colors.textPrimary }}>Vehicles & Photos</h3>
+        <p className="text-sm" style={{ color: colors.textSecondary }}>Add each vehicle used on this job</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-sm" style={{ color: colors.textSecondary }}>Truck #</label>
-          <input 
-            type="text" 
-            value={vehicleInfo.vehicleNumber} 
-            onChange={(e) => setVehicleInfo(prev => ({...prev, vehicleNumber: e.target.value}))} 
-            placeholder="57" 
-            className="input w-full" 
-            style={{ fontSize: '16px' }} 
-          />
+      {/* Existing vehicles list */}
+      {vehicles.length > 0 && (
+        <div className="space-y-2">
+          {vehicles.map((v) => (
+            <div key={v.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
+              <div>
+                <p className="font-medium" style={{ color: colors.textPrimary }}>Truck #{v.vehicleNumber}</p>
+                <p className="text-sm" style={{ color: colors.textSecondary }}>
+                  {v.odometerBegin || '—'} → {v.odometerEnd || '—'}
+                </p>
+                <p className="text-sm font-bold" style={{ color: colors.primary }}>{v.milesDriven} miles</p>
+              </div>
+              <button onClick={() => removeVehicle(v.id)} className="p-2">
+                <Trash2 className="w-5 h-5" style={{ color: colors.danger }} />
+              </button>
+            </div>
+          ))}
+          <div className="p-2 rounded-lg text-center" style={{ backgroundColor: colors.success + '15' }}>
+            <p className="font-bold" style={{ color: colors.success }}>Total: {totalMiles} miles</p>
+          </div>
         </div>
-        <div>
-          <label className="text-sm" style={{ color: colors.textSecondary }}>Start</label>
-          <input 
-            type="number" 
-            value={vehicleInfo.odometerBegin} 
-            onChange={(e) => setVehicleInfo(prev => ({...prev, odometerBegin: e.target.value}))} 
-            className="input w-full" 
-            style={{ fontSize: '16px' }} 
-          />
-        </div>
-        <div>
-          <label className="text-sm" style={{ color: colors.textSecondary }}>End</label>
-          <input 
-            type="number" 
-            value={vehicleInfo.odometerEnd} 
-            onChange={(e) => setVehicleInfo(prev => ({...prev, odometerEnd: e.target.value}))} 
-            className="input w-full" 
-            style={{ fontSize: '16px' }} 
-          />
-        </div>
-      </div>
+      )}
 
-      {vehicleInfo.milesDriven && (
-        <div className="p-2 rounded-lg text-center" style={{ backgroundColor: colors.success + '15' }}>
-          <p className="font-bold" style={{ color: colors.success }}>{vehicleInfo.milesDriven} miles</p>
+      {/* Add vehicle form */}
+      {showAddVehicle ? (
+        <div className="p-4 rounded-lg border space-y-3" style={{ borderColor: colors.border }}>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-sm" style={{ color: colors.textSecondary }}>Truck #</label>
+              <input 
+                type="text" 
+                value={newVehicle.vehicleNumber} 
+                onChange={(e) => setNewVehicle(prev => ({...prev, vehicleNumber: e.target.value}))} 
+                placeholder="57" 
+                className="input w-full" 
+                style={{ fontSize: '16px' }} 
+              />
+            </div>
+            <div>
+              <label className="text-sm" style={{ color: colors.textSecondary }}>Start</label>
+              <input 
+                type="number" 
+                value={newVehicle.odometerBegin} 
+                onChange={(e) => setNewVehicle(prev => ({...prev, odometerBegin: e.target.value}))} 
+                className="input w-full" 
+                style={{ fontSize: '16px' }} 
+              />
+            </div>
+            <div>
+              <label className="text-sm" style={{ color: colors.textSecondary }}>End</label>
+              <input 
+                type="number" 
+                value={newVehicle.odometerEnd} 
+                onChange={(e) => setNewVehicle(prev => ({...prev, odometerEnd: e.target.value}))} 
+                className="input w-full" 
+                style={{ fontSize: '16px' }} 
+              />
+            </div>
+          </div>
+
+          {newVehicle.odometerBegin && newVehicle.odometerEnd && (
+            <div className="p-2 rounded text-center" style={{ backgroundColor: colors.primary + '15' }}>
+              <span style={{ color: colors.primary, fontWeight: 'bold' }}>
+                = {calcMiles(newVehicle.odometerBegin, newVehicle.odometerEnd)} miles
+              </span>
+            </div>
+          )}
+
+          <div className="flex space-x-2">
+            <Button onClick={addVehicle} disabled={!newVehicle.vehicleNumber} className="flex-1">Add Vehicle</Button>
+            <Button variant="secondary" onClick={() => setShowAddVehicle(false)} className="flex-1">Cancel</Button>
+          </div>
         </div>
+      ) : (
+        <Button variant="secondary" onClick={() => setShowAddVehicle(true)} icon={Plus} className="w-full">
+          Add Vehicle
+        </Button>
       )}
 
       {/* PHOTOS - NO capture attribute so user can choose camera OR gallery */}
@@ -623,7 +765,6 @@ const Step5Vehicle = ({
               <label className="w-16 h-16 rounded border-2 border-dashed flex flex-col items-center justify-center cursor-pointer" style={{ borderColor: colors.border }}>
                 <Camera className="w-4 h-4" style={{ color: colors.textMuted }} />
                 <Image className="w-4 h-4" style={{ color: colors.textMuted }} />
-                {/* NO capture attribute = allows camera OR gallery selection */}
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -654,7 +795,6 @@ const Step5Vehicle = ({
               <label className="w-16 h-16 rounded border-2 border-dashed flex flex-col items-center justify-center cursor-pointer" style={{ borderColor: colors.border }}>
                 <Camera className="w-4 h-4" style={{ color: colors.textMuted }} />
                 <Image className="w-4 h-4" style={{ color: colors.textMuted }} />
-                {/* NO capture attribute = allows camera OR gallery selection */}
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -691,7 +831,7 @@ const Step6Review = ({
   totalHours,
   timeEntries,
   selectedParts,
-  vehicleInfo,
+  vehicles,
   colors,
   onNext,
   onBack,
@@ -700,7 +840,9 @@ const Step6Review = ({
   onDownloadJobSheet,
   onExportToExcel,
   job
-}) => (
+}) => {
+  const totalMiles = vehicles.reduce((sum, v) => sum + (v.milesDriven || 0), 0);
+  return (
   <div className="space-y-4">
     <div className="text-center mb-4">
       <CheckCircle className="w-10 h-10 mx-auto mb-2" style={{ color: colors.success }} />
@@ -747,7 +889,7 @@ const Step6Review = ({
     <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: colors.background }}>
       <p><strong>Time:</strong> {totalHours.toFixed(2)} hrs ({timeEntries.length} entries)</p>
       <p><strong>Parts:</strong> {selectedParts.length || 'None'}</p>
-      <p><strong>Miles:</strong> {vehicleInfo.milesDriven || '0'}</p>
+      <p><strong>Vehicles:</strong> {vehicles.length || 'None'} ({totalMiles} miles)</p>
     </div>
 
     <textarea 
@@ -795,7 +937,8 @@ const Step6Review = ({
       colors={colors}
     />
   </div>
-);
+  );
+};
 
 // ============================================
 // MAIN MODAL COMPONENT
@@ -824,7 +967,7 @@ const CompleteJobModal = ({
   const [problemDescription, setProblemDescription] = useState('');
   const [workDescription, setWorkDescription] = useState('');
   const [selectedParts, setSelectedParts] = useState([]);
-  const [vehicleInfo, setVehicleInfo] = useState({ vehicleNumber: '', odometerBegin: '', odometerEnd: '', milesDriven: '' });
+  const [vehicles, setVehicles] = useState([]);
   const [beforePhotos, setBeforePhotos] = useState([]);
   const [afterPhotos, setAfterPhotos] = useState([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -846,13 +989,15 @@ const CompleteJobModal = ({
       setProblemDescription('');
       setWorkDescription('');
       setSelectedParts([]);
-      setVehicleInfo({ vehicleNumber: '', odometerBegin: '', odometerEnd: '', milesDriven: '' });
+      setVehicles([]);
       setBeforePhotos([]);
       setAfterPhotos([]);
       setAdditionalNotes('');
       setJobComplete(true);
       setFollowUpNotes('');
-      setTimeEntries(selectedJobForAction.timeEntries || []);
+      // Start fresh — each service entry captures only THIS session's time
+      // Previous entries are preserved in earlier serviceEntries[]
+      setTimeEntries([]);
     }
     prevIsOpenRef.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -896,6 +1041,7 @@ const CompleteJobModal = ({
         } catch (err) { console.error(err); }
       }
       setUploadingPhotos(false);
+      const totalMiles = vehicles.reduce((sum, v) => sum + (v.milesDriven || 0), 0);
       await handleCompleteJob(selectedJobForAction.id, {
         workDescription: compileWorkPerformed(),
         partsUsed: selectedParts.map(p => ({ 
@@ -907,10 +1053,18 @@ const CompleteJobModal = ({
         })),
         partsCost: 0, 
         hoursWorked: totalHours || 0, 
-        milesDriven: parseFloat(vehicleInfo.milesDriven) || 0,
-        vehicleNumber: vehicleInfo.vehicleNumber, 
-        odometerBegin: parseFloat(vehicleInfo.odometerBegin) || 0,
-        odometerEnd: parseFloat(vehicleInfo.odometerEnd) || 0, 
+        milesDriven: totalMiles,
+        // Pass vehicles array for multi-vehicle support
+        vehicles: vehicles.map(v => ({
+          vehicleNumber: v.vehicleNumber,
+          odometerBegin: v.odometerBegin || 0,
+          odometerEnd: v.odometerEnd || 0,
+          milesDriven: v.milesDriven || 0
+        })),
+        // Keep legacy flat fields for backward compat (use first vehicle)
+        vehicleNumber: vehicles[0]?.vehicleNumber || '', 
+        odometerBegin: vehicles[0]?.odometerBegin || 0,
+        odometerEnd: vehicles[0]?.odometerEnd || 0, 
         beforePhotos: beforePhotoUrls, 
         afterPhotos: afterPhotoUrls,
         needsFollowUp: !jobComplete, 
@@ -993,8 +1147,8 @@ const CompleteJobModal = ({
             )}
             {currentStep === 5 && (
               <Step5Vehicle
-                vehicleInfo={vehicleInfo}
-                setVehicleInfo={setVehicleInfo}
+                vehicles={vehicles}
+                setVehicles={setVehicles}
                 beforePhotos={beforePhotos}
                 setBeforePhotos={setBeforePhotos}
                 afterPhotos={afterPhotos}
@@ -1020,7 +1174,7 @@ const CompleteJobModal = ({
                 totalHours={totalHours}
                 timeEntries={timeEntries}
                 selectedParts={selectedParts}
-                vehicleInfo={vehicleInfo}
+                vehicles={vehicles}
                 colors={colors}
                 onNext={handleSubmit}
                 onBack={prevStep}

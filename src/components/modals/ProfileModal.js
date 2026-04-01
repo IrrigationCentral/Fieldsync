@@ -2,7 +2,8 @@
 // PROFILE MODAL
 // ============================================
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Lock, Check, MessageSquare, Shield, Bell, Smartphone } from 'lucide-react';
+import { User, Mail, Lock, Check, MessageSquare, Bell, Smartphone, RefreshCw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContextV2';
 import { Modal, Button, Input } from '../ui';
 import { requestNotificationPermission, getNotificationStatus } from '../../firebase';
 
@@ -23,6 +24,7 @@ const ProfileModal = ({
   getSmsEmail,
   addNotification
 }) => {
+  const { switchRole } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -294,9 +296,29 @@ const ProfileModal = ({
             <p className="text-sm" style={{ color: colors.textSecondary }}>
               <Mail className="w-4 h-4 inline mr-1" /> {userProfile?.email}
             </p>
-            <p className="text-sm mt-1" style={{ color: colors.textSecondary }}>
-              <Shield className="w-4 h-4 inline mr-1" /> Role: {userProfile?.role?.charAt(0).toUpperCase() + userProfile?.role?.slice(1)}
-            </p>
+            <div className="mt-2">
+              <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>
+                <RefreshCw className="w-4 h-4 inline mr-1" /> Switch Role (dev mode)
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {['manager', 'tech', 'office', 'farmer'].map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => { switchRole(r); addNotification('success', `Switched to ${r} view`); onClose(); }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={{
+                      backgroundColor: userProfile?.role === r ? colors.primary : colors.inputBg,
+                      color: userProfile?.role === r ? 'white' : colors.textSecondary,
+                      border: `1px solid ${userProfile?.role === r ? colors.primary : colors.border}`
+                    }}
+                  >
+                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs mt-1" style={{ color: colors.muted }}>Local only — does not change your account role.</p>
+            </div>
           </div>
           
           <div className="flex space-x-3 pt-4">

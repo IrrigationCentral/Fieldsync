@@ -19,6 +19,7 @@ export const getNavItems = (role) => {
   if (role === 'tech') return [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'jobs', label: 'My Jobs', icon: Briefcase },
+    { id: 'alljobs', label: 'All Jobs', icon: Clipboard },
     { id: 'customers', label: 'Customers', icon: Users },
     { id: 'map', label: 'Field Map', icon: Map }
   ];

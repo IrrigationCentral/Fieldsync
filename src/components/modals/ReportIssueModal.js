@@ -27,6 +27,7 @@ const ReportIssueModal = ({
   // Early return if not open - don't compute anything
   const [selectedFarmerId, setSelectedFarmerId] = useState('');
   const [selectedPivotId, setSelectedPivotId] = useState('');
+  const [soNumber, setSoNumber] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('medium');
   const [leavePivotRunning, setLeavePivotRunning] = useState(false);
@@ -68,6 +69,7 @@ const ReportIssueModal = ({
   // Reset form state when modal closes
   useEffect(() => {
     if (!isOpen) {
+      setSoNumber('');
       setDescription('');
       setPriority('medium');
       setLeavePivotRunning(false);
@@ -214,6 +216,7 @@ const ReportIssueModal = ({
       }
       
       createJob(pivotToReport.id, description, priority, {
+        soNumber: soNumber.trim() || null,
         leavePivotRunning,
         pivotDirection: leavePivotRunning ? pivotDirection : '',
         pivotPercentage: leavePivotRunning ? parseInt(pivotPercentage) : 0,
@@ -224,6 +227,7 @@ const ReportIssueModal = ({
       });
       
       // Reset form
+      setSoNumber('');
       setDescription('');
       setPriority('medium');
       setLeavePivotRunning(false);
@@ -234,7 +238,7 @@ const ReportIssueModal = ({
       setSelectedFarmerId('');
       setSelectedPivotId('');
     }
-  }, [pivotToReport, description, leavePivotRunning, acknowledged, photos, priority, pivotDirection, pivotPercentage, createJob, isStaff, userProfile, addNotification]);
+  }, [pivotToReport, description, soNumber, leavePivotRunning, acknowledged, photos, priority, pivotDirection, pivotPercentage, createJob, isStaff, userProfile, addNotification]);
 
   // Don't render anything if modal is closed
   if (!isOpen) return null;
@@ -429,6 +433,13 @@ const ReportIssueModal = ({
         {/* Only show rest of form if pivot is selected */}
         {pivotToReport && (
           <>
+            <Input 
+              label="SO # (optional)" 
+              placeholder="e.g., 12345" 
+              value={soNumber} 
+              onChange={e => setSoNumber(e.target.value)} 
+            />
+
             <div className="space-y-2">
               <label className="block text-sm font-medium" style={{ color: colors.textPrimary }}>Describe the Issue</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Please describe the issue in detail..." className="input min-h-[120px] resize-none" required />

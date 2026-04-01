@@ -13,6 +13,8 @@
     scroll-behavior: smooth;
     height: 100%;
     overflow: hidden;
+    /* Fill status bar area on mobile with dark bg */
+    background-color: var(--color-background, #0D1117);
   }
 
   body {
@@ -21,11 +23,13 @@
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #FEFDF8;
+    background-color: #FAFAF7;
     transition: background-color 200ms ease-out;
     height: 100%;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
   }
 
   #root {
@@ -59,26 +63,33 @@
 
 @layer components {
   .btn-primary {
-    @apply px-4 py-2 rounded-xl font-semibold text-white transition-all duration-200;
-    background: linear-gradient(135deg, #2D5016 0%, #8FBC3B 100%);
+    @apply px-4 py-2.5 rounded-xl font-semibold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #2D5016 0%, #3A6B1E 50%, #8FBC3B 100%);
+    letter-spacing: 0.01em;
   }
 
   .btn-primary:hover {
     @apply shadow-lg transform -translate-y-0.5;
-    box-shadow: 0 10px 30px rgba(45, 80, 22, 0.3);
+    box-shadow: 0 8px 24px rgba(45, 80, 22, 0.25);
   }
 
-  /* Card - now handled by inline styles */
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(45, 80, 22, 0.2);
+  }
+
+  /* Card */
   .card {
-    @apply rounded-2xl shadow-sm transition-all duration-200;
+    @apply rounded-2xl transition-all duration-200;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   }
 
   .card:hover {
-    @apply shadow-xl;
-    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
   }
 
-  /* Input - now handled by inline styles */
+  /* Input */
   .input {
     @apply w-full px-4 py-3 rounded-xl border transition-all duration-200;
     /* Prevent zoom on focus (Android) */
@@ -86,8 +97,9 @@
   }
 
   .input:focus {
-    @apply outline-none ring-2;
-    --tw-ring-color: #8FBC3B;
+    @apply outline-none;
+    border-color: #8FBC3B;
+    box-shadow: 0 0 0 3px rgba(143, 188, 59, 0.15);
   }
 
   /* Prevent text zoom on mobile */
@@ -96,9 +108,9 @@
   }
 
   .modal-backdrop {
-    @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50;
-    backdrop-filter: blur(4px);
-    animation: fadeIn 0.2s ease-out;
+    @apply fixed inset-0 bg-black/40 flex items-center justify-center z-50;
+    backdrop-filter: blur(8px);
+    animation: fadeIn 0.15s ease-out;
     /* Android keyboard fix */
     position: fixed;
     top: 0;
@@ -110,16 +122,18 @@
   }
 
   .modal-content {
-    @apply rounded-2xl shadow-2xl max-h-[90vh] overflow-auto;
-    animation: scaleIn 0.2s ease-out;
+    @apply rounded-2xl max-h-[90vh] overflow-auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.1);
+    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     /* Android keyboard fix - prevent content jump */
     position: relative;
     max-height: 85vh;
-    max-height: 85dvh; /* Use dynamic viewport height where supported */
+    max-height: 85dvh;
   }
 
   .badge {
     @apply px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center;
+    letter-spacing: 0.02em;
   }
 
   .badge-success { @apply bg-green-100 text-green-700; }
@@ -211,8 +225,9 @@
   }
 
   .toast {
-    @apply rounded-lg shadow-lg p-4 min-w-[300px] border-l-4;
-    animation: slideIn 0.3s ease-out;
+    @apply rounded-xl shadow-lg p-4 min-w-[300px] border-l-4;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .progress-bar {
@@ -258,7 +273,7 @@
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
+  from { transform: scale(0.97); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
 

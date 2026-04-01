@@ -17,6 +17,7 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
   const completedJobs = jobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status));
   const techs = users.filter(u => u.role === 'tech');
 
+
   return (
     <div className="space-y-6">
       <div>
@@ -69,33 +70,30 @@ const ManagerDashboard = ({ onOpenAssignModal, onOpenReportIssue, onOpenAddEquip
           )}
         </div>
 
-        {/* Team Performance */}
+        {/* Active Jobs In Progress */}
         <div className="card p-4" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}` }}>
-          <h3 className="font-semibold mb-4" style={{ color: colors.textPrimary }}>Team Performance</h3>
-          {techs.length === 0 ? (
-            <p className="text-center py-6" style={{ color: colors.textSecondary }}>No technicians added yet</p>
+          <h3 className="font-semibold flex items-center mb-4" style={{ color: colors.textPrimary }}>
+            <Wrench className="w-5 h-5 mr-2" style={{ color: colors.water }} />
+            In Progress ({assignedJobs.length})
+          </h3>
+          {assignedJobs.length === 0 ? (
+            <p className="text-center py-6" style={{ color: colors.textSecondary }}>No jobs in progress</p>
           ) : (
-            <div className="space-y-3">
-              {techs.map(tech => {
-                const techJobs = jobs.filter(j => {
-                  const assigned = j.assignedTo;
-                  return Array.isArray(assigned) ? assigned.includes(tech.id) : assigned === tech.id;
-                });
-                const active = techJobs.filter(j => ['assigned', 'in-progress', 'needs-followup'].includes(j.status)).length;
-                const completed = techJobs.filter(j => ['completed', 'billed', 'ready-to-bill'].includes(j.status)).length;
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {assignedJobs.map(job => {
+                const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+                const techNames = assignees.map(id => users.find(u => u.id === id)?.name).filter(Boolean);
                 return (
-                  <div key={tech.id} className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: colors.background }}>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{tech.avatar || '\uD83D\uDC77'}</span>
-                      <div>
-                        <p className="font-medium" style={{ color: colors.textPrimary }}>{tech.name}</p>
-                        <p className="text-xs" style={{ color: colors.textSecondary }}>{tech.phone || tech.email}</p>
-                      </div>
+                  <div key={job.id} className="p-3 rounded-lg cursor-pointer" style={{ backgroundColor: colors.background }}
+                    onClick={() => onOpenJobDetails && onOpenJobDetails(job)}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-medium text-sm" style={{ color: colors.textPrimary }}>{job.title}</p>
+                      <Badge variant={job.status === 'needs-followup' ? 'warning' : 'info'}>{job.status}</Badge>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium" style={{ color: colors.water }}>{active} active</p>
-                      <p className="text-xs" style={{ color: colors.success }}>{completed} completed</p>
-                    </div>
+                    <p className="text-xs" style={{ color: colors.textSecondary }}>{job.pivotName}</p>
+                    {techNames.length > 0 && (
+                      <p className="text-xs mt-1" style={{ color: colors.primary }}>{techNames.join(', ')}</p>
+                    )}
                   </div>
                 );
               })}

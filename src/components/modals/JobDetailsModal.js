@@ -1,9 +1,9 @@
 // ============================================
-// JOB DETAILS MODAL
+// JOB DETAILS MODAL - with manager inline editing
 // ============================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Clock, Plus, Trash2, Download, FileText, Hash, UserPlus, Image
+  Clock, Plus, Trash2, Download, FileText, Hash, UserPlus, Image, Pencil, Save, X
 } from 'lucide-react';
 import { Modal, Button, Input, Select, Badge, StarRating } from '../ui';
 import StatusDropdown from '../StatusDropdown';
@@ -17,6 +17,7 @@ const JobDetailsModal = ({
   canSeePricing,
   isLoading,
   colors,
+  equipment,
   // Handlers
   onAddManualTimeEntry,
   onDeleteTimeEntry,
@@ -25,12 +26,16 @@ const JobDetailsModal = ({
   onOpenSOModal,
   onOpenAssignModal,
   onStatusChange,
+  onUpdateJob,
   // Formatters
   formatDate,
   formatCurrency,
   getStatusVariant
 }) => {
   const [showAddTimeEntry, setShowAddTimeEntry] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [saving, setSaving] = useState(false);
   const [manualTimeData, setManualTimeData] = useState({
     techId: '',
     date: new Date().toISOString().split('T')[0],
@@ -40,14 +45,72 @@ const JobDetailsModal = ({
     notes: ''
   });
 
+  // Reset edit state when job changes or modal opens
+  useEffect(() => {
+    if (job) {
+      setEditData({
+        title: job.title || '',
+        description: job.description || '',
+        priority: job.priority || 'low',
+        soNumber: job.soNumber || '',
+        pivotId: job.pivotId || '',
+        farmerId: job.farmerId || ''
+      });
+    }
+    setEditing(false);
+  }, [job]);
+
   if (!job) return null;
+
+  const isManager = userProfile?.role === 'manager';
+  const isOffice = userProfile?.role === 'office';
+  const canEdit = (isManager || isOffice) && !!onUpdateJob;
 
   const assigneeIds = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
   const assignedTechs = assigneeIds.map(id => users.find(u => u.id === id)).filter(Boolean);
-  const farmer = users.find(u => u.id === job.farmerId);
+  const farmer = users.find(u => u.id === (editing ? editData.farmerId : job.farmerId));
   const timeEntries = job.timeEntries || [];
   const techs = users.filter(u => u.role === 'tech' || u.role === 'manager');
+  const farmers = users.filter(u => u.role === 'farmer');
   const isStaff = ['tech', 'manager', 'office'].includes(userProfile?.role);
+  const pivotEquipment = equipment || [];
+
+  // Get pivot name for display
+  const currentPivot = pivotEquipment.find(p => p.id === (editing ? editData.pivotId : job.pivotId));
+  const pivotName = currentPivot?.name || job.pivotName || 'N/A';
+
+  const handleSave = async () => {
+    setSaving(true);
+    const updates = {};
+    if (editData.title !== job.title) updates.title = editData.title;
+    if (editData.description !== job.description) updates.description = editData.description;
+    if (editData.priority !== job.priority) updates.priority = editData.priority;
+    if (editData.soNumber !== (job.soNumber || '')) updates.soNumber = editData.soNumber;
+    if (editData.farmerId !== job.farmerId) updates.farmerId = editData.farmerId;
+    if (editData.pivotId !== job.pivotId) {
+      updates.pivotId = editData.pivotId;
+      const newPivot = pivotEquipment.find(p => p.id === editData.pivotId);
+      if (newPivot) updates.pivotName = newPivot.name;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await onUpdateJob(job.id, updates);
+    }
+    setSaving(false);
+    setEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditData({
+      title: job.title || '',
+      description: job.description || '',
+      priority: job.priority || 'low',
+      soNumber: job.soNumber || '',
+      pivotId: job.pivotId || '',
+      farmerId: job.farmerId || ''
+    });
+    setEditing(false);
+  };
 
   // Calculate hours for a single entry
   const calculateEntryHours = (entry) => {
@@ -59,30 +122,26 @@ const JobDetailsModal = ({
     return Math.max(0, hours - lunchDeduction);
   };
 
-  // Group time entries by tech and calculate totals
+  // Group time entries by tech
   const getTimeBreakdown = () => {
     const byTech = {};
     let grandTotal = 0;
-
     timeEntries.forEach(entry => {
       const techId = entry.techId;
       const techName = entry.techName || users.find(u => u.id === techId)?.name || 'Unknown';
       const hours = calculateEntryHours(entry);
       grandTotal += hours;
-
       if (!byTech[techId]) {
         byTech[techId] = { techName, entries: [], totalHours: 0 };
       }
       byTech[techId].entries.push({ ...entry, hours });
       byTech[techId].totalHours += hours;
     });
-
     return { byTech, grandTotal };
   };
 
   const { byTech, grandTotal } = getTimeBreakdown();
 
-  // Format time for display
   const formatTimeDisplay = (isoString) => {
     if (!isoString) return '--:--';
     return new Date(isoString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -93,75 +152,160 @@ const JobDetailsModal = ({
     return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Handle adding manual time entry
   const handleAddManualTime = async () => {
-    if (!manualTimeData.techId) {
-      return; // Should show notification
-    }
+    if (!manualTimeData.techId) return;
     const tech = users.find(u => u.id === manualTimeData.techId);
     const startDateTime = new Date(`${manualTimeData.date}T${manualTimeData.startTime}`);
     const endDateTime = new Date(`${manualTimeData.date}T${manualTimeData.endTime}`);
-    
-    if (endDateTime <= startDateTime) {
-      return; // Should show notification
-    }
+    if (endDateTime <= startDateTime) return;
 
     const result = await onAddManualTimeEntry(
-      job.id,
-      manualTimeData.techId,
-      tech?.name || 'Unknown',
-      startDateTime.toISOString(),
-      endDateTime.toISOString(),
-      manualTimeData.lunchTaken,
-      manualTimeData.notes
+      job.id, manualTimeData.techId, tech?.name || 'Unknown',
+      startDateTime.toISOString(), endDateTime.toISOString(),
+      manualTimeData.lunchTaken, manualTimeData.notes
     );
 
     if (result?.success) {
       setShowAddTimeEntry(false);
-      setManualTimeData({
-        techId: '',
-        date: new Date().toISOString().split('T')[0],
-        startTime: '08:00',
-        endTime: '17:00',
-        lunchTaken: false,
-        notes: ''
-      });
+      setManualTimeData({ techId: '', date: new Date().toISOString().split('T')[0], startTime: '08:00', endTime: '17:00', lunchTaken: false, notes: '' });
     }
   };
 
   const handleClose = () => {
     setShowAddTimeEntry(false);
+    setEditing(false);
     onClose();
   };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Job Details" size="lg">
       <div className="space-y-4">
+        {/* Header with title + status/priority */}
         <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{job.title}</h3>
-            {job.soNumber && <p className="text-sm font-mono" style={{ color: colors.primary }}>SO# {job.soNumber}</p>}
+          <div className="flex-1 mr-4">
+            {editing ? (
+              <input
+                type="text"
+                value={editData.title}
+                onChange={e => setEditData({...editData, title: e.target.value})}
+                className="w-full text-lg font-bold rounded px-2 py-1"
+                style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, border: `1px solid ${colors.border}` }}
+              />
+            ) : (
+              <h3 className="text-lg font-bold" style={{ color: colors.textPrimary }}>{job.title}</h3>
+            )}
+            {editing ? (
+              <input
+                type="text"
+                value={editData.soNumber}
+                onChange={e => setEditData({...editData, soNumber: e.target.value})}
+                placeholder="SO Number"
+                className="text-sm font-mono rounded px-2 py-1 mt-1"
+                style={{ backgroundColor: colors.inputBg, color: colors.primary, border: `1px solid ${colors.border}` }}
+              />
+            ) : (
+              job.soNumber && <p className="text-sm font-mono" style={{ color: colors.primary }}>SO# {job.soNumber}</p>
+            )}
           </div>
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
+            {canEdit && !editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="p-1.5 rounded transition-colors"
+                title="Edit job details"
+                style={{ color: colors.water }}
+                onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.water + '20'; }}
+                onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {editing && (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="p-1.5 rounded transition-colors"
+                  title="Save changes"
+                  style={{ color: colors.success }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.success + '20'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
+                >
+                  <Save className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="p-1.5 rounded transition-colors"
+                  title="Cancel editing"
+                  style={{ color: colors.danger }}
+                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '20'; }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </>
+            )}
             <StatusDropdown jobId={job.id} currentStatus={job.status} onStatusChange={onStatusChange} />
-            <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>
-              {job.priority}
-            </Badge>
+            {editing ? (
+              <select
+                value={editData.priority}
+                onChange={e => setEditData({...editData, priority: e.target.value})}
+                className="text-xs rounded px-2 py-1"
+                style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, border: `1px solid ${colors.border}` }}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            ) : (
+              <Badge variant={job.priority === 'high' ? 'danger' : job.priority === 'medium' ? 'warning' : 'success'}>
+                {job.priority}
+              </Badge>
+            )}
           </div>
         </div>
 
+        {/* Info panel */}
         <div className="p-4 rounded-lg space-y-3" style={{ backgroundColor: colors.background }}>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span style={{ color: colors.textSecondary }}>Location:</span>
-            <span style={{ color: colors.textPrimary }}>{job.pivotName || 'N/A'}</span>
+            {editing ? (
+              <select
+                value={editData.pivotId}
+                onChange={e => setEditData({...editData, pivotId: e.target.value})}
+                className="text-sm rounded px-2 py-1"
+                style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, border: `1px solid ${colors.border}` }}
+              >
+                <option value="">Select equipment...</option>
+                {pivotEquipment.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            ) : (
+              <span style={{ color: colors.textPrimary }}>{pivotName}</span>
+            )}
           </div>
           <div className="flex justify-between">
             <span style={{ color: colors.textSecondary }}>Reported:</span>
             <span style={{ color: colors.textPrimary }}>{formatDate(job.createdAt)}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center">
             <span style={{ color: colors.textSecondary }}>Customer:</span>
-            <span style={{ color: colors.textPrimary }}>{farmer?.name || 'Unknown'}</span>
+            {editing ? (
+              <select
+                value={editData.farmerId}
+                onChange={e => setEditData({...editData, farmerId: e.target.value})}
+                className="text-sm rounded px-2 py-1"
+                style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, border: `1px solid ${colors.border}` }}
+              >
+                <option value="">Select customer...</option>
+                {farmers.map(f => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            ) : (
+              <span style={{ color: colors.textPrimary }}>{farmer?.name || 'Unknown'}</span>
+            )}
           </div>
           {assignedTechs.length > 0 && (
             <div className="flex justify-between">
@@ -171,9 +315,20 @@ const JobDetailsModal = ({
           )}
         </div>
 
+        {/* Description */}
         <div>
           <h4 className="font-medium mb-2" style={{ color: colors.textPrimary }}>Description</h4>
-          <p className="text-sm" style={{ color: colors.textSecondary }}>{job.description}</p>
+          {editing ? (
+            <textarea
+              value={editData.description}
+              onChange={e => setEditData({...editData, description: e.target.value})}
+              rows={4}
+              className="w-full text-sm rounded px-3 py-2"
+              style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, border: `1px solid ${colors.border}`, resize: 'vertical' }}
+            />
+          ) : (
+            <p className="text-sm" style={{ color: colors.textSecondary }}>{job.description}</p>
+          )}
         </div>
 
         {job.leavePivotRunning && (
@@ -191,7 +346,7 @@ const JobDetailsModal = ({
               <h4 className="font-medium flex items-center" style={{ color: colors.textPrimary }}>
                 <Clock className="w-4 h-4 mr-2" /> Time Tracking
               </h4>
-              {(userProfile?.role === 'manager' || userProfile?.role === 'office') && (
+              {(isManager || isOffice) && (
                 <Button size="sm" icon={Plus} onClick={() => setShowAddTimeEntry(!showAddTimeEntry)}>
                   Add Time
                 </Button>
@@ -212,42 +367,15 @@ const JobDetailsModal = ({
                   ]}
                 />
                 <div className="grid grid-cols-3 gap-3">
-                  <Input
-                    label="Date"
-                    type="date"
-                    value={manualTimeData.date}
-                    onChange={e => setManualTimeData({...manualTimeData, date: e.target.value})}
-                  />
-                  <Input
-                    label="Start Time"
-                    type="time"
-                    value={manualTimeData.startTime}
-                    onChange={e => setManualTimeData({...manualTimeData, startTime: e.target.value})}
-                  />
-                  <Input
-                    label="End Time"
-                    type="time"
-                    value={manualTimeData.endTime}
-                    onChange={e => setManualTimeData({...manualTimeData, endTime: e.target.value})}
-                  />
+                  <Input label="Date" type="date" value={manualTimeData.date} onChange={e => setManualTimeData({...manualTimeData, date: e.target.value})} />
+                  <Input label="Start Time" type="time" value={manualTimeData.startTime} onChange={e => setManualTimeData({...manualTimeData, startTime: e.target.value})} />
+                  <Input label="End Time" type="time" value={manualTimeData.endTime} onChange={e => setManualTimeData({...manualTimeData, endTime: e.target.value})} />
                 </div>
-                <div className="flex items-center space-x-4">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={manualTimeData.lunchTaken}
-                      onChange={e => setManualTimeData({...manualTimeData, lunchTaken: e.target.checked})}
-                      className="rounded"
-                    />
-                    <span className="text-sm" style={{ color: colors.textPrimary }}>Lunch taken (30 min)</span>
-                  </label>
-                </div>
-                <Input
-                  label="Notes (optional)"
-                  placeholder="Travel time, special circumstances, etc."
-                  value={manualTimeData.notes}
-                  onChange={e => setManualTimeData({...manualTimeData, notes: e.target.value})}
-                />
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" checked={manualTimeData.lunchTaken} onChange={e => setManualTimeData({...manualTimeData, lunchTaken: e.target.checked})} className="rounded" />
+                  <span className="text-sm" style={{ color: colors.textPrimary }}>Lunch taken (30 min)</span>
+                </label>
+                <Input label="Notes (optional)" placeholder="Travel time, special circumstances, etc." value={manualTimeData.notes} onChange={e => setManualTimeData({...manualTimeData, notes: e.target.value})} />
                 <div className="flex space-x-2">
                   <Button size="sm" onClick={handleAddManualTime} loading={isLoading}>Save Entry</Button>
                   <Button size="sm" variant="secondary" onClick={() => setShowAddTimeEntry(false)}>Cancel</Button>
@@ -272,32 +400,16 @@ const JobDetailsModal = ({
                             <span style={{ color: colors.textPrimary }}>
                               {formatTimeDisplay(entry.startTime)} - {formatTimeDisplay(entry.endTime)}
                             </span>
-                            {entry.lunchTaken && (
-                              <span className="px-1 rounded text-xs" style={{ backgroundColor: colors.warning + '20', color: colors.warning }}>
-                                -30m lunch
-                              </span>
-                            )}
-                            {entry.manualEntry && (
-                              <span className="px-1 rounded text-xs" style={{ backgroundColor: colors.water + '20', color: colors.water }}>
-                                manual
-                              </span>
-                            )}
-                            {!entry.endTime && (
-                              <span className="px-1 rounded text-xs" style={{ backgroundColor: colors.success + '20', color: colors.success }}>
-                                active
-                              </span>
-                            )}
+                            {entry.lunchTaken && <span className="px-1 rounded text-xs" style={{ backgroundColor: colors.warning + '20', color: colors.warning }}>-30m lunch</span>}
+                            {entry.manualEntry && <span className="px-1 rounded text-xs" style={{ backgroundColor: colors.water + '20', color: colors.water }}>manual</span>}
+                            {!entry.endTime && <span className="px-1 rounded text-xs" style={{ backgroundColor: colors.success + '20', color: colors.success }}>active</span>}
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className="font-medium" style={{ color: colors.textPrimary }}>{entry.hours.toFixed(2)}h</span>
-                            {(userProfile?.role === 'manager' || userProfile?.role === 'office') && entry.endTime && (
-                              <button
-                                onClick={() => onDeleteTimeEntry(job.id, entry.id)}
-                                className="p-1 rounded"
-                                title="Delete entry"
+                            {(isManager || isOffice) && entry.endTime && (
+                              <button onClick={() => onDeleteTimeEntry(job.id, entry.id)} className="p-1 rounded" title="Delete entry"
                                 onMouseEnter={e => { e.currentTarget.style.backgroundColor = colors.danger + '15'; }}
-                                onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}
-                              >
+                                onMouseLeave={e => { e.currentTarget.style.backgroundColor = ''; }}>
                                 <Trash2 className="w-3 h-3" style={{ color: colors.danger }} />
                               </button>
                             )}
@@ -307,22 +419,104 @@ const JobDetailsModal = ({
                     </div>
                   </div>
                 ))}
-                
-                {/* Grand Total */}
                 <div className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: colors.primary + '15' }}>
                   <span className="font-bold" style={{ color: colors.primary }}>Total Time (All Techs)</span>
                   <span className="text-lg font-bold" style={{ color: colors.primary }}>{grandTotal.toFixed(2)} hours</span>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-center py-4" style={{ color: colors.textSecondary }}>
-                No time entries recorded yet
-              </p>
+              <p className="text-sm text-center py-4" style={{ color: colors.textSecondary }}>No time entries recorded yet</p>
             )}
           </div>
         )}
 
-        {job.status === 'completed' && (
+        {/* Service Entry History — full timeline from creation to completion */}
+        {(job.serviceEntries?.length > 0) && (
+          <div className="border-t pt-4" style={{ borderColor: colors.border }}>
+            <h4 className="font-medium mb-3" style={{ color: colors.textPrimary }}>
+              Service History ({job.serviceEntries.length} {job.serviceEntries.length === 1 ? 'entry' : 'entries'})
+            </h4>
+            <div className="space-y-3">
+              {job.serviceEntries.map((entry, idx) => {
+                const entryDate = entry.date ? new Date(entry.date) : null;
+                const techName = entry.completedBy
+                  ? (typeof entry.completedBy === 'object'
+                    ? (entry.completedBy.name || users.find(u => u.id === entry.completedBy.id)?.name || 'Unknown')
+                    : (users.find(u => u.id === entry.completedBy)?.name || 'Unknown'))
+                  : '';
+                const isFinal = idx === job.serviceEntries.length - 1 && !entry.needsFollowUp;
+                return (
+                  <div key={entry.id || idx} className="p-3 rounded-lg" style={{ backgroundColor: isFinal ? colors.success + '10' : colors.background, border: `1px solid ${isFinal ? colors.success + '30' : colors.border}` }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ backgroundColor: isFinal ? colors.success + '20' : colors.warning + '20', color: isFinal ? colors.success : colors.warning }}>
+                          {isFinal ? 'COMPLETED' : `DAY ${idx + 1}`}
+                        </span>
+                        {entryDate && <span className="text-xs" style={{ color: colors.textSecondary }}>{entryDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                      </div>
+                      {techName && <span className="text-xs" style={{ color: colors.textSecondary }}>{techName}</span>}
+                    </div>
+                    {entry.workDescription && (
+                      <p className="text-sm mb-2 whitespace-pre-line" style={{ color: colors.textPrimary }}>{entry.workDescription}</p>
+                    )}
+                    <div className="flex flex-wrap gap-3 text-xs" style={{ color: colors.textSecondary }}>
+                      {entry.hoursWorked > 0 && <span>{entry.hoursWorked.toFixed?.(2) || entry.hoursWorked} hrs</span>}
+                      {entry.milesDriven > 0 && <span>{entry.milesDriven} mi</span>}
+                      {entry.vehicleNumber && <span>Truck #{entry.vehicleNumber}</span>}
+                      {entry.partsUsed?.length > 0 && (
+                        <span>{entry.partsUsed.length} part{entry.partsUsed.length > 1 ? 's' : ''}</span>
+                      )}
+                      {entry.timeEntries?.length > 0 && (
+                        <span>{entry.timeEntries.length} time {entry.timeEntries.length === 1 ? 'entry' : 'entries'}</span>
+                      )}
+                    </div>
+                    {entry.partsUsed?.length > 0 && (
+                      <p className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                        Parts: {entry.partsUsed.map(p => typeof p === 'object' ? `${p.partNumber} x${p.quantity}${p.truckLocationName ? ' [' + p.truckLocationName + ']' : ''}` : p).join(', ')}
+                      </p>
+                    )}
+                    {entry.needsFollowUp && entry.followUpNotes && (
+                      <p className="text-xs mt-1 italic" style={{ color: colors.warning }}>Follow-up: {entry.followUpNotes}</p>
+                    )}
+                    {(entry.beforePhotos?.length > 0 || entry.afterPhotos?.length > 0) && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {(entry.beforePhotos || []).map((url, i) => (
+                          <a key={`b${i}`} href={url} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded overflow-hidden border" style={{ borderColor: colors.border }}>
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </a>
+                        ))}
+                        {(entry.afterPhotos || []).map((url, i) => (
+                          <a key={`a${i}`} href={url} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded overflow-hidden border" style={{ borderColor: colors.success + '40' }}>
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Running totals across all entries */}
+            {job.serviceEntries.length > 1 && (() => {
+              const totalHrs = job.serviceEntries.reduce((s, e) => s + (e.hoursWorked || 0), 0);
+              const totalMi = job.serviceEntries.reduce((s, e) => s + (e.milesDriven || 0), 0);
+              const totalParts = job.serviceEntries.reduce((s, e) => s + (e.partsUsed?.length || 0), 0);
+              return (
+                <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: colors.primary + '10', border: `1px solid ${colors.primary}30` }}>
+                  <p className="text-xs font-bold mb-1" style={{ color: colors.primary }}>RUNNING TOTALS</p>
+                  <div className="flex flex-wrap gap-4 text-sm" style={{ color: colors.textPrimary }}>
+                    <span>{totalHrs.toFixed(2)} total hrs</span>
+                    <span>{totalMi} total miles</span>
+                    <span>{totalParts} parts used</span>
+                    <span>{job.serviceEntries.length} visits</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+        {/* Legacy completion details for jobs completed before service entries existed */}
+        {!job.serviceEntries?.length && job.status === 'completed' && job.workDescription && (
           <div className="border-t pt-4" style={{ borderColor: colors.border }}>
             <h4 className="font-medium mb-3" style={{ color: colors.textPrimary }}>Completion Details</h4>
             <div className="p-4 rounded-lg space-y-2" style={{ backgroundColor: colors.success + '10' }}>
@@ -330,7 +524,7 @@ const JobDetailsModal = ({
               {job.partsUsed?.length > 0 && (
                 <p className="text-sm">
                   <strong>Parts:</strong> {Array.isArray(job.partsUsed) 
-                    ? job.partsUsed.map(p => typeof p === 'object' ? `${p.partNumber} (${p.quantity})` : p).join(', ')
+                    ? job.partsUsed.map(p => typeof p === 'object' ? `${p.partNumber} (${p.quantity})${p.truckLocationName ? ' [' + p.truckLocationName + ']' : ''}` : p).join(', ')
                     : job.partsUsed}
                 </p>
               )}
@@ -338,29 +532,23 @@ const JobDetailsModal = ({
                 <span>Hours: {job.hoursWorked}</span>
                 <span>Miles: {job.milesDriven}</span>
               </div>
-              {canSeePricing && (
-                <p className="text-lg font-bold mt-2" style={{ color: colors.success }}>
-                  Total: {formatCurrency(job.totalCost)}
-                </p>
-              )}
             </div>
-            
-            {/* Customer Rating */}
-            {job.rating && (
-              <div className="mt-4 p-3 rounded-lg" style={{ backgroundColor: colors.accent + '10' }}>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>Customer Rating:</span>
-                  <StarRating rating={job.rating} readonly size="sm" />
-                </div>
-                {job.feedback && (
-                  <p className="text-sm italic mt-2" style={{ color: colors.textSecondary }}>"{job.feedback}"</p>
-                )}
+          </div>
+        )}
+        {/* Customer Rating */}
+        {job.rating && (
+          <div className="border-t pt-4" style={{ borderColor: colors.border }}>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: colors.accent + '10' }}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>Customer Rating:</span>
+                <StarRating rating={job.rating} readonly size="sm" />
               </div>
-            )}
+              {job.feedback && <p className="text-sm italic mt-2" style={{ color: colors.textSecondary }}>"{job.feedback}"</p>}
+            </div>
           </div>
         )}
 
-        {/* Photos Section */}
+        {/* Photos */}
         {(job.photos?.length > 0 || job.beforePhotos?.length > 0 || job.afterPhotos?.length > 0) && (
           <div className="border-t pt-4" style={{ borderColor: colors.border }}>
             <h4 className="font-medium mb-3" style={{ color: colors.textPrimary }}>
@@ -407,30 +595,21 @@ const JobDetailsModal = ({
           </div>
         )}
 
+        {/* Action buttons */}
         <div className="flex flex-wrap gap-2 pt-4">
-          {job.status === 'completed' && (userProfile?.role === 'manager' || userProfile?.role === 'office') && (
+          {job.status === 'completed' && (isManager || isOffice) && (
             <>
-              <Button variant="secondary" icon={Download} onClick={() => onDownloadJobSheet(job)}>
-                Download PDF
-              </Button>
-              <Button variant="secondary" icon={FileText} onClick={() => onExportToExcel(job)}>
-                Export Excel
-              </Button>
+              <Button variant="secondary" icon={Download} onClick={() => onDownloadJobSheet(job)}>Download PDF</Button>
+              <Button variant="secondary" icon={FileText} onClick={() => onExportToExcel(job)}>Export Excel</Button>
             </>
           )}
-          {(userProfile?.role === 'manager' || userProfile?.role === 'office') && !job.soNumber && (
-            <Button variant="secondary" icon={Hash} onClick={onOpenSOModal}>
-              Add SO#
-            </Button>
+          {(isManager || isOffice) && !job.soNumber && !editing && (
+            <Button variant="secondary" icon={Hash} onClick={onOpenSOModal}>Add SO#</Button>
           )}
-          {job.status === 'pending' && (userProfile?.role === 'manager' || userProfile?.role === 'office') && (
-            <Button icon={UserPlus} onClick={onOpenAssignModal}>
-              Assign
-            </Button>
+          {job.status === 'pending' && (isManager || isOffice) && (
+            <Button icon={UserPlus} onClick={onOpenAssignModal}>Assign</Button>
           )}
-          <Button variant="secondary" className="flex-1" onClick={handleClose}>
-            Close
-          </Button>
+          <Button variant="secondary" className="flex-1" onClick={handleClose}>Close</Button>
         </div>
       </div>
     </Modal>
