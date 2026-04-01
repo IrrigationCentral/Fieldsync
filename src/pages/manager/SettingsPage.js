@@ -1,16 +1,20 @@
 // FieldSync v2 - Settings Page
 // Extracted from App.js SettingsView (~line 2575)
 import React, { useState } from 'react';
-import { DollarSign, Check } from 'lucide-react';
+import { DollarSign, Check, Truck, Plus, Trash2, MapPin } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useData } from '../../context/DataContext';
 import { useSettings } from '../../hooks/useSettings';
+import { addTruckLocation, deleteTruckLocation } from '../../firebase';
 import { Button } from '../../components/ui';
 
 const SettingsPage = () => {
   const { colors } = useTheme();
-  const { pricingSettings } = useData();
+  const { pricingSettings, truckLocations } = useData();
   const { updateSettings, isLoading } = useSettings();
+  const [newLocationName, setNewLocationName] = useState('');
+  const [newLocationType, setNewLocationType] = useState('truck');
+  const [locationLoading, setLocationLoading] = useState(false);
   const [formData, setFormData] = useState({
     hourlyRate: Number(pricingSettings?.hourlyRate) || 0,
     mileageRate: Number(pricingSettings?.mileageRate) || 0,
@@ -19,6 +23,20 @@ const SettingsPage = () => {
 
   const handleSave = async () => {
     await updateSettings(formData);
+  };
+
+  const handleAddLocation = async () => {
+    if (!newLocationName.trim()) return;
+    setLocationLoading(true);
+    await addTruckLocation({ name: newLocationName.trim(), type: newLocationType });
+    setNewLocationName('');
+    setNewLocationType('truck');
+    setLocationLoading(false);
+  };
+
+  const handleDeleteLocation = async (id) => {
+    if (!window.confirm('Remove this location?')) return;
+    await deleteTruckLocation(id);
   };
 
   const exampleHours = 2;
@@ -100,6 +118,73 @@ const SettingsPage = () => {
             <p className="text-sm" style={{ color: colors.textSecondary }}>parts markup</p>
           </div>
         </div>
+      </div>
+      {/* Truck / Parts Locations */}
+      <div className="card p-6" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}` }}>
+        <h3 className="font-semibold mb-4 flex items-center" style={{ color: colors.textPrimary }}>
+          <Truck className="w-5 h-5 mr-2" />
+          Truck / Parts Locations
+        </h3>
+        <p className="text-sm mb-4" style={{ color: colors.muted }}>
+          Manage where parts come from. These show up when completing jobs so techs can track which truck or location each part was pulled from.
+        </p>
+
+        {/* Add new location */}
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Location name (e.g. Truck 5, Shop)"
+            value={newLocationName}
+            onChange={e => setNewLocationName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddLocation()}
+            className="input flex-1"
+            style={{ backgroundColor: colors.inputBg, borderColor: colors.border, color: colors.textPrimary, fontSize: '16px' }}
+          />
+          <select
+            value={newLocationType}
+            onChange={e => setNewLocationType(e.target.value)}
+            className="px-3 py-2 rounded border"
+            style={{ borderColor: colors.border, backgroundColor: colors.inputBg, color: colors.textPrimary, fontSize: '16px' }}
+          >
+            <option value="truck">Truck</option>
+            <option value="hq">HQ / Shop</option>
+          </select>
+          <Button icon={Plus} onClick={handleAddLocation} loading={locationLoading} disabled={!newLocationName.trim()}>
+            Add
+          </Button>
+        </div>
+
+        {/* Location list */}
+        {truckLocations.length === 0 ? (
+          <div className="text-center py-6" style={{ color: colors.muted }}>
+            <MapPin className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No locations added yet. Add your trucks and HQ location above.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {truckLocations.map(loc => (
+              <div key={loc.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: colors.background }}>
+                <div className="flex items-center gap-3">
+                  {loc.type === 'hq' ? (
+                    <MapPin className="w-5 h-5" style={{ color: colors.accent }} />
+                  ) : (
+                    <Truck className="w-5 h-5" style={{ color: colors.secondary }} />
+                  )}
+                  <span className="font-medium" style={{ color: colors.textPrimary }}>{loc.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                    backgroundColor: loc.type === 'hq' ? colors.accent + '20' : colors.secondary + '20',
+                    color: loc.type === 'hq' ? colors.accent : colors.secondary
+                  }}>
+                    {loc.type === 'hq' ? 'HQ' : 'Truck'}
+                  </span>
+                </div>
+                <button onClick={() => handleDeleteLocation(loc.id)} className="p-2 rounded hover:opacity-70">
+                  <Trash2 className="w-4 h-4" style={{ color: colors.danger }} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

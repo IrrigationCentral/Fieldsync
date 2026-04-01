@@ -69,7 +69,13 @@ export {
   subscribeToParts,
   
   // Analytics
-  getAnalytics
+  getAnalytics,
+  
+  // Truck / Parts Locations
+  addTruckLocation,
+  updateTruckLocation,
+  deleteTruckLocation,
+  subscribeToTruckLocations
 } from './firestore';
 
 // Storage exports

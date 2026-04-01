@@ -1,11 +1,11 @@
 // FieldSync v2 - Inline Status Change Dropdown
-// Replaces static Badge with a clickable dropdown to change job status
-import React, { useState, useRef, useEffect } from 'react';
+// Uses React Portal to render dropdown on document.body
+// so it escapes overflow-hidden table containers
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { ChevronDown } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
 import { JOB_STATUSES, STATUS_LABELS, getStatusVariant } from '../constants/statusMaps';
 
-// Colors use alpha transparency (hex with alpha) so they work on both light and dark backgrounds
 const VARIANT_COLORS = {
   warning: { bg: '#D4A84320', text: '#D4A843', border: '#D4A84340' },
   water: { bg: '#1890FF20', text: '#1890FF', border: '#1890FF40' },
@@ -16,23 +16,55 @@ const VARIANT_COLORS = {
 };
 
 const StatusDropdown = ({ jobId, currentStatus, onStatusChange, disabled = false }) => {
-  const { colors } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const posRef = useRef({ top: 0, left: 0 });
 
+  // Close dropdown on any scroll, resize, or outside click
   useEffect(() => {
+    if (!isOpen) return;
+
+    const close = () => setIsOpen(false);
+
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      if (triggerRef.current && triggerRef.current.contains(e.target)) return;
+      setIsOpen(false);
     };
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    // Close on ANY scroll (capture phase catches scrolls inside containers too)
+    document.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isOpen]);
 
-  const variant = getStatusVariant(currentStatus);
-  const variantColors = VARIANT_COLORS[variant] || VARIANT_COLORS.default;
+  const handleToggle = useCallback((e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
+    // Calculate position right before opening
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const menuHeight = JOB_STATUSES.length * 32 + 8;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      posRef.current = {
+        top: spaceBelow > menuHeight ? rect.bottom + 2 : rect.top - menuHeight - 2,
+        left: rect.left
+      };
+    }
+    setIsOpen(true);
+  }, [isOpen]);
 
   const handleSelect = async (newStatus) => {
     if (newStatus === currentStatus || !onStatusChange) return;
@@ -46,29 +78,32 @@ const StatusDropdown = ({ jobId, currentStatus, onStatusChange, disabled = false
     setUpdating(false);
   };
 
+  const variant = getStatusVariant(currentStatus);
+  const colors = VARIANT_COLORS[variant] || VARIANT_COLORS.default;
+
+  // Read-only badge when no onStatusChange provided
   if (!onStatusChange) {
-    // Read-only fallback
     return (
       <span
         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-        style={{ backgroundColor: variantColors.bg, color: variantColors.text, border: `1px solid ${variantColors.border}` }}
+        style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
       >
         {STATUS_LABELS[currentStatus] || currentStatus}
       </span>
     );
   }
 
-  // TODO: Add keyboard navigation (arrow keys, Enter to select, Escape to close)
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <>
       <button
-        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+        ref={triggerRef}
+        onClick={handleToggle}
         disabled={disabled || updating}
-        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-opacity hover:opacity-80"
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-80"
         style={{
-          backgroundColor: variantColors.bg,
-          color: variantColors.text,
-          border: `1px solid ${variantColors.border}`,
+          backgroundColor: colors.bg,
+          color: colors.text,
+          border: `1px solid ${colors.border}`,
           opacity: updating ? 0.6 : 1
         }}
       >
@@ -76,11 +111,22 @@ const StatusDropdown = ({ jobId, currentStatus, onStatusChange, disabled = false
         <ChevronDown className="w-3 h-3 ml-1" />
       </button>
 
-      {isOpen && (
+      {isOpen && ReactDOM.createPortal(
         <div
-          className="absolute z-50 mt-1 py-1 rounded-lg shadow-lg min-w-[160px]"
-          style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.border}` }}
+          ref={menuRef}
           onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            top: posRef.current.top,
+            left: posRef.current.left,
+            zIndex: 99999,
+            backgroundColor: 'var(--color-card, #161B22)',
+            border: '1px solid var(--color-border, #30363D)',
+            borderRadius: 8,
+            padding: '4px 0',
+            minWidth: 170,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+          }}
         >
           {JOB_STATUSES.map(status => {
             const sv = getStatusVariant(status);
@@ -89,25 +135,34 @@ const StatusDropdown = ({ jobId, currentStatus, onStatusChange, disabled = false
             return (
               <button
                 key={status}
-                onClick={() => handleSelect(status)}
-                className="w-full text-left px-3 py-1.5 text-xs flex items-center space-x-2 transition-colors"
+                onClick={(e) => { e.stopPropagation(); handleSelect(status); }}
                 style={{
-                  color: isCurrent ? sc.text : colors.textPrimary,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: isCurrent ? sc.text : 'var(--color-text-primary, #E6EDF3)',
                   backgroundColor: isCurrent ? sc.bg : 'transparent',
                   fontWeight: isCurrent ? 600 : 400
                 }}
-                onMouseEnter={(e) => { if (!isCurrent) e.target.style.backgroundColor = colors.background; }}
-                onMouseLeave={(e) => { if (!isCurrent) e.target.style.backgroundColor = 'transparent'; }}
+                onMouseEnter={(e) => { if (!isCurrent) e.currentTarget.style.backgroundColor = 'var(--color-background, #0D1117)'; }}
+                onMouseLeave={(e) => { if (!isCurrent) e.currentTarget.style.backgroundColor = 'transparent'; }}
               >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sc.text }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: sc.text, flexShrink: 0 }} />
                 <span>{STATUS_LABELS[status]}</span>
-                {isCurrent && <span className="ml-auto text-xs">✓</span>}
+                {isCurrent && <span style={{ marginLeft: 'auto' }}>✓</span>}
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 

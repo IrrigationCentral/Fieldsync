@@ -7,6 +7,7 @@ import {
   subscribeToJobs,
   subscribeToSettings,
   subscribeToParts,
+  subscribeToTruckLocations,
   getAnalytics
 } from '../firebase';
 import { useAuth } from './AuthContextV2';
@@ -27,6 +28,7 @@ export const DataProvider = ({ children }) => {
   const [equipment, setEquipment] = useState([]); // 'pivots' collection in Firestore
   const [jobs, setJobs] = useState([]);
   const [parts, setParts] = useState([]);
+  const [truckLocations, setTruckLocations] = useState([]);
   const [pricingSettings, setPricingSettings] = useState({
     hourlyRate: 75,
     mileageRate: 0.65,
@@ -42,6 +44,7 @@ export const DataProvider = ({ children }) => {
       setEquipment([]);
       setJobs([]);
       setParts([]);
+      setTruckLocations([]);
       setPricingSettings({ hourlyRate: 75, mileageRate: 0.65, partsMarkup: 0 });
       setAnalytics(null);
       setDataLoading(false);
@@ -50,7 +53,7 @@ export const DataProvider = ({ children }) => {
 
     let mounted = true;
     const loadedSubs = new Set();
-    const totalSubs = 5;
+    const totalSubs = 6;
     const checkLoaded = (name) => {
       if (mounted) {
         loadedSubs.add(name);
@@ -110,6 +113,15 @@ export const DataProvider = ({ children }) => {
       },
       (error) => handleError('parts', error)
     );
+    const unsubTruckLocations = subscribeToTruckLocations(
+      (data) => {
+        if (mounted) {
+          setTruckLocations(data);
+          checkLoaded('truckLocations');
+        }
+      },
+      (error) => handleError('truckLocations', error)
+    );
 
     return () => {
       mounted = false;
@@ -118,6 +130,7 @@ export const DataProvider = ({ children }) => {
       unsubJobs();
       unsubSettings();
       unsubParts();
+      unsubTruckLocations();
     };
   }, [currentUser]);
 
@@ -160,6 +173,8 @@ export const DataProvider = ({ children }) => {
       setJobs,
       parts,
       setParts,
+      truckLocations,
+      setTruckLocations,
       pricingSettings,
       setPricingSettings,
       analytics,

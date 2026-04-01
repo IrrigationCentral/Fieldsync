@@ -16,6 +16,7 @@ import {
   orderBy, 
   onSnapshot,
   serverTimestamp,
+  arrayUnion,
   Timestamp
 } from 'firebase/firestore';
 import { db } from './config';
@@ -218,14 +219,50 @@ export const assignJob = async (jobId, techId) => {
 
 export const completeJob = async (jobId, completionData) => {
   try {
-    const totalCost = (completionData.hoursWorked * 75) + (completionData.milesDriven * 0.65);
-    await updateDoc(doc(db, 'jobs', jobId), {
-      ...completionData,
+    const serviceEntry = {
+      id: `se_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      date: new Date().toISOString(),
+      completedBy: completionData.completedBy || null,
+      workDescription: completionData.workDescription || '',
+      partsUsed: completionData.partsUsed || [],
+      partsCost: completionData.partsCost || 0,
+      hoursWorked: completionData.hoursWorked || 0,
+      milesDriven: completionData.milesDriven || 0,
+      vehicleNumber: completionData.vehicleNumber || '',
+      odometerBegin: completionData.odometerBegin || 0,
+      odometerEnd: completionData.odometerEnd || 0,
+      beforePhotos: completionData.beforePhotos || [],
+      afterPhotos: completionData.afterPhotos || [],
+      timeEntries: completionData.timeEntries || [],
+      needsFollowUp: completionData.needsFollowUp || false,
+      followUpNotes: completionData.followUpNotes || '',
+      totalCost: completionData.totalCost || 0
+    };
+
+    const updateData = {
+      serviceEntries: arrayUnion(serviceEntry),
       status: completionData.needsFollowUp ? 'needs-followup' : 'completed',
-      totalCost: totalCost,
-      completedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
+      updatedAt: serverTimestamp(),
+      workDescription: completionData.workDescription || '',
+      partsUsed: completionData.partsUsed || [],
+      hoursWorked: completionData.hoursWorked || 0,
+      milesDriven: completionData.milesDriven || 0,
+      timeEntries: completionData.timeEntries || [],
+      needsFollowUp: completionData.needsFollowUp || false,
+      followUpNotes: completionData.followUpNotes || ''
+    };
+
+    if (!completionData.needsFollowUp) {
+      updateData.completedAt = serverTimestamp();
+    }
+    if (completionData.beforePhotos?.length) {
+      updateData.beforePhotos = arrayUnion(...completionData.beforePhotos);
+    }
+    if (completionData.afterPhotos?.length) {
+      updateData.afterPhotos = arrayUnion(...completionData.afterPhotos);
+    }
+
+    await updateDoc(doc(db, 'jobs', jobId), updateData);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

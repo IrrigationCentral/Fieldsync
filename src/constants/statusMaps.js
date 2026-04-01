@@ -8,13 +8,18 @@ export const STATUS_VARIANTS = {
   'billed': 'success',
   'ready-to-bill': 'accent',
   'needs-followup': 'danger',
+  'canceled': 'danger',
   'active': 'success',
   'needs-service': 'danger'
 };
 
-export const JOB_STATUSES = ['pending', 'assigned', 'in-progress', 'completed', 'ready-to-bill', 'billed', 'needs-followup'];
+export const JOB_STATUSES = ['pending', 'assigned', 'in-progress', 'completed', 'ready-to-bill', 'billed', 'needs-followup', 'canceled'];
 
-export const ACTIVE_STATUSES = ['assigned', 'in-progress', 'needs-followup'];
+// Active = everything except ready-to-bill, billed, canceled
+export const ACTIVE_STATUSES = ['pending', 'assigned', 'in-progress', 'needs-followup', 'completed'];
+
+// Inactive = ready-to-bill, billed, canceled
+export const INACTIVE_STATUSES = ['ready-to-bill', 'billed', 'canceled'];
 
 export const COMPLETED_STATUSES = ['completed', 'billed', 'ready-to-bill'];
 
@@ -25,7 +30,8 @@ export const STATUS_LABELS = {
   'completed': 'Completed',
   'ready-to-bill': 'Ready to Bill',
   'billed': 'Billed',
-  'needs-followup': 'Needs Follow-up'
+  'needs-followup': 'Needs Follow-up',
+  'canceled': 'Canceled'
 };
 
 /** @param {string} status */

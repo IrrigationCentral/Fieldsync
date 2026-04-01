@@ -77,7 +77,16 @@ const AppLayout = ({ selectedTab, onSelectTab, onOpenProfile, onLogout, onOpenJo
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: colors.background }}>
+    <div
+      className="flex h-screen overflow-hidden"
+      style={{
+        backgroundColor: colors.background,
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)'
+      }}
+    >
       {/* Sidebar */}
       <Sidebar
         selectedTab={selectedTab}

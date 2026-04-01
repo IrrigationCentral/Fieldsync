@@ -1,7 +1,7 @@
 // FieldSync v2 - User Management Hook
 // Extracted from App.js lines 742-756
 import { useState, useCallback } from 'react';
-import { deleteUser as fbDeleteUser } from '../firebase';
+import { deleteUser as fbDeleteUser, updateUser as fbUpdateUser } from '../firebase';
 import { useNotifications } from '../context/NotificationContext';
 
 export const useUsers = () => {
@@ -22,9 +22,20 @@ export const useUsers = () => {
     return result;
   }, [addNotification]);
 
+  const updateUser = useCallback(async (userId, data) => {
+    setIsLoading(true);
+    const result = await fbUpdateUser(userId, data);
+    if (!result.success) {
+      addNotification('error', result.error || 'Failed to update user');
+    }
+    setIsLoading(false);
+    return result;
+  }, [addNotification]);
+
   return {
     isLoading,
-    deleteUser
+    deleteUser,
+    updateUser
   };
 };
 
