@@ -78,8 +78,9 @@ const AppLayout = ({ selectedTab, onSelectTab, onOpenProfile, onLogout, onOpenJo
 
   return (
     <div
-      className="flex h-screen overflow-hidden"
+      className="flex overflow-hidden"
       style={{
+        height: '100dvh',
         backgroundColor: colors.background,
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -110,7 +111,7 @@ const AppLayout = ({ selectedTab, onSelectTab, onOpenProfile, onLogout, onOpenJo
         />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto p-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))', WebkitOverflowScrolling: 'touch' }}>
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

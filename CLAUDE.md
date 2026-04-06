@@ -1,39 +1,134 @@
-# FieldSync React Web Application
+# FieldSync — Project Reference
 
-## Quick Reference
-- **Deploy:** `vercel --prod` (REQUIRES ORCHESTRATOR APPROVAL)
-- **Dev:** `npm start`
-- **Build:** `npm run build`
-- **Firebase:** `fieldsync-2768a`
+**Path**: C:\Projects\fieldsync-app
+**Status**: Production + V2 Refactor in Progress
+**Firebase**: fieldsync-2768a (DB name: "hardluck")
+**Deploy**: vercel --prod
+**Vercel URL**: fieldsync-app.vercel.app
+
+---
+
+## Quick Commands
+
+| Action | Command |
+|--------|---------|
+| Dev server | `npm start` |
+| Build | `npm run build` |
+| Deploy | `vercel --prod` |
+| V2 branch | `git checkout refactor/v2-architecture` |
+
+---
+
+## Tech Stack
+
+- React (Create React App)
+- TailwindCSS
+- Firebase (Auth, Firestore, Functions, Messaging)
+- Deployed via Vercel
+
+---
 
 ## Architecture
-- Main app: `src/App.js` (~3,855 lines)
-- Modals: `src/components/modals/` (13 extracted modals)
-- Context: `src/context/` (AuthContext, etc.)
-- Firebase: `src/firebase/`
-- Services: `src/services/`
+
+### Production (App.js monolith — ~3,850 lines)
+Single file handles all routing, state, modals, role-based views.
+
+### V2 (AppV2.js — branch: refactor/v2-architecture)
+Decomposed into ~30 files: contexts, hooks, pages, components.
+Feature flag: `REACT_APP_USE_V2=true/false` in `src/index.js`
+
+**V2 Status**: Phases 1-5 complete, Phase 6 (gap fixes) in progress, Phase 7 (cutover) not started.
+**Full v2 docs**: `C:\Projects\.claude\projects\fieldsync-v2-refactor.md`
+
+---
 
 ## Theme Colors
-- Primary: #2D5016 (forest green)
-- Secondary: #8FBC3B (light green)
-- Accent: #F4B942 (wheat gold)
-- Danger: #C73E1D
 
-## Roles
-Farmer → Tech → Office → Manager (increasing permissions)
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Primary | `#2D5016` | Forest green |
+| Secondary | `#8FBC3B` | Light green accents |
+| Accent | `#F4B942` | Wheat gold highlights |
+| Danger | `#C73E1D` | Errors/warnings |
 
-## CRITICAL
-- **GOLDEN BUILD:** `fieldsync-qwni76e71-spheresdeep0322s-projects.vercel.app`
-- **Recovery:** `vercel promote fieldsync-qwni76e71-spheresdeep0322s-projects.vercel.app`
-- **Knowledge Base:** `C:\Projects\.claude\`
-- **Worker Rules:** `C:\Projects\.claude\orchestrator\WORKER-RULES.md`
+---
 
-## Before Deploying
-1. `npm run build` succeeds
-2. `git status` is clean
-3. Test critical flows locally
-4. Get Lee's explicit approval
-5. Then and only then: `vercel --prod`
+## User Roles
 
-## If You're a Subagent
-You are under orchestrator control. Read the worker rules. Do not deploy.
+| Role | Default Tab | Access |
+|------|-------------|--------|
+| Farmer | Equipment | Own equipment, service history |
+| Tech | Dashboard | Assigned jobs, time tracking |
+| Office | Jobs | All jobs, scheduling, call-ins |
+| Manager | Dashboard | Everything + analytics + settings |
+
+---
+
+## Critical Patterns
+
+1. **needs-followup status**: MUST be in ALL active job status filter arrays
+   ```js
+   ['assigned', 'in-progress', 'needs-followup']
+   ```
+
+2. **assignedTo dual format**: Can be array OR string
+   ```js
+   const assignees = Array.isArray(job.assignedTo) ? job.assignedTo : [job.assignedTo].filter(Boolean);
+   ```
+
+3. **Firebase init**: Always use try/catch or getApps() check
+   ```js
+   const app = getApps().length === 0 ? initializeApp(config) : getApps()[0];
+   ```
+
+4. **Equipment = "pivots"**: Legacy naming in codebase. Collection is "pivots" in Firestore.
+
+5. **7 job statuses**: pending, assigned, in-progress, completed, ready-to-bill, billed, needs-followup
+
+---
+
+## File Structure
+
+```
+src/
+├── App.js              # Production monolith (~3,850 lines)
+├── AppV2.js            # V2 entry point (~430 lines)
+├── index.js            # Feature flag switches App vs AppV2
+├── components/
+│   └── modals/         # 10-11 modal components
+├── context/            # V2 contexts (Auth, Data, Theme, Notification)
+├── hooks/              # V2 custom hooks
+├── pages/              # V2 page components (16 total)
+├── constants/          # V2 constants (theme, roles, statusMaps)
+├── firebase/
+│   └── config.js       # Firebase configuration
+├── services/           # SMS, notifications, exports
+└── utils/              # Formatters
+```
+
+---
+
+## Credentials
+
+| Credential | Location |
+|------------|----------|
+| Firebase Config | `src/firebase/config.js` |
+| VAPID Key | Starts with `BJ4vc3C4hQ...` |
+| SHA-1 | `7B:80:1D:CF:D0:3D:57:72:59:86:DC:2E:7F:C0:73:53:D1:06:E5:9C` |
+
+---
+
+## Recovery
+
+- Golden build: `C:\Projects\.claude\GOLDEN_BUILD_DO_NOT_DELETE.md`
+- Vercel rollback: Use Vercel dashboard
+- V2 rollback: Set `REACT_APP_USE_V2=false` in Vercel env vars
+
+---
+
+## Knowledge Base
+
+- Main docs: `C:\Projects\.claude\projects\fieldsync.md`
+- V2 refactor: `C:\Projects\.claude\projects\fieldsync-v2-refactor.md`
+- Changelog: `C:\Projects\.claude\changelogs\fieldsync.md`
+- Decisions: `C:\Projects\.claude\DECISIONS.md`

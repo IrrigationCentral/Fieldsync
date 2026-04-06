@@ -1,0 +1,57 @@
+Vercel CLI 48.12.0
+Retrieving project…
+Deploying spheresdeep0322s-projects/fieldsync-app
+Uploading [--------------------] (0.0B/5.7KB)
+Uploading [=========-----------] (2.6KB/5.7KB)
+Uploading [====================] (5.7KB/5.7KB)
+Inspect: https://vercel.com/spheresdeep0322s-projects/fieldsync-app/CMHsMBra8GFakYSu4krvH5NyC15T [3s]
+Production: https://fieldsync-57bwqii9e-spheresdeep0322s-projects.vercel.app [3s]
+https://fieldsync-57bwqii9e-spheresdeep0322s-projects.vercel.appBuilding...
+Building...
+Building: Running build in Washington, D.C., USA (East) – iad1
+Building: Build machine configuration: 2 cores, 8 GB
+Building: Retrieving list of deployment files...
+Building: Downloading 1078 deployment files...
+Building: Restored build cache from previous deployment (5ySsj9VEUeHv763YBrCYcJgXxCvf)
+Building: Running "vercel build"
+Building: Vercel CLI 50.27.1
+Building: Installing dependencies...
+Building: up to date in 3s
+Building: 294 packages are looking for funding
+Building: run `npm fund` for details
+Building: npm notice
+Building: npm notice New minor version of npm available! 11.6.2 -> 11.11.0
+Building: npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.0
+Building: npm notice To update run: npm install -g npm@11.11.0
+Building: npm notice
+Building: Running "npm run build"
+Building: > fieldsync-app@1.0.0 build
+Building: > react-scripts build
+Building: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Building: (node:80) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+Building: (Use `node --trace-deprecation ...` to show where the warning was created)
+Building: Creating an optimized production build...
+Building: [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Building: Compiled successfully.
+Building: File sizes after gzip:
+Building: 606.6 kB (+6.21 kB)  build/static/js/main.3af37ef8.js
+Building: 5.77 kB              build/static/css/main.465bd346.css
+Building: 1.77 kB              build/static/js/453.caa68643.chunk.js
+Building: 441 B                build/static/js/551.ec0d5d3e.chunk.js
+Building: 308 B                build/static/js/869.db341e00.chunk.js
+Building: 227 B                build/static/js/205.95e2e946.chunk.js
+Building: The bundle size is significantly larger than recommended.
+Building: Consider reducing it with code splitting: https://goo.gl/9VhYWB
+Building: You can also analyze the project dependencies: https://goo.gl/LeUzfb
+Building: The project was built assuming it is hosted at /.
+Building: You can control this with the homepage field in your package.json.
+Building: The build folder is ready to be deployed.
+Building: You may serve it with a static server:
+Building: npm install -g serve
+Building: serve -s build
+Building: Find out more about deployment here:
+Building: https://cra.link/deployment
+Building: Build Completed in /vercel/output [43s]
+Building: Deploying outputs...
+[2K[1A[2K[GProduction: https://fieldsync-57bwqii9e-spheresdeep0322s-projects.vercel.app [1m]
+Completing...

@@ -8,10 +8,11 @@
     box-sizing: border-box;
   }
 
-  /* Prevent Android keyboard from resizing the viewport */
+  /* Prevent keyboard from resizing the viewport */
   html {
     scroll-behavior: smooth;
     height: 100%;
+    height: 100dvh;
     overflow: hidden;
     /* Fill status bar area on mobile with dark bg */
     background-color: var(--color-background, #0D1117);
@@ -26,6 +27,7 @@
     background-color: #FAFAF7;
     transition: background-color 200ms ease-out;
     height: 100%;
+    height: 100dvh;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     letter-spacing: -0.01em;
@@ -34,11 +36,23 @@
 
   #root {
     height: 100%;
+    height: 100dvh;
     overflow: auto;
   }
 
   body.dark {
     background-color: #0D1117;
+  }
+
+  /* iOS tap fixes - prevents 300ms delay and ghost clicks */
+  button, a, [role="button"], select, input[type="submit"] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* iOS momentum scrolling for all scroll containers */
+  [class*="overflow-y-auto"], [class*="overflow-auto"] {
+    -webkit-overflow-scrolling: touch;
   }
 
   ::-webkit-scrollbar {

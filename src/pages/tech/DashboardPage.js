@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Clock, Wrench, Navigation, Plus, AlertCircle,
+  Wrench, Navigation, Plus, AlertCircle,
   Briefcase, Clipboard, ChevronUp, ChevronDown, UserPlus,
   MapPin, Phone, PlayCircle, CheckCircle
 } from 'lucide-react';
@@ -65,11 +65,10 @@ const DashboardPage = ({
         </div>
       </div>
 
-      {/* Stats Cards - using serviceEntries-based hours */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-4">
         <StatCard title="Active Jobs" value={activeJobs.length} icon={Wrench} color={colors.water} />
         <StatCard title="Jobs Completed" value={myStats.totalJobs} icon={CheckCircle} color={colors.success} />
-        <StatCard title="Total Hours" value={myStats.totalHours.toFixed(1)} icon={Clock} color={colors.accent} />
         <StatCard title="Total Miles" value={myStats.totalMiles} icon={Navigation} color={colors.primary} />
       </div>
 
