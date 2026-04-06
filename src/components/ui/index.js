@@ -21,7 +21,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   }, [isOpen]);
 
   // On iOS: when an input inside the modal is focused, scroll it into view
-  // This handles the keyboard covering inputs reliably
+  // Uses multiple strategies to ensure visibility above the keyboard
   React.useEffect(() => {
     if (!isOpen) return;
 
@@ -30,10 +30,19 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
       if (!el || !modalRef.current?.contains(el)) return;
       const tag = el.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') {
-        // Delay to let iOS keyboard fully animate open
-        setTimeout(() => {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 350);
+        // Multiple delays to catch different iOS keyboard animation timings
+        [100, 300, 500].forEach(delay => {
+          setTimeout(() => {
+            // Scroll within the backdrop (the scrollable overlay)
+            const backdrop = modalRef.current?.parentElement;
+            if (backdrop) {
+              const elRect = el.getBoundingClientRect();
+              const backdropRect = backdrop.getBoundingClientRect();
+              const scrollTarget = backdrop.scrollTop + (elRect.top - backdropRect.top) - (window.innerHeight * 0.25);
+              backdrop.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+            }
+          }, delay);
+        });
       }
     };
 
@@ -83,8 +92,6 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
           </button>
         </div>
         {children}
-        {/* Extra bottom padding so last inputs can scroll above iOS keyboard */}
-        <div className="h-16 flex-shrink-0" />
       </div>
     </div>
   );
