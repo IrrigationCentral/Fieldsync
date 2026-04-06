@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
   const switchRole = useCallback((newRole) => {
     if (!userProfile) return;
-    setUserProfile(prev => ({ ...prev, role: newRole }));
+    setUserProfile(prev => ({ ...prev, role: newRole, _originalRole: prev._originalRole || prev.role }));
   }, [userProfile]);
 
   return (
