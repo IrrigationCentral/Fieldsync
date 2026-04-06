@@ -125,24 +125,28 @@
     @apply fixed inset-0 bg-black/40 flex items-center justify-center z-50;
     backdrop-filter: blur(8px);
     animation: fadeIn 0.15s ease-out;
-    /* Android keyboard fix */
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    /* Use visual viewport height on iOS so keyboard doesn't overlap */
     height: 100%;
-    min-height: 100%;
+    height: 100dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 0;
   }
 
   .modal-content {
-    @apply rounded-2xl max-h-[90vh] overflow-auto;
+    @apply rounded-2xl overflow-auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.1);
     animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    /* Android keyboard fix - prevent content jump */
     position: relative;
     max-height: 85vh;
     max-height: 85dvh;
+    /* Ensure modal can shrink when keyboard is open */
+    flex-shrink: 1;
   }
 
   .badge {

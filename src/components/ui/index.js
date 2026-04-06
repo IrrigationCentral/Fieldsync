@@ -13,12 +13,44 @@ import {
 // TODO: Add full focus trap (capture Tab/Shift+Tab to keep focus within modal)
 export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const modalRef = React.useRef(null);
+  const backdropRef = React.useRef(null);
+  const [keyboardHeight, setKeyboardHeight] = React.useState(0);
 
   React.useEffect(() => {
     if (isOpen && modalRef.current) {
       modalRef.current.focus();
     }
   }, [isOpen]);
+
+  // iOS keyboard detection via visualViewport API
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      const kbHeight = window.innerHeight - vv.height;
+      setKeyboardHeight(kbHeight > 50 ? kbHeight : 0);
+    };
+
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, [isOpen]);
+
+  // Scroll focused input into view when keyboard opens
+  React.useEffect(() => {
+    if (!isOpen || keyboardHeight === 0 || !modalRef.current) return;
+    const activeEl = document.activeElement;
+    if (activeEl && modalRef.current.contains(activeEl)) {
+      setTimeout(() => {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [isOpen, keyboardHeight]);
 
   if (!isOpen) return null;
 
@@ -34,19 +66,32 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     if (e.key === 'Escape') onClose();
   };
 
+  // When keyboard is open, shift modal up and reduce max height
+  const modalStyle = {
+    backgroundColor: 'var(--color-card)',
+    border: '1px solid var(--color-border)',
+    ...(keyboardHeight > 0 ? {
+      marginBottom: keyboardHeight,
+      maxHeight: `calc(90vh - ${keyboardHeight}px)`,
+      transition: 'margin-bottom 0.2s ease, max-height 0.2s ease'
+    } : {})
+  };
+
   return (
     <div
+      ref={backdropRef}
       className="modal-backdrop"
       onClick={onClose}
       onKeyDown={handleKeyDown}
       role="dialog"
       aria-modal="true"
+      style={keyboardHeight > 0 ? { alignItems: 'flex-start', paddingTop: '2rem' } : {}}
     >
       <div
         ref={modalRef}
-        className={`modal-content ${sizeClasses[size]} w-full mx-4 p-6 max-h-[90vh] overflow-y-auto`}
+        className={`modal-content ${sizeClasses[size]} w-full mx-4 p-6 overflow-y-auto`}
         onClick={e => e.stopPropagation()}
-        style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+        style={modalStyle}
         tabIndex={-1}
       >
         <div className="flex items-center justify-between mb-6">
