@@ -51,3 +51,6 @@ fieldnet-ref-*.png
 # Misc
 nul
 CLAUDE.md
+
+.vercel
+.env*.local

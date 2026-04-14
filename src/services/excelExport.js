@@ -68,6 +68,30 @@ const applyColumnHeaders = (sheet, row, cols) => {
 };
 
 export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSettings) => {
+  // Debug: log service entries to console so data issues can be diagnosed
+  console.log('[ExcelExport] Job ID:', job.id, 'SO:', job.soNumber);
+  console.log('[ExcelExport] serviceEntries:', JSON.stringify(job.serviceEntries, null, 2));
+  console.log('[ExcelExport] techs available:', techs?.map(t => ({ id: t.id, name: t.name })));
+
+  // Helper: resolve completedBy to a tech name — handles both string ID and object formats
+  const resolveTechName = (completedBy) => {
+    if (!completedBy) return null;
+    if (typeof completedBy === 'object' && completedBy.name) return completedBy.name;
+    if (typeof completedBy === 'string') {
+      const found = techs?.find(t => t.id === completedBy);
+      return found?.name || null;
+    }
+    return null;
+  };
+
+  // Helper: resolve completedBy to a tech ID key
+  const resolveTechId = (completedBy) => {
+    if (!completedBy) return 'unknown';
+    if (typeof completedBy === 'object' && completedBy.id) return completedBy.id;
+    if (typeof completedBy === 'string') return completedBy;
+    return 'unknown';
+  };
+
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Service Call');
 
@@ -167,6 +191,17 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
       grandTotalMiles += entry.milesDriven || 0;
       grandTotalCost += entry.totalCost || 0;
     });
+
+    // ALSO include any job-level time entries (e.g. manually added by manager after completion)
+    // These live in job.timeEntries but NOT inside any serviceEntry
+    if (job.timeEntries && job.timeEntries.length > 0) {
+      const seTimeEntryIds = new Set(allTimeEntries.map(te => te.id));
+      const orphanEntries = job.timeEntries.filter(te => !seTimeEntryIds.has(te.id));
+      if (orphanEntries.length > 0) {
+        console.log('[ExcelExport] Found', orphanEntries.length, 'job-level time entries not in serviceEntries');
+        allTimeEntries.push(...orphanEntries.map(te => ({ ...te, serviceDate: te.startTime })));
+      }
+    }
   } else {
     // Legacy: use flat job fields
     allTimeEntries = (job.timeEntries || []).map(te => ({ ...te }));
@@ -269,8 +304,8 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
         });
       } else if (sEntry.hoursWorked) {
         // No detailed time entries but has hours summary
-        const techName = typeof sEntry.completedBy === 'object' ? (sEntry.completedBy?.name || 'Unknown') : 'Unknown';
-        const techKey = sEntry.completedBy?.id || 'unknown';
+        const techName = resolveTechName(sEntry.completedBy) || 'Unknown';
+        const techKey = resolveTechId(sEntry.completedBy);
         if (!techTotals[techKey]) techTotals[techKey] = { name: techName, hours: 0, entries: 0 };
         techTotals[techKey].hours += sEntry.hoursWorked;
         techTotals[techKey].entries += 1;
@@ -282,6 +317,38 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
         currentRow++;
       }
     });
+
+    // Include any job-level time entries added after completion (e.g. manual entries by manager)
+    if (job.timeEntries && job.timeEntries.length > 0) {
+      const seTimeIds = new Set();
+      serviceEntries.forEach(se => (se.timeEntries || []).forEach(te => seTimeIds.add(te.id)));
+      const orphanEntries = job.timeEntries.filter(te => !seTimeIds.has(te.id));
+      if (orphanEntries.length > 0) {
+        orphanEntries.forEach(entry => {
+          const techName = techs?.find(t => t.id === entry.techId)?.name || entry.techName || 'Unknown';
+          const hours = getEntryHours(entry);
+          const techKey = entry.techId || 'unknown';
+          if (!techTotals[techKey]) techTotals[techKey] = { name: techName, hours: 0, entries: 0 };
+          techTotals[techKey].hours += hours;
+          techTotals[techKey].entries += 1;
+          computedTotalHours += hours;
+
+          sheet.getCell(`A${currentRow}`).value = techName;
+          sheet.getCell(`B${currentRow}`).value = formatDate(entry.startTime);
+          sheet.getCell(`C${currentRow}`).value = formatTime(entry.startTime);
+          sheet.getCell(`D${currentRow}`).value = formatTime(entry.endTime);
+          sheet.getCell(`E${currentRow}`).value = entry.lunchTaken ? 'Yes (-30m)' : 'No';
+          sheet.getCell(`F${currentRow}`).value = hours.toFixed(2);
+
+          if (currentRow % 2 === 0) {
+            ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
+              sheet.getCell(`${col}${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LIGHT_ROW } };
+            });
+          }
+          currentRow++;
+        });
+      }
+    }
   } else {
     // Legacy time entries
     allTimeEntries.forEach(entry => {
@@ -357,7 +424,7 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
   if (serviceEntries && serviceEntries.length > 0) {
     serviceEntries.forEach((entry, idx) => {
       const isFinal = idx === serviceEntries.length - 1 && !entry.needsFollowUp;
-      const techName = typeof entry.completedBy === 'object' ? entry.completedBy?.name : null;
+      const techName = resolveTechName(entry.completedBy);
       const dayLabel = isFinal ? `DAY ${idx + 1} - COMPLETED` : `DAY ${idx + 1}`;
 
       // Day sub-header
@@ -367,18 +434,21 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
       sheet.getCell(`A${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_BG } };
       currentRow++;
 
-      // Work description — dynamic row height based on text length
+      // Work description — single row with horizontal merge + explicit tall height
+      // Excel ignores row height on vertically merged cells, so we use ONE row only
       const desc = entry.workDescription || '(No description recorded)';
-      const estimatedLines = Math.max(1, Math.ceil(desc.length / 80));
-      const descRows = Math.max(2, Math.min(estimatedLines, 12));
-      sheet.mergeCells(`A${currentRow}:F${currentRow + descRows - 1}`);
+      const lineBreaks = (desc.match(/\n/g) || []).length;
+      const wrappedLines = Math.ceil(desc.length / 70);
+      const totalLines = Math.max(lineBreaks + 1, wrappedLines);
+      sheet.mergeCells(`A${currentRow}:F${currentRow}`);
       sheet.getCell(`A${currentRow}`).value = desc;
       sheet.getCell(`A${currentRow}`).alignment = { wrapText: true, vertical: 'top' };
       sheet.getCell(`A${currentRow}`).border = {
         top: { style: 'thin' }, left: { style: 'thin' },
         bottom: { style: 'thin' }, right: { style: 'thin' }
       };
-      currentRow += descRows;
+      sheet.getRow(currentRow).height = Math.max(40, totalLines * 15);
+      currentRow++;
 
       // Vehicles for this entry
       const entryVehicles = entry.vehicles && entry.vehicles.length > 0
@@ -454,18 +524,20 @@ export const exportJobToExcel = async (job, pivot, farmer, techs, pricingSetting
     sheet.getCell(`F${currentRow}`).value = grandTotalCost > 0 ? `$${grandTotalCost.toFixed(2)}` : '';
     currentRow += 2;
   } else {
-    // Legacy single job — work description with dynamic sizing
+    // Legacy single job — single row with horizontal merge + explicit tall height
     const workDescription = job.workDescription || job.description || '';
-    const estimatedLines = Math.max(1, Math.ceil(workDescription.length / 80));
-    const descRows = Math.max(3, Math.min(estimatedLines, 15));
-    sheet.mergeCells(`A${currentRow}:F${currentRow + descRows - 1}`);
+    const legacyLineBreaks = (workDescription.match(/\n/g) || []).length;
+    const legacyWrapped = Math.ceil(workDescription.length / 70);
+    const legacyTotalLines = Math.max(legacyLineBreaks + 1, legacyWrapped);
+    sheet.mergeCells(`A${currentRow}:F${currentRow}`);
     sheet.getCell(`A${currentRow}`).value = workDescription;
     sheet.getCell(`A${currentRow}`).alignment = { wrapText: true, vertical: 'top' };
     sheet.getCell(`A${currentRow}`).border = {
       top: { style: 'thin' }, left: { style: 'thin' },
       bottom: { style: 'thin' }, right: { style: 'thin' }
     };
-    currentRow += descRows + 1;
+    sheet.getRow(currentRow).height = Math.max(50, legacyTotalLines * 15);
+    currentRow += 2;
   }
 
   // === PARTS SECTION (combined from all entries) ===
