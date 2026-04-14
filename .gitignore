@@ -54,3 +54,6 @@ CLAUDE.md
 
 .vercel
 .env*.local
+fix-env.bat  
+fix-env.cjs  
+.env.production  
